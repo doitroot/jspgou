@@ -1,0 +1,96 @@
+
+[#if (user.isOpenStore?string("1","2"))=="2"]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>${globalConfig.mallName!}-商家入驻</title>
+    [#include "../../includes/common.html"]
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    [#include "../../includes/topBar.html"]
+    <!-- 头部 -->
+    <div class="header head-shadow-slim">
+      <div class="senter-head">
+        <div class="senter-left">
+            [#assign name="商家入驻"]
+            [#include "../../includes/logo.html"]
+        </div>
+        <div class="senter-right">
+            <a class="senter-right__tab" href="${base}/member-storeRegister-store_center.htm">首页</a>
+            <a class="senter-right__tab  senter-right__tab--active" href="${base}/member-storeRegister-store_select.htm">商家入驻</a>
+            <a class="senter-right__tab tab-last" href="${base}/helpCenter.htm">商家帮助</a>
+        </div>
+      </div>
+    </div> 
+    <!-- 主体 -->
+    <div class="senter-body">
+      <div class="container senter-inner sellerselect-inner">
+          <!-- 主体头部 -->
+          <ul class="senter-inner__head" style="overflow:hidden;">
+            <li class="senter-inner__tab senter-inner__tab--active">
+               <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                店铺选择
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab">
+               <span class=""><i class="fa fa-file-text-o senter-inner__fa"></i></span>
+                签订入住协议
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab" style="padding-left:40px;">
+               <span class=""><i class="fa fa-user-o senter-inner__fa"></i></span>
+               个人/企业信息认证
+               <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+           </li>
+            <li class="senter-inner__tab">
+               <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                店铺信息认证
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab">
+               <span class=""><i class="fa fa-calendar-check-o senter-inner__fa"></i></span>
+                等待审核
+            </li>
+         </ul>
+          <!-- 主体身体 -->
+          <div class="senter-con">
+            <div class="senter-identify">
+               <h3 class="senter-identify__title senter-identify__title--sellerselect">我要开店</h3>
+               <h4 class="sellerselect-identify__title">单个会员只能创建一个店铺; 开店后店铺无法注销; 平台审核开通预计需要1-3个工作日。了解更多请查看商家帮助</h4>
+            </div>
+
+            <div class="sellerselect-ebody" id="main">
+            <!-- 创建店铺框 -->
+              <div class="sellerselect-create sellerselect-left">
+                  <div class="sellerselect-box">
+                     <span class="sellerselect-box__person"><i class="fa fa-user-circle"></i></span>
+                     <p class="sellerselect-box__descript">个人店铺</p>
+                     <p class="sellerselect-box__descript sellerselect-box__descript--size">
+                         个人店铺只需要注册会员<br>提供个人身份信息即可
+                     </p>
+                     <a href="${base}/member-storeRegister-store_sign.htm?storeType=1" class="createshop createshop-personal">
+                         创建个人店铺
+                     </a>
+                  </div>
+              </div>
+              <div class="sellerselect-create sellerselect-right">
+                 <div class="sellerselect-box">
+                     <span class="sellerselect-box__person"><i class="fa fa-home"></i></span>
+                     <p class="sellerselect-box__descript">企业店铺</p>
+                     <p class="sellerselect-box__descript sellerselect-box__descript--size">
+                         企业店铺需要注册会员<br>提供公司营业执照等证件
+                     </p>
+                     <a href="${base}/member-storeRegister-store_sign.htm?storeType=2" class="createshop createshop-personal">
+                         创建企业店铺
+                     </a>
+                 </div>
+              </div>
+            </div>
+      </div>
+    </div>
+</body>
+</html>
+[#else]
+[#include "./storeSettledIn.html"]
+[/#if]

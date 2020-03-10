@@ -1,0 +1,2 @@
+webpackJsonp([96],{jcpE:function(e,n){},w2fN:function(e,n,t){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var r={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=t("C7Lr")({name:"shopManageLayOut"},r,!1,function(e){t("jcpE")},null,null);n.default=u.exports}});
+//# sourceMappingURL=96.e6a043dd0d5cbf544e23.js.map

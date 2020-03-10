@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="full-page">
+<head>
+  <title>商品搜索</title>
+  [#include "../includes/common.html"]
+</head>
+<body class="full-page" >
+  [#assign topName="搜索列表"/]
+  [#include "../includes/topbar.html"]
+  <div class="cms nav-top" id="searchList" v-cloak>
+    <div class="cate-warppers" :style="mask?'overflow:hidden;':'overflow:auto;'">
+      <!-- 筛选tab -->
+      <div class="mbv-header" style="margin-top:46px;" :style="navActiveIndex == 0?'z-index:9999;':''">
+        <div class="class-bg">
+          <van-search  class="mbv-search " 
+          :readonly="readonly"
+          v-model="params.keyword" @search="getKeyword" ></van-search>
+        </div>
+        <van-row class="screen-nav t-coll">
+          <van-col class="screen-nav-sort screen-col" span="6">
+            <span :class="navActiveIndex === 0?'screen-active':''"  @click="openSelect(0)">{{getOption}}
+              <span class="t-12"> {{navActiveIndex === 0 && mask?' ▲ ':' ▼ '}} </span>
+            </span>
+          </van-col>
+          <van-col class="screen-nav-xioal screen-col" span="6">
+            <span @click="openSelect(1)" :class="navActiveIndex === 1?'screen-active':''">销量 </span>
+          </van-col>
+          <van-col class="screen-nav-xioal screen-col" span="6">
+            <span @click="openSelect(2)" :class="navActiveIndex === 2?'screen-active':''">价格
+              <span class="t-12">{{params.oderBy == 'priceDesc'?' ▼ ':'▲'}}</span>
+            </span>
+          </van-col>
+          <van-col class="screen-nav-shaixuan screen-col" span="6">
+            <span :class="navActiveIndex ===3?'screen-active':''" @click="openSelect(3)"> 筛选 </span>
+          </van-col>
+        </van-row>
+      </div>
+      <!-- 商品列表 -->
+      <div class="data-list">
+        <div v-for="(item,index) in queryData" :key="index">
+          <div class="goods-wrapper" v-if="item" @click="toGoodsDetail(item)">
+            <div class="goods-img">
+              <img :src="baseUrl + item.imageUrl" />
+            </div>
+            <div class="goods-wrap">
+              <div class="goods-title">
+                {{item.name}}
+              </div>
+              <span class="pink rmb">￥ </span><span class="pink price">{{$float(item.salePrice)}}</span>
+              <div class="goods-detail">
+                <van-tag class="goods-label" v-if="item.selfSupport" plain type="danger">自营</van-tag>
+                <span class="goods-num">{{item.monthSales}}人付款</span>
+                <span class="quarantine">|</span>
+                <span>{{item.monthComment}}个评价</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="van-list__finished-text" v-if="loading||finished">{{loadingMessage}}</div>
+      </div>
+      <!-- 遮罩 -->
+      <div class="screen-mask">
+        <!-- 排序 -->
+        <van-popup v-if="navActiveIndex === 0" v-model="mask" @close="tapClose" position="top" :overlay="true">
+          <div class="screen-sort-select">
+            <div v-for="(item,index) in selectData" :key="index" @click="optionChoice(index)"
+             class="screen-sort-select_item"
+             :class="activeIndex === index?'screen-active':''">{{item.option}}</div>
+          </div>
+        </van-popup>
+        <!-- 筛选 -->
+        <van-popup v-if="navActiveIndex === 3" v-model="mask"
+         @close="tapClose" position="right" :overlay="true">
+          <div class="screen-shaixuan-select">
+            <div class="screen-shaixuan-select-top">
+              <span class="shaixuan-top-title">价格区间 （元）</span>
+              <van-cell-group class="price-range">
+                <van-field class="field" maxlength="5" v-model='params.salePriceBegin' @blur="validPrice(params.salePriceBegin)" placeholder="最低价"
+                  :border="false" ></van-field>
+                <span class="quarantine">-</span>
+                <van-field class="field"  maxlength="5" v-model='params.salePriceEnd' @blur="validPrice(params.salePriceEnd)" placeholder="最高价"
+                  :border="false" ></van-field>
+              </van-cell-group>
+            </div>
+            <div class="t-space"></div>
+            <div class="screen-shaixuan-select-bottom">
+              <div class="shaixuan-list" v-if="params.ctgId != ''">
+                <div class="shaixuan-item" v-if="shaixuanSelect.brands.length > 0">
+                  <div class="option-title">
+                    <div class="option-title__item">品牌</div>
+                  </div>
+                  <div class="option-box" style="min-height: 50rpx;">
+                    <div class="option-box__item cell-1 "
+                    :class="info.color?'option-ok':''"
+                      v-for="(item,index) in shaixuanSelect.brands" :key="index" @click="getBrandId(item.id)">
+                      {{item.name}}</div>
+                  </div>
+                </div>
+                <div class="shaixuan-item" v-for="(item,index) in shaixuanSelect.attrs" :key="index">
+                  <div class="option-title">
+                    <div class="option-title__item">{{item.name}}</div>
+                    <div class="option-title__more t-label t-12" @click="showMore(index)">全部
+                      <span class="more-icon">{{index == attrIdx ? '︿':'﹀'}}</span>
+                    </div>
+                  </div>
+                  <div class="option-box" :style="index == attrIdx ?'min-height: 50rpx;':'height: 50rpx;'">
+                    <!-- item.attrValueList -->
+                    <div class="option-box__item cell-1"
+                      :class="info.color?'option-ok':''"
+                      v-for="(info,idx) in item.attrValueList"
+                      @click="getAttrCode(idx,index,info.attrCode)">{{info.attrValue}}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="select-reset">
+                <div @click="reset" class="reset">重置选项</div>
+              </div>
+            </div>
+          </div>
+          <div class="screen-shaixuan-btn">
+            <span @click="tapClose" class="shaixuan-btn btn-close">取消</span>
+            <span @click="tapCertain" class="shaixuan-btn btn-confirm">确定</span>
+          </div>
+        </van-popup>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#searchList',
+    data() {
+      return {
+        params: {
+          page: 1,
+          size: 10,
+          ctgId: '${ctgId!}',//分类id 
+          brandId: '${brandId!}',//品牌id
+          keyword: '${val!}',//商品关键词
+          oderBy: 'def',//排序
+          salePriceBegin: '',//最小值
+          salePriceEnd: '',//最大值
+          saleAttrCode: '',
+          storeId: '${storeId!}',//店铺id
+          storeCtgId: '${storeCtgId!}',//店铺分类id
+        },
+        saleAttrCode: [],
+        attrIdx: -1,
+        totals: 0,
+        baseUrl: cms.url,//ip路径
+        info: '',
+        loading:true,//是否处于加载状态，加载过程中不触发load事件
+        finished:false,//结束加载
+        loadingMessage:'正在加载...',
+        getOption: '',//当前排序
+        mask: false,//遮罩
+        result: [],//筛选第二层选择
+        activeIndex: 0,//当前排序下标
+        navActiveIndex: 0,//tab下标(控制筛选条件弹出框)
+        shaixuanSelect: [],//筛选第一层
+        readonly:false,
+        selectData: [//排序列表
+          {
+            option: '综合',
+            oderBy: 'def'
+          }, {
+            option: '新品',
+            oderBy: 'shelfDay'
+          }, {
+            option: '人气',
+            oderBy: 'popularity '
+          }
+        ],
+        queryData: [],//检索结果列表
+        isNum:true
+      }
+    },
+    methods: {
+      validPrice(val){
+        var reg = /^[0-9]\d*$/
+        if(reg.test(val)||val===''){
+          this.isNum = true
+        }else{
+          this.isNum = false
+          this.$toast('请输入正确的数值')
+        }
+      },
+      showMore(idx) { // 显示规格分类更多
+        if (idx == this.attrIdx) {
+          this.attrIdx=-1 
+        } else {
+          this.attrIdx= idx 
+        }
+      },
+      getKeyword() { // 获取搜索关键词
+        if (this.params.ctgId != '') {
+          this.params.ctgId= ''
+        }
+        this.readonly = true
+        this.getList()
+        setTimeout(() => {
+          this.readonly = false
+        }, 1);
+      },
+      openSelect(s) {// 切换头部筛选条件
+        let num = parseInt(s)
+        if (num == 1) {
+          this.params.oderBy='sales'
+          this.getList()
+        } else if (num == 2) {
+          this.params.oderBy=this.params.oderBy == 'priceDesc' ? 'priceAsc' : 'priceDesc'
+          this.getList()
+        }
+        if (this.navActiveIndex == num) {
+          this.mask=!this.mask
+        } else {
+          this.navActiveIndex= num 
+          this.mask=true 
+        }
+      },
+      getTypeattrList() {//获取商品规格列表
+        if (this.params.ctgId != '') {
+          producttypeattrList({ proCategoryId: this.params.ctgId }).then(res => {
+            this.shaixuanSelect=res.data
+          }).catch(err => { })
+        } else {
+          return false
+        }
+      },
+      optionChoice(_idx) {//综合条件筛选
+        this.activeIndex= _idx
+        this.getOption=this.selectData[_idx].option
+        this.params.oderBy=this.selectData[_idx].oderBy
+        this.getList()
+        this.tapClose()
+      },
+      tapClose() {//关闭第一层遮罩
+        this.mask= false 
+      },
+      tapCertain() {//确定
+        if(this.isNum){
+          this.getList()
+          this.tapClose()
+        }
+      },
+      getBrandId(id) {//获取品牌id
+        this.params.brandId = id
+      },
+      getAttrCode(idx,attrindex,code) {//获取规格属性码
+        let attrs = this.data.shaixuanSelect.attrs
+        let saleAttrCode = this.saleAttrCode
+        let index = saleAttrCode.indexOf(code)
+        if (index > -1) {
+          saleAttrCode.splice(index, 1)
+          attrs[attrIndex].attrValueList[idx].color = false
+        } else {
+          saleAttrCode.push(code)
+          attrs[attrIndex].attrValueList[idx].color = true
+        }
+        this.params.saleAttrCode=saleAttrCode.join(',')
+        this.shaixuanSelect.attrs=attrs
+      },
+      reset() {//重置搜索
+        this.tapClose()
+        this.info=''
+        this.mask=false
+         var params={
+          oderBy:'def',
+          size:10,
+          salePriceBegin:'',
+          salePriceEnd:'',
+          saleAttrCode: []
+         }
+         this.params=Object.assign(this.params,params) 
+        this.getList()
+        setTimeout(() => {
+          this.navActiveIndex=0
+        }, 400);
+      },
+      getList() {//检索 
+          this.restReachBottom()   //调用了检索重置分页数据和状态
+          getProductSearch(this.params).then((res) => {
+          this.queryData=res.content
+          this.totals=res.totalElements
+          this.loading=false
+          if(this.queryData.length>=this.totals){
+            this.finished=true
+            this.loadingMessage='没有更多数据了..'
+          }
+        }).catch(() => { })
+      },
+      pullGetList(){//下拉加载数据
+        if(this.queryData.length>=this.totals){
+          this.loadingMessage='没有更多数据了..'
+          this.finished=true
+        }else{
+          this.params.page=this.params.page+1
+          this.loading=true
+          getProductSearch(this.params).then((res) => {
+          this.queryData=this.queryData.concat(res.content)
+          this.totals=res.totalElements
+          this.loading=false
+        }).catch(() => { })
+        }
+      },
+      toGoodsDetail(item) {//查看商品详情
+        window.location.href='${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId
+      },
+      onReachBottom(event){//上拉加载处理
+       var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+       if((scrollTop + windowHeight)>=(scrollHeight)){  
+          if(!this.finished&&!this.loading){//结束状态和正在加载状态下不调用接口
+            this.pullGetList()
+          }       
+    　　}
+    },
+    restReachBottom(){
+      this.$nextTick(()=>{
+        document.documentElement.scrollTop=0
+         this.params.page=1
+         this.params.size=10
+         this.loading=true
+         this.finished=false
+         this.loadingMessage="正在加载..."
+      })
+    }
+    },
+    created() {
+      this.getList()
+      this.getTypeattrList()
+      this.getOption=this.selectData[this.activeIndex].option
+    },
+    mounted () {
+    window.addEventListener('scroll',this.onReachBottom)
+  }
+  })
+</script>

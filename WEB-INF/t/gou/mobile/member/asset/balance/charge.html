@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>余额充值</title>
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+  [#include "../../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="余额充值"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms container nav-top" id="recharge" v-cloak>
+    <div class="recharge-money t-14">当前余额：<span class="t-color">{{$float(money)}}</span></div>
+    <div class="money-box">
+      <div class="money-item" v-for="(item,index) in moneyList" :key="index">
+        <div class="money-item__block" 
+        :class="isActive == index ? 'on_tap':''"
+        @click="changeActive(item,index)">￥
+          {{item}}</div>
+      </div>
+    </div>
+    <div class="setMoney t-14">
+      <input class="money-input" maxlength="5" v-model="price" @input="changePrice(price)"
+        placeholder="单笔金额10元至10000元之间的整数" />
+    </div>
+    <div class="login__submit">
+      <van-button @click="toRecharge" type='primary' size="large" :disabled="amount<=0">充值</van-button>
+    </div>
+  </div>
+  <van-toast id="van-toast" />
+</body>
+
+</html>
+<script>
+  new Vue({
+    el: '#recharge',
+    data() {
+      return {
+        isActive: 0,
+        money: 0,//账户余额
+        moneyList: [10, 50, 100, 200, 300, 500],//充值金额
+        amount: 10,
+        price:''
+      }
+    },
+    methods: {
+      changeActive(amount,index) {//选择金额
+       this.isActive=index
+       this.amount=amount
+       this.price = ''
+      },
+      changePrice(val){//用户输入金额
+        this.amount=val
+        this.isActive = -1
+      },
+      toRecharge() {//充值订单生成
+        let money = this.amount
+        var reg = /^[0-9]\d*$/
+        if (money < 10 || money > 10000) {
+          this.$toast('请填写10-10000之间的数额！')
+          return
+        } else if(reg.test(money)){//获取充值订单
+          generateBusinessNo({ amount: money }).then(res => {
+            if (res.code == 200) {
+              this.goPay(res.data.businessNo,res.data.money)//调起支付 code验证有问题
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => { })
+        } else {
+          this.$toast('请输入合法的数值')
+        }
+      },
+      goPay(orderNo, amount) { 
+        let title = "会员充值:" + amount ;
+        let params = Qs.stringify({'orderNo':orderNo,'description':title,'subject':title,'payScene':'memberRecharge','amount':amount})
+        location.href="${base!}/member/tradePage.htm?"+params
+      },
+      getUserAccount() {
+        memberaccountGet().then(res => {
+          if (res.code == 200) {
+            this.money=res.data.balance
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { })
+      },
+    },
+    created() {
+      this.getUserAccount()
+    }
+  })
+</script>

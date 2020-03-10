@@ -1,0 +1,70 @@
+<div class="member-nav message-nav" id="messageNav" v-cloak>
+    <!-- 导航组 -->
+    <dl class="member-nav__items">
+      <dd class="member-nav__item ">
+        <a href="${base}/member-message-mes.htm" 
+        class="message-nav__link member-nav__link
+        [#if activeName=='messageMes'] member-nav__link--active[/#if]">
+           <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-bullhorn fa-stack-1x fa-inverse"></i>
+            </span>  
+            系统公告
+            <span class="message-nav-info" v-for="(item, index) in mesNavList.UnreadSysteam" :key="index">
+              {{controlNum(item)}}
+            </span>
+
+        </a>
+      </dd>
+      <dd class="member-nav__item">
+        <a href="${base}/member-message-notice.htm" 
+        class="message-nav__link member-nav__link 
+        [#if activeName=='messageNotice'] member-nav__link--active[/#if]">
+            <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-bell-o fa-stack-1x fa-inverse"></i>
+            </span>
+            私人信息
+            <span class="message-nav-info" v-for="(item, index) in mesNavList.UnreadPrivate" :key="index">
+              {{controlNum(item)}}
+            </span>
+        </a>
+      </dd>
+    </dl>
+  </div>
+    <script>
+    var messageNav=new Vue({
+      el:"#messageNav",
+      data(){
+        return{
+          mesNavList:[],
+        }
+      },
+      methods:{
+        controlNum(num){
+          if(num>=99){
+           return 99
+          }else{
+            return num
+          }
+        },
+        getMesNavData(){
+          var that = this
+          cms.ajax({
+            url: cms.url + '${base}/member/message/unread',
+            type: 'get'
+          },function(res){
+            if(res.code == 200){
+              that.mesNavList = res.data
+            } else {
+              cms.alert('获取未读消息数量出错')
+            }
+          })
+        }
+      },
+      created(){
+        this.getMesNavData()
+      }
+      
+    })
+  </script>

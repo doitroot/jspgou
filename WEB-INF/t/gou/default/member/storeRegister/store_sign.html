@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>${globalConfig.mallName!}-商家入驻</title>
+    [#include "../../includes/common.html"]
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    [#include "../../includes/topBar.html"]
+    <!-- 头部 -->
+    <div class="header head-shadow-slim">
+      <div class="senter-head">
+        <div class="senter-left">
+            [#assign name="商家入驻"]
+            [#include "../../includes/logo.html"]
+        </div>
+        <div class="senter-right">
+            <a class="senter-right__tab senter-right__tab--active" href="#">首页</a>
+            <a class="senter-right__tab" href="#">入驻流程</a>
+            <a class="senter-right__tab" href="#">入驻协议</a>
+            <a class="senter-right__tab tab-last" href="#">商家帮助</a>
+        </div>
+      </div>
+    </div> 
+    <!-- 主体 -->
+    <div class="senter-body" id="root">
+      <div class="container senter-inner">
+          <!-- 主体头部 -->
+          <ul class="senter-inner__head" style="overflow:hidden;">
+            <li class="senter-inner__tab senter-inner__tab--active senter-inner__tab--visited">
+               <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                店铺选择
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab senter-inner__tab--active">
+               <span class=""><i class="fa fa-file-text-o senter-inner__fa"></i></span>
+                签订入住协议
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab">
+               <span style="padding-left:40px;" class=""><i class="fa fa-user-o senter-inner__fa"></i></span>
+               <span v-if="storeType==1">个人信息认证</span><span v-if="storeType==2">企业信息认证</span>
+               <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+           </li>
+            <li class="senter-inner__tab">
+               <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                店铺信息认证
+                <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+            </li>
+            <li class="senter-inner__tab">
+               <span class=""><i class="fa fa-calendar-check-o senter-inner__fa"></i></span>
+                等待审核
+            </li>
+         </ul>
+          <!-- 主体身体 -->
+          <div class="senter-con sellersign-inner">
+            <div class="senter-identify">
+                    <h3 class="senter-identify__title senter-identify__title--sign">入驻协议</h3>
+            </div>
+
+            <div class="sellersign-box">
+                    ${(globalConfig.storeRegisterAgreement)!}       
+            </div>
+            <!-- 按钮 -->
+            <div class="enter-btn-group sign-btn-group" >                        
+                <a href="${base}/member-storeRegister-store_select.htm" class="sign-btn-group__link">
+                    <el-button class="enter-btn-group__prev pcolor" >上一步</el-button>
+                </a> 
+                <a href="${base}/member-storeRegister-store_verify.htm?storeType=1" class="enter-btn-group__link enter-btn-group-agree__link" v-if="storeType==1">
+                    <el-button type="primary" class="priColor">同意以上协议，认证个人信息</el-button>
+                </a>
+                <a href="${base}/member-storeRegister-store_verify.htm?storeType=2" class="enter-btn-group__link enter-btn-group-agree__link" v-if="storeType==2">
+                    <el-button type="primary" class="priColor">同意以上协议，认证企业信息</el-button>
+                </a>
+            </div>
+      </div>
+      </div>
+    </div>
+</body>
+</html>
+<script>
+    var app=new Vue({
+        el:"#root",
+        data:{
+          locatHref:'',
+          patt:/\?[a-zA-Z0-9=]+/,
+          storeType:''/* 1：个人 2：企业 */
+        },
+        methods:{
+        },
+        created(){
+            /* 获取链接里传递的数据 */
+            this.locatHref = location.href,
+            this.storeType=this.locatHref.match(this.patt)[0].match(/[0-9]+/)[0]
+        }
+    })
+    </script>

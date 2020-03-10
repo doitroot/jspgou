@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-商品评价</title>
+  [#include "../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body>
+  [#assign topName="商品评价"/]
+  [#include "../includes/topbar.html"]
+  <div id="evaluate" v-cloak>
+    <div class="cms nav-top">
+      <!-- <div class="t-space"></div> -->
+      <div class="gs-cell gs-bottom" v-if="basicInfo.commentTotalCount > 0">
+        <div class="gs-tall" :class="active===0?'active-q':''" @click="searchList(0)">有图 {{basicInfo.groupCommentMatchedCount.matchStrHasResouces}}</div>
+        <div class="gs-tall" :class="active===3?'active-q':''" @click="searchList(3)">好评 {{basicInfo.groupCommentMatchedCount.matchStrGood}}</div>
+        <div class="gs-tall" :class="active===2?'active-q':''" @click="searchList(2)">中评 {{basicInfo.groupCommentMatchedCount.matchStrMiddle}}</div>
+        <div class="gs-tall gs-bad" :class="active===1?'active-q':''" @click="searchList(1)">差评 {{basicInfo.groupCommentMatchedCount.matchStrFall}}</div>
+      </div>
+      
+      <div class="gs-panels">
+        <div  v-if="basicInfo.commentTotalCount >0" class="gs-panel gs-bottom" v-for="(item,index) in basicInfoList" :key="index">
+          <div class="gs-panel-title">
+            <div class="gs-box-left">
+              <img class="gs-panel-portrait" :src="baseUrl+item.headImageUrl" />
+              <span class="t-label">{{item.confusingName}}</span>
+            </div>
+            <div class="gs-box-right t-label">{{item.commentCreateTime}}</div>
+          </div>
+          <div class="gs-panel-cont">
+            <span >{{item.commentContent}}</span>
+          </div>
+          <div class="gs-panel-foot t-label">
+            <span >{{item.productSkuName}}</span>
+          </div>
+          <div class="gs-panel__img">
+            <img class="gs-panel__image" v-for="(img,imgIndex) in item.commentResources" :key="imgIndex" :src="baseUrl+img.url" />
+          </div>
+          
+        </div>
+        <div v-if="basicInfo.commentTotalCount < 1" class="nothing t-14 t-label">暂无评论</div>
+      </div>
+      <div  v-show="!hidden">
+        <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+        <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#evaluate',
+    data () {
+      return {
+        basicInfo:{},//当前评论信息
+        baseUrl:'${base}',//当前路径
+        params:{
+          "page": 1,
+          "size": 10,
+          "proId": "${id!}",
+          "label": "",
+          "matched": "",
+          "sortType": ""
+        },
+        active:-1,
+        evaBranch:'',//评论百分比
+        total:0,//列表总条数
+        pages:0,
+        hidden:true,
+        info:'',
+        basicInfoList:[]
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    },
+    methods: {
+      onRefresh(){
+        this.params.page = 1;
+        this.basicInfoList = []
+        this.getList()
+      },
+      onReachBottom(event){//上拉加载处理
+        var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+            　　　if(this.params.page < this.pages){
+                    this.params.page +=1
+                    this.hidden = false
+                    this.info = ''
+                    this.getOrderList()
+                }else{
+                  this.hidden = false
+                  this.info = '没有更多了'
+                }
+        　　}
+        },
+      getGoodEva(){
+        ordercommentdfrontBasicInfo({proId:this.params.proId}).then(res => {
+          if(res.code == 200){
+            var obj = res.data
+            this.evaBranch=this.$float((obj.groupCommentMatchedCount.matchStrGood/obj.commentTotalCount)*100)
+            this.basicInfo=obj
+            this.getList()
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      getList(type){
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        ordercommentdfrontPage(this.params).then(res => {
+          if(res.code == 200){
+            let arr = res.data.content
+            arr.forEach(v => {
+              let time = moment(v.commentCreateTime).format('YYYY-MM-DD')
+              v.commentCreateTime = time
+            })
+            if(type === 'loading'){
+              this.basicInfoList = arr
+            }else{
+              this.basicInfoList = this.basicInfoList.concat(arr)
+            }
+            this.pages = res.data.totalPages
+            this.$toast.clear()
+          } else {
+            this.$toast.clear()
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      searchList(num){
+        this.active = parseInt(num)
+        this.params.matched = parseInt(num)
+        this.getList('loading')
+      }
+    },
+    created () {
+      this.getGoodEva()
+    }
+  })
+</script>

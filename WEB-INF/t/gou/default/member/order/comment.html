@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-评价管理</title>
+ [#include "../../includes/common.html"]
+ <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+<body>
+ [#include "../../includes/topBar.html"]
+ [#include "../../includes/vipNav.html"]
+  <div class="gray-container gray-container--padd10" id="comment" v-cloak>
+    <div class="container">
+      <!-- 订单导航 -->
+      <div class="container__nav container__orderdecs__nav">
+        <a href="${base}/member-order-index.htm">订单中心</a> > <a href="">评价</a>
+      </div>
+      <!-- 官方旗舰店 -->
+      <div class="flow as-store">
+        <div class="as-store__title clearfix">
+          <div class="as-store__store">
+            <div class="as-store__sinner clearfix">
+              <div class="as-store__sarea">
+                <img :src="orderItem.storeInfo.storeLogoResource?'${base}'+orderItem.storeInfo.storeLogoResource.url:'${res}/images/store.png'" alt="" class="as-store__simg">
+              </div>
+              <div class="as-store__text">
+                <p class="as-store__sadd">{{orderItem.storeInfo.storeName}}</p>
+                <ul class="as-store__infos clearfix">
+                  <li class="as-store__item">
+                    <div class="as-store__ifo">物流</div>
+                    <div class="as-store__color">{{(orderItem.storeInfo.storeStatistic.express).toFixed(1)}}</div>
+                  </li>
+                  <li class="as-store__item">
+                    <div class="as-store__ifo">服务</div>
+                    <div class="as-store__color">{{(orderItem.storeInfo.storeStatistic.service).toFixed(1)}}</div>
+                  </li>
+                  <li class="as-store__item as-store__item--nomar">
+                    <div class="as-store__ifo">商品</div>
+                    <div class="as-store__color">{{(orderItem.storeInfo.storeStatistic.matchV).toFixed(1)}}</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="as-store__atti">
+            <span class="as-store--padr40"><span class="as-store--padr15">商品符合度：</span>
+              <el-rate v-model="orderItem.matchV" :colors="['#fb4c77','#fb4c77','#fb4c77']"></el-rate>
+          </span>
+            <span class="as-store--padr40"><span class="as-store--padr15">卖家服务态度：</span>
+            <el-rate v-model="orderItem.service" :colors="['#fb4c77','#fb4c77','#fb4c77']"></el-rate>
+          </span>
+            <span class="as-store--padr40"><span class="as-store--padr15">卖家发货速度：</span>
+            <el-rate v-model="orderItem.express" :colors="['#fb4c77','#fb4c77','#fb4c77']"></el-rate>
+          </span>
+          </div>
+        </div>
+      </div>
+      <!-- 商品评价 -->
+      <div class="as-store goodseval goodseval--mar20">
+        <div class="goodseval goodseval--borbot clearfix" v-for="(item,index) in orderItem.commentdList" :key="index">
+          
+          <div class="goodseval__ginfo">
+            <div class="goodseval__garea">
+              <img class="goodseval__gimg" :src="'${base}'+item.productInfo.coverImage" alt="">
+            </div>
+            <p class="goodseval__gtext">{{item.productInfo.name}}</p>
+            <p class="goodseval__gtext goodseval__gprice">￥{{$float(item.productInfo.salePrice)}}</p>
+          </div>
+          <ul class="goodseval__gassess">
+            <li class="goodseval__item">
+                <el-rate v-model="item.matchV" :colors="['#fb4c77','#fb4c77','#fb4c77']"></el-rate>
+              </li>
+            <li class="goodseval__btns clearfix" v-if="item.exts.length>0">
+              <div class="goodseval__btn" v-for="(info,btnIndex) in item.exts" :key="btnIndex" 
+              :class="info.status? 'goodseval__btn--active':''"
+              @click="extSelect(index,btnIndex)">{{info.name}}</div>
+            </li>
+            <li>
+                <el-input
+                class="goodseval__tarea"
+                type="textarea"
+                resize="none"
+                style="width:700px;"
+                maxlength="500"
+                :autosize="{ minRows: 6, maxRows: 6}"
+                placeholder="请留下您珍贵的评价~"
+                v-model="item.content">
+              </el-input>
+            </li>
+            <li class="clearfix goodseval__tarea"  @click="fileIndex = index" >
+              <ul class="fl"> 
+                  <li v-for="(info,fileIndex) in item.fileList" :key="index" class="upload-box__item">
+                    <img :src="'${base}'+info.fileUrl" alt="">
+                    <span class="upload-box__del" @click="delImg(index,fileIndex)">删除</span>
+                  </li>  
+                </ul>
+                <cms-upload :custom="true" class="fl" @change="getImgs" v-if="item.fileList.length<5">
+                  <div class="upload-box__warp">
+                    <span class="fa fa-plus"></span>
+                  </div>
+                </cms-upload>
+            </li>
+            <li style="position: relative;bottom: 30px;"><span class="report__warn">最多仅支持上传5张</span></li>
+          </ul>
+          
+        </div>
+        
+        <div class="goodseval__report">
+          <a class="goodseval__rebtn" @click.prevent="submit">发表评论</a>
+          <span class="goodseval__tipinfo">系统默认采用匿名形式评论</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- start -->
+ [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var vm=new Vue({
+      el:"#comment",
+      data:{
+        orderItem:{
+          "orderId":"",
+          "express": 5,
+          "matchV": 5,
+          "service": 5,
+          "storeId": "",
+          "storeInfo":{
+            "storeName":'',
+            "storeStatistic":{
+              "express":5,
+              "matchV": 5,
+              "service": 5,
+            }
+          },
+          "commentdList": []
+        },//当前订单信息
+        loading:false,
+        fileIndex:0,
+        queryParams: {//请求当前订单信息
+          orderId:'${orderId!}'
+        },
+      },
+      methods:{
+        extSelect(i,index){
+          var list = this.orderItem.commentdList
+          var arr = []
+          list[i].exts[index].status = !list[i].exts[index].status
+          list[i].exts.forEach(v => {
+            if(v.status){
+              arr.push(v.name)
+            }
+          })
+          list[i].labels = arr.join(',')
+          // console.log(list[i].labels)
+        },
+        getImgs(data){//获取图片
+          var list = this.orderItem.commentdList
+          var i = this.fileIndex
+            if(list[i].fileList.length<5){
+              list[i].fileList.push(data)
+              list[i].spaceDataIds.push(data.resourceId)
+            }
+            console.log(list[i].spaceDataIds)
+        },
+        delImg(i,index){//删除图片
+          var list = this.orderItem.commentdList
+          list[i].fileList.splice(index,1);
+          list[i].spaceDataIds.splice(index,1);
+        }, 
+        getOrderList() {//获取订单列表
+          var that = this
+          that.loading = true
+          cms.ajax({
+            url: cms.url + '/member/orderComment/getSaveComment',
+            type: 'get',
+            data: that.queryParams
+          }, function (res) {
+            if (res.code == 200) {
+              var obj = {
+                "orderId":res.data.id,
+                "express": 5,
+                "matchV": 5,
+                "service": 5,
+                "storeId": res.data.store.id,
+                 storeInfo:res.data.store,
+                "commentdList": []
+              }
+              var list = []
+              res.data.items.forEach((v,i) => {
+                var exts = []
+                if(v.product.ext.evaluationView && v.product.ext.evaluationView.length>0){
+                  var arr = v.product.ext.evaluationView.split(',')
+                  arr.forEach((e,j) => {
+                    var evaluation = {}
+                    evaluation.name=e
+                    evaluation.status = false
+                    exts.push(evaluation)
+                  })
+                }
+                var commentd = {//评分详情
+                  "productId":v.product.id,//商品id
+                  "matchV":5,//符合度
+                  "content":'',//评论内容
+                  "labels":"",//评论标签
+                  "spaceDataIds":[],//资源id数组
+                  "productInfo":v.product,
+                  "exts":exts,
+                  "fileList":[],
+                }
+                list.push(commentd)
+              });
+              obj.commentdList = list
+              that.orderItem=obj
+              that.loading = false
+            } else {
+              that.loading = false
+              cms.alert(res.message,5)
+              location.href="${base}/member-order-index.htm"
+            }
+          })
+        },
+        submit(){//发表
+        var that = this
+        var valited = true
+        that.orderItem.commentdList.forEach(v => {
+          if(v.content == ''){
+            valited = false
+          }
+        });
+        if(valited){
+          console.log(JSON.stringify(that.orderItem))
+          delete that.orderItem.storeInfo
+            cms.ajax({
+              url: cms.url + '/member/orderComment/save',
+              type: 'post',
+              data: JSON.stringify(that.orderItem)
+            }, function (res) {
+              if(res.code == 200){
+                cms.alert("评论成功！")
+                location.href="${base}/member-order-index.htm"
+              }else{
+                cms.alert(res.message,5)
+              }
+            })
+          }else{
+            cms.alert('请填写评论！')
+          }
+        }
+      },
+      created() {
+       this.getOrderList()
+      },
+    })
+  </script>

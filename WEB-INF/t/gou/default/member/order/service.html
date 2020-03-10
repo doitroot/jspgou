@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-申请售后</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container" v-if="order.id" style="padding-top: 0">
+    <div class="container clearfix"  id="serflow" v-loading="loading" v-cloak>
+      <!-- member -->
+      [#assign activeName="nomal"]
+      [#include "../../includes/memberNav.html"]
+      <!-- order -->
+      <div class="member-body">
+        <h3 class="member-title">申请售后</h3>
+        <div class="service" v-if="productDesc.id">
+          <div class="service-inner clearfix">
+            <!-- 左侧订单详情 -->
+            <div class="service__detail">
+              <div class="sdet-inner">
+                <div class="sdet">
+                  <div class="sdet__title">
+                    订单详情
+                  </div>
+                  <div class="sdet__good">
+                    <div class="sdet__img">
+                      <img class="sdet__bimg" :src="'${base}'+productDesc.productInfo.coverImageUrl" alt="">
+                    </div>
+                    <p class="sdet__btext">{{productDesc.productInfo.productName}}</p>
+                  </div>
+                  <ul class="sdet__lists sdet__ctext">
+                    <li class="sdet__item" v-if="order.store"><span class="sdet__label">卖 家：</span>{{order.store.storeName}}</li>
+                    <li class="sdet__item"><span class="sdet__label">订单编号：</span></span><a :href="'${base}/member-order-detail.htm?orderId='+queryParams.id" class="sdet__order">{{order.orderCode}}</a></li>
+                    <li class="sdet__item"><span class="sdet__label">运 费：</span></span>￥{{$float(order.orderFreight)}}</li>
+                    <li class="sdet__item"><span class="sdet__label">实 付 款：</span></span>￥{{$float(productDesc.payAmount)}}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <!-- 右侧售后流程 -->
+            <div class="service__flow">
+              <div class="sflow">
+                <el-form label-width="110px" :model="params" style="margin-top: 20px" :rules="rules" ref="form">
+                  <el-form-item label="">
+                      <div class="sflow__title">
+                          <div class="charge-box charge-boxl charge-boxl--active">
+                            <!-- charge-boxl--active -->
+                            ① 买家申请售后服务
+                            <span class="charge-arrow"></span>
+                          </div>
+                          <div class="charge-box charge-boxm" >
+                            <!-- charge-boxm--active -->
+                            ② 卖家处理售后申请服务
+                            <!-- <span class="charge-arrow"></span> -->
+                          </div>
+                          <div class="charge-box charge-boxr">
+                            <!-- charge-boxr--active -->
+                            ③ 完成售后
+                          </div>
+                        </div>
+                  </el-form-item>
+                  <el-form-item label="售后类型：" style="margin-bottom: 10px;" :required="true">
+                    <!-- 仅退款按钮 -->
+                  <span>
+                      <a href="javascript:;" class="sflow__style"
+                      v-if="order.status == 2||order.status == 3"
+                     :class="{'sflow__style--active':saleTypeSelected == 1}"
+                     @click="changeSaleType(1)">仅退款</a>
+                     <a href="javascript:;" class="sflow__style"
+                     v-if="order.status == 3||order.status == 4"
+                     :class="{'sflow__style--active':saleTypeSelected == 2}"
+                     @click="changeSaleType(2)">退款/退货</a>
+                     <a href="javascript:;" class="sflow__style"
+                     v-if="order.status == 4"
+                     :class="{'sflow__style--active':saleTypeSelected == 3}"
+                     @click="changeSaleType(3)">换货</a>
+                    </span>
+                  </el-form-item>
+                  <el-form-item v-if="saleTypeSelected == 1" :required="true"
+                  label="是否收到货：" style="margin-bottom: 10px;">
+                    <template>
+                        <el-radio-group v-model="params.productStatus">
+                          <el-radio :label="1">没有收到货</el-radio>
+                          <el-radio :label="2">已经收到货</el-radio>
+                        </el-radio-group>
+                    </template>
+                  </el-form-item>
+                  <el-form-item label="数量：" style="margin-bottom: 15px;"  v-if="saleTypeSelected == 1" v-cloak>
+                    <span style="color: #606266">{{productDesc.productCount-productDesc.returnCount}}</span>
+                  </el-form-item>
+                  <el-form-item  v-show="saleTypeSelected != 1" label="数量：" style="margin-bottom: 15px;" prop="count">
+                      <template>
+                        <el-input-number size="small" v-model="params.count" @change="countChange" 
+                        :min="1" :max="productDesc.productCount - productDesc.returnCount"></el-input-number>
+                      </template>
+                    </el-form-item>
+                  <el-form-item label="退款原因：" :style="saleTypeSelected!=3?'margin-bottom:10px;':'margin-bottom:22px;'" prop="refundReason">
+                    <template>
+                      <el-select size="small" v-model="params.refundReason" placeholder="请选择">
+                        <el-option
+                          v-for="item in refundReasons[saleTypeSelected]"
+                          :key="item"
+                          :label="item"
+                          :value="item">
+                        </el-option>
+                      </el-select>
+                    </template>
+                  </el-form-item>
+                  <el-form-item v-show="saleTypeSelected != 3" label="退款金额：" style="margin-bottom: 10px;" :required="true">
+                    <span class="sflow__font">{{$float(params.refundAmount)}} 元 </span>
+                    <!-- <el-input v-model="order.orderPayAmount"></el-input> -->
+                    <span style="color: #999;"> （最多只能退款{{$float(productDesc.payAmount-productDesc.returnAmount)}}元） </span>
+                  </el-form-item>
+                  <el-form-item label="描述：" style="width: 600px;margin-bottom: 20px;" prop="customerTxt">
+                      <el-input
+                      type="textarea"
+                      :rows="6"
+                      maxlength="150"
+                      resize="none"
+                      placeholder="请输入内容（最大150个字符）"
+                      v-model="params.customerTxt">
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item label="上传图片：" style="width: 600px;margin-bottom: 10px;">
+                    <div class="clearfix">
+                      <ul class="fl"> 
+                        <li v-for="(item,index) in fileList" :key="index" class="upload-box__item">
+                          <img :src="'${base}'+item.fileUrl" alt="">
+                          <span class="upload-box__del" @click="delImg(index)">删除</span>
+                        </li>  
+                      </ul>
+                      <cms-upload :custom="true" class="fl" @change="getImgs" v-if="isUpload">
+                        <div class="upload-box__warp">
+                          <span class="fa fa-plus"></span>
+                        </div>
+                      </cms-upload>
+                    </div>
+                    <p class="report__warn" style="margin: 5px 0">
+                      为了便于卖家快速处理您的问题，请尽量上传图片，仅限5张，每张图片限制在3M以内，支持常规图片格式bmp,gif,jpg,png,jpeg</p>
+                  </el-form-item>
+                  <div  v-show="saleTypeSelected == 3">
+                      <el-form-item style="margin-bottom: 10px;">
+                          <template slot="label">
+                              <div class="sflow__fltext sflow__fltext--size">收货信息&nbsp;&nbsp;&nbsp;
+                                <span style="display: inline-block;max-width: 5px;">
+                                  <a v-if="!editAddress"  @click="editAddress = true"><i class="fa fa-pencil"></i></a>
+                                  <a v-else @click="editAddress = false"><i class="fa fa-eye"></i></a></span>
+                              </div>
+                          </template>
+                      </el-form-item>
+                      <div v-show="!editAddress&&addressItem.id">
+                        <el-form-item style="margin-bottom: 0px;width: 550px" label="联系人：">
+                            <span v-if="addressItem.id">{{addressItem.customerName}}</span>
+                        </el-form-item>
+                        <el-form-item style="margin-bottom: 0px;width: 550px" label="手机号码：">
+                            <span v-if="addressItem.id">{{addressItem.tel}}</span>
+                        </el-form-item>
+                        <el-form-item style="margin-bottom: 0px;width: 550px" label="收货地址：">
+                            <span v-if="addressItem.id">{{addressItem.provinceName+addressItem.cityName+addressItem.areaName+addressItem.address}}</span>
+                        </el-form-item>
+                      </div>
+                      <div v-if="editAddress">
+                        <el-form-item style="margin-bottom: 15px;width: 375px" label="联系人：" prop="customerName">
+                            <el-input size="mini" maxlength="16" v-model="params.customerName" ></el-input>
+                        </el-form-item>
+                        <el-form-item style="margin-bottom: 15px;width: 375px" label="手机号码：" prop="customerTel">
+                            <el-input size="mini" maxlength="11" v-model="params.customerTel" ></el-input>
+                        </el-form-item>
+                        <el-form-item style="margin-bottom: 15px;width: 550px" label="收货地址：" prop="areaName">
+                            <cms-area-select size="mini" @change="getAreaInfo" :data="areaData"></cms-area-select>
+                        </el-form-item>
+                        <el-form-item style="margin-bottom: 15px;width: 508px" label="详细地址：" prop="address">
+                          <el-input size="mini" maxlength="50" v-model="params.address"></el-input>
+                        </el-form-item>
+                      </div>
+                      
+                    </div>
+                  <el-form-item style="margin-bottom: 10px;">
+                    <el-button size="small" type="primary" @click="serviceSubmit">提交</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var areaData={ 
+        province: {
+          areaCode: "",
+          areaName: ""
+        },
+        city: {
+          areaCode: "",
+          areaName: "",
+        
+        },
+        area: {
+          areaCode: "",
+          areaName: ""
+        }
+      }  
+      var validatePhone = (rule, value, callback) => {
+        var patrnPhone = /^0?(13[0-9]|15[012356789]|17[013678]|18[0-9]|14[57])[0-9]{8}$/
+        if (value === '') {
+          callback(new Error('请输入11位数手机号码'));
+        } else {
+          if (!patrnPhone.test(value)) {
+            callback(new Error('手机号码格式错误'));
+          }
+          else{
+            callback();
+          }
+        }
+      };
+  var serflow = new Vue({
+    el: '#serflow',
+    data() {
+      return {
+        areaData: JSON.parse(JSON.stringify(areaData)),//临时存储编辑的省市信息
+        isUpload:true,//是否显示上传按钮
+        fileList:[],//上传文件集合
+        spaceDataIds:[],//上传图片id
+        saleTypeSelected:1,//选中的售后类型
+        loading:false,
+        editAddress:false,//当前是否编辑地址
+        queryParams: { id: '${orderId!}'},//请求订单详情的id
+        order:{},//订单列表详情
+        pid: '${productId!}',//传过来的商品ID
+        productDesc:{productInfo:{coverImageUrl:''},returnCount:0},//这件商品的信息
+        refundReasons:[
+          [],
+          ['不喜欢/不想要', '空包裹', '长时间未发货', '物流/快递未送到', '货物损坏已拒签'],//退款原因
+          ['不喜欢/不想要','缺件', '发错货', '质量问题', '商品与页面描述不符', '商品损坏'],//退款退货原因
+          ['缺件', '发错货', '质量问题', '商品与页面描述不符', '商品损坏', '其他'],//换货原因
+        ],//原因
+        params:{
+          "customerTxt":'',//描述
+          "refundReason":'',//原因
+          "productStatus":1,//收货状态
+          "count":1,//数量
+          "refundAmount":0,//退款金额
+          "customerName":'',//姓名
+          "customerTel":'',//联系方式
+          "address":'',//详细地址
+          "areaName":'',
+          "provinceName":'',
+          "cityName":''
+        },
+        addressItem:{},
+        rules: {
+          customerTxt: [{
+            required: true,
+            message: "此项必填",
+            trigger: 'blur'
+          }],
+          refundReason: [{
+            required: true,
+            message: "请选择退款原因",
+            trigger: 'change'
+          }],
+          count: [{
+            required: true,
+            message: "此项必填",
+            trigger: 'change,blur'
+          }],
+          customerName:[{
+            required:true,
+            message:"联系人姓名必填",
+            trigger:'blur'
+          }],
+          customerTel:[{
+            required:true,
+            message:"联系号码必填",
+            trigger:'blur'
+          },{
+            required: true,
+            validator: validatePhone,
+            trigger: 'blur'
+          }],
+          address:[{
+            required:true,
+            message:"请填写详细地址",
+            trigger:'blur'
+          }],
+          areaName:[{
+            required:true,
+            message:"请选择收货地址",
+            trigger:'change'
+          }],
+        }
+      }
+    },
+    watch: {
+      fileList:{
+        handler(){
+            if(this.fileList.length>=5){
+              this.isUpload=false
+            }else{
+              this.isUpload=true
+            }
+        },
+        deep:true
+      }
+    },
+    methods: {
+      getAreaInfo(data){
+          this.params.provinceName=data.province.areaName
+          this.params.cityName=data.city.areaName
+          this.params.areaName=data.area.areaName
+      },
+      setAreaData(item){//编辑临时省市信息
+        this.areaData.province.areaCode=item.provinceCode
+        this.areaData.province.areaName=item.provinceName
+        this.areaData.city.areaCode=item.cityCode
+        this.areaData.city.areaName=item.cityName
+        this.areaData.area.areaCode=item.areaCode
+        this.areaData.area.areaName=item.areaName 
+      },
+      setAddress(item){   //显示编辑区域内容
+        this.setAreaData(item)
+        this.$refs['form'].clearValidate()
+      },
+      serviceSubmit(){//提交
+      console.log(this.params.count)
+        var saleAfterParams = {
+          "orderRefund": {
+            "refundReason": this.params.refundReason,//申请原因
+            "customerTxt": this.params.customerTxt,//买家留言
+            "refundType": this.saleTypeSelected,//售后类型
+            "refundAmount": this.params.refundAmount.toFixed(2),//申请退款金额
+            "productRefundCount": this.params.count,//退换货商品数量
+          },
+          "orderItemId": this.productDesc.id,//订单项id
+          "pics": this.spaceDataIds,//图片资源id
+        }
+        if(this.saleTypeSelected == 1){
+          saleAfterParams.orderRefund.productStatus = this.params.productStatus
+        }else if(this.saleTypeSelected == 3){
+          var address = ''
+          if(this.editAddress){
+            address = this.params.provinceName+this.params.cityName+this.params.areaName+this.params.address
+            saleAfterParams.orderRefund.customerName = this.params.customerName
+            saleAfterParams.orderRefund.customerTel = this.params.customerTel
+          }else{
+            saleAfterParams.orderRefund.customerName = this.addressItem.customerName
+            saleAfterParams.orderRefund.customerTel = this.addressItem.tel
+            address = this.addressItem.provinceName+this.addressItem.cityName+this.addressItem.areaName+this.addressItem.address
+          }
+          saleAfterParams.orderRefund.customerAddress = address
+        }
+        // 
+        // console.log(saleAfterParams)
+        // console.log(JSON.stringify(saleAfterParams))
+        this.$refs['form'].validate(function (valid) {
+          // console.log(valid)
+          if(valid){
+            cms.ajax({
+                url: '${base}/member/refund/apply',
+                type: "post",
+                data: JSON.stringify(saleAfterParams)
+              }, function (res) {
+                if (res.code == 200) {
+                  cms.alert('申请成功',4)
+                  setTimeout(() => {
+                    location.href="${base}/member-customer-returns-index.htm"
+                  }, 1000);
+                } else {
+                  cms.alert(res.message,5)
+                }
+              })
+          }
+        })
+      },
+      countChange(val){//改变数值
+        this.params.refundAmount = (this.productDesc.payAmount/this.productDesc.productCount) * val
+      },
+      getImgs(data){
+          if(this.fileList.length<5){
+            this.fileList.push(data)
+            this.spaceDataIds.push(data.resourceId)
+          }
+      },
+      delImg(index){
+        this.fileList.splice(index,1);
+        this.spaceDataIds.splice(index,1);
+        if(this.fileList<=0){
+            return
+          }
+      },
+      getAddress() {    //获取所有收货地址方法
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/memberaddress/list',
+        }, function (res) {
+          if (res.code == 200) {
+            if(res.data.length > 0){
+              that.addressItem = res.data[0]
+            }else{
+              that.editAddress = true
+            }
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      getOrderList() {//获取订单详情列表
+        var that = this
+        that.loading=true
+        cms.ajax({
+          url: cms.url + '/member/order/get',
+          type: 'get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            that.order = res.data
+            res.data.items.forEach(v => {
+              if(v.productId == that.pid){
+                that.productDesc = v
+                that.params.count = v.productCount-v.returnCount
+                that.params.refundAmount = v.payAmount-v.returnAmount
+              }
+            });
+            if(res.data.status == 2 || res.data.status == 3){
+              that.saleTypeSelected = 1
+            }else{
+              that.saleTypeSelected = 2
+            }
+            that.loading=false
+          } else {
+            that.loading=false
+            cms.alert(res.message,5) 
+          }
+        })
+      },
+      changeSaleType(index){//售后类型的切换
+       this.saleTypeSelected = index
+       this.params.count = this.productDesc.productCount-this.productDesc.returnCount
+       this.params.refundAmount = this.productDesc.payAmount-this.productDesc.returnAmount
+       if(index == 3){
+        this.getAddress()
+       }
+       this.$refs['form'].clearValidate()
+      },
+    },
+    created () {
+      this.getOrderList()
+    }
+  })
+</script>

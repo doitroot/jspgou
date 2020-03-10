@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-我的收藏</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="我的收藏"/]
+  [#include "../../includes/topbar.html"]
+<div class="cms coll " id="collect" v-cloak>
+  <van-tabs v-model="active" @change="tapChange" :line-width="40">
+    <van-tab title="商品">
+      <div class="goods__label">
+        <div>共<span class="goods__num"> {{totalElements}} </span>件商品</div>
+      </div>
+      <div class="shop__cart t-bottom" v-for="(item,index) in goodsList" :key="index">
+          <van-swipe-cell :right-width="90" async-close style="width:100%" v-if="goodsList.length>0">
+              <van-card
+               @click.stop="toProduct(item.product.id,item.storeId)"
+                class="card__bg"
+                :title="item.product.name"
+                :thumb="item.product.coverImage?baseUrl + item.product.coverImage:'#'">
+                <div class="card__label" slot="desc">
+                  <span class="coupon__limt">¥</span> {{$float(item.product.salePrice)}}
+                </div>
+                </van-card>
+            <div  @click.stop="cancelShopUp(item.id)" slot="right" class="del-right">取消收藏</div>
+          </van-swipe-cell>
+        </div>
+    </van-tab>
+    <van-tab title="店铺">
+      <div class="goods__label">
+        <div>共<span class="goods__num"> {{totalElements}} </span>家店铺</div>
+      </div>
+      <div class="shop__cart t-bottom" v-for="(item,index) in shopList" :key="index">
+        <van-swipe-cell :right-width="90" async-close style="width:100%">
+            <van-card
+            @click="toStore(item.storeId)"
+            class="card__bg"
+            :thumb="item.store.storeLogoResource?baseUrl+item.store.storeLogoResource.url:'${mobileRes}/img/store.png'">
+            <div slot="title" class="card__title">
+              <span v-if="item.store">{{item.store.storeName}} </span> <van-tag v-if="item.store.selfShop" plain type="danger">自营</van-tag>
+            </div>
+            </van-card>
+          <div  @click.stop="cancelStoreUp(item.storeId)" slot="right" class="del-right">取消收藏</div>
+        </van-swipe-cell>
+      </div>
+    </van-tab>
+  </van-tabs>
+  <div v-show="!hidden">
+    <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+    <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+  </div>
+</div>
+
+</body>
+</html>
+<script>
+new Vue({
+    el: '#collect',
+    data() {
+      return {
+        params:{
+          page:1,
+          size:10
+        },
+        status:true,
+        hidden:true,
+        info:'',
+        totalElements:0,
+        id:'',
+        active:'${active!}',
+        shopList:[],
+        goodsList:[],
+        isShow:false,
+        pages:0,
+        allCheck:false,
+        ids:[],
+        baseUrl:'${base}',
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    },
+    methods: {
+      toProduct(id,storeId){
+        location.href='${base}/product-detail.htm?productId='+id+'&storeId='+storeId
+      },
+      onRefresh(){
+        this.params.page = 1;
+        switch(parseInt(this.active)){
+          case 0:
+          this.getGoodsList()
+          break
+          case 1:
+          this.getStoreList()
+          break
+        }
+      },
+      onReachBottom(event){//上拉加载处理
+       var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+        　　　if(this.params.page <this.pages){
+                this.params.page +=1
+                this.hidden = false
+                this.info = ''
+                if(parseInt(this.active) == 0){
+                  this.getGoodsList('loading')
+                }else{
+                  this.getStoreList('loading')
+                }
+              }else{
+                this.hidden = false
+                this.info = '没有更多了'
+                return
+              }
+        　　}
+        },
+      tapChange(){//切换店铺与商品关注列表
+        this.onRefresh()
+      },
+      tapGoods(e){
+        this.isShow = !this.isShow
+      },
+      toStore(id){//查看店铺
+        location.href='${base}/store-index.htm?storeId='+id
+      },
+      getGoodsList(type){//获取关注商品列表
+        this.status = false
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        memberfollowproductPage(this.params).then(res => {
+          if(res.code == 200){
+              if(type === 'loading'){
+              this.goodsList=this.goodsList.concat(res.data.content)
+            }else{
+              this.goodsList=res.data.content
+            }
+            console.log(this.goodsList)
+            this.pages = res.data.totalPages
+            this.status = true
+            this.$toast.clear()
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      getStoreList(type){//获取关注店铺列表
+        this.status = false
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        followStorePage(this.params).then(res => {
+          if(res.code == 200){
+            if(type === 'loading'){
+              this.shopList=this.shopList.concat(res.data.content)
+            }else{
+              this.shopList=res.data.content
+            }
+            this.$toast.clear()
+            this.pages = res.data.totalPages
+            this.status = true
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      cancelShopUp(id){ // 取消商品收藏
+        this.$dialog.confirm({
+            message: '确定取消收藏吗？'
+          }).then(() => {
+          memberfollowproductDelete({id:id}).then(res => {
+            if(res.code == 200){
+              this.$toast('取消成功！')
+              setTimeout(() => {
+                this.params.page = 1;
+              this.getGoodsList()
+              }, 500);
+              this.isShow = false
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {})
+        })
+      },
+      cancelStoreUp(id){ // 取消店铺收藏
+          this.$dialog.confirm({
+            message: '确定取消收藏吗？'
+          }).then(() => {
+            followStoreDelete({storeId:id}).then(res => {
+              if(res.code == 200){
+                this.$toast('取消成功！')
+                setTimeout(() => {
+                  this.params.page = 1;
+                this.getStoreList()
+                }, 500);
+                this.isShow = false
+              } else {
+                this.$toast(res.message)
+              }
+            }).catch(err => {})
+            instance.close();
+          });
+      },
+      onLoad() {
+        if(this.active && this.active != ''){ // 判断进入页面时的下标值
+          switch(parseInt(this.active)){
+            case 0:
+            this.getGoodsList()
+            break
+            case 1:
+            this.getStoreList()
+            break
+          }
+        }
+      },
+    },  
+    created() {
+      this.onLoad()
+    }
+  })
+</script>

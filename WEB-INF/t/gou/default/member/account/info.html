@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>${globalConfig.mallName!}-个人信息</title>
+    [#include "../../includes/common.html"]
+    <script src="${res}/lib/moment.js"></script>
+    <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+
+<body>
+    [#include "../../includes/topBar.html"]
+    [#include "../../includes/vipNav.html"]
+    <div class="gray-container account-container">
+        <div class="container">
+            <!-- 左侧选项卡 -->
+            [#assign activeName="accountInfo"]
+            [#include "../../includes/accountNav.html"]
+            <!-- 主体上部 -->
+            <div class="member-body">
+                <h3 class="member-title index-title">个人信息</h3>
+                <div class="member-order__body person-order__body">
+                    <div class="member-order__header clearfix">
+                        <!-- 选项卡 -->
+                        <ul class="member-order__tabs fl">
+                            <li class="member-order__tab member-order__tab--active">
+                                <a class="member-order__link ">基本信息</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- 个人中心主体 -->
+                    <div class="member-search account-person" id="personinfo" v-cloak>
+                        <div class="member-search__inner">
+                            <el-form size="mini" label-position="right" label-width="120px">
+                                <el-form-item class="personinfo-head" label="头像：">
+                                    <a class="account-person-box" v-if="status == 1">
+                                        <img class="account-person-ico" :src="'${base}'+fileUrl" alt="">
+                                    </a>
+                                    <a class="account-person-box" v-if="status == 2">
+                                        <cms-upload :custom="true" class="fl" @change="getImgs">
+                                            <div class="upload-box__warp" style="width: 52px;height: 50px;line-height: 50px;">
+                                                <img class="account-person-ico" v-if="fileUrl !=''" :src="'${base}'+fileUrl" alt="">
+                                                <span v-else class="fa fa-plus"></span>
+                                            </div>
+                                        </cms-upload>
+                                    </a>
+                                </el-form-item>
+                                <el-form-item label="昵称：">
+                                    <span  v-if="status==1" class="account-person__text" >{{userInfo.nickname}}</span>
+                                    <el-input maxlength="50" v-if="status==2" v-model="userInfo.nickname"></el-input>
+                                </el-form-item>
+                                <el-form-item label="用户名：">
+                                    <span class="account-person__text" >{{userInfo.username}}</span>
+                                </el-form-item>
+                                <el-form-item label="邮箱：">
+                                    <span class="account-person__text" >{{userInfo.email}}</span>
+                                    <a href="${base}/member-account-security.htm">
+                                        <span class="account-person__info" v-if="userInfo.email==''">请绑定邮箱</span>
+                                    </a>
+                                </el-form-item>
+                                <el-form-item label="手机：">
+                                    <span class="account-person__text" >{{userInfo.phone}}</span>
+                                    <a href="${base}/member-account-security.htm">
+                                        <span class="account-person__info" v-if="userInfo.phone==''">请绑定手机</span>
+                                    </a>
+                                </el-form-item>
+                                <!-- <el-form-item label="姓名：">
+                                    <el-input v-model="userInfo.nickname" v-if="status==2" >{{userInfo.nickname}}</el-input>
+                                    <span class="account-person__text" v-if="status==1" >{{userInfo.nickname}}</span>
+                                </el-form-item> -->
+                                <el-form-item class="verifyid-radio" label="性别：" v-if="status==1">
+                                    <span class="account-person__text" v-if="radio==3">保密</span>
+                                    <span class="account-person__text" v-if="radio==1">男</span>
+                                    <span class="account-person__text" v-if="radio==2">女</span>
+                                </el-form-item>
+                                <el-form-item class="verifyid-radio" label="性别：" v-if="status==2">
+                                    <el-radio v-model="radio" label="1">男</el-radio>
+                                    <el-radio v-model="radio" label="2">女</el-radio>
+                                    <el-radio v-model="radio" label="3">保密</el-radio>
+                                </el-form-item>
+                                <el-form-item label="生日：">
+                                        <el-date-picker
+                                        v-model="userInfo.memberExt.birthday"
+                                        type="date"
+                                        value-format="timestamp" 
+                                        :picker-options="pickerOptions0"
+                                        placeholder="选择日期" v-if="status==2">
+                                      </el-date-picker>
+                                    
+                                    <span class="account-person__text" v-if="status==1">{{formatTime(userInfo.memberExt.birthday)}}</span>
+                                </el-form-item>
+                                <div class="account-person-btngroup">
+                                    <a href="javascript:void(0)" class="account-person-btn">
+                                        <el-button type="primary" size="small" @click="status=2" v-if="status==1">修改</el-button>
+                                        <el-button type="primary" size="small" @click="editInfo" v-if="status==2">确认修改</el-button>
+                                    </a>
+                                </div>
+                            </el-form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- start -->
+    [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var personinfo = new Vue({
+        el: '#personinfo',
+        data() {
+            return {
+                pickerOptions0: {
+                disabledDate(time) {
+                return time.getTime() > Date.now();
+          }
+        },  
+                resourceDataId:'',
+                fileUrl:'${user.headImgUrl!}',//图片
+                status: 1,
+                radio: "", //用来接收性别的
+                userInfo: {
+                    "email": "",
+                    "id": "",
+                    "memberExt": {
+                        "birthday": "",
+                        "gender": "1",
+                        "resourceData": {
+                            "id": "",
+                            "url": ""
+                        },
+                    },
+                    "nickname": "",
+                    "phone": ""
+                }
+            }
+        },
+        methods: {
+            getImgs(data){
+                this.fileUrl = data.fileUrl
+                this.resourceDataId = data.resourceId
+            },
+            formatTime(timeStr) { //调整时间的方法
+                if(timeStr){
+                    return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+                }else{
+                    return ''
+                }
+                
+            },
+            getUserInfo() { //获取用户信息的方法
+                var that = this
+                cms.ajax({
+                    url:'${base}/member/memberuser/getMember'
+                }, function (res) {
+                    if (res.code == 200) {
+                        that.userInfo = res.data
+                        that.radio = String(res.data.memberExt.gender)
+                        if(res.data.memberExt.resourceData){
+                            that.fileUrl = res.data.memberExt.resourceData.url
+                        }
+                    } else {
+                        cms.alert(res.message,5)
+                        return false
+                    }
+                })
+            },
+            editInfo() { //编辑用户信息的方法
+                var params={
+                    "resourceDataId": this.resourceDataId,
+                    "gender": this.radio,
+                    "birthday": this.userInfo.memberExt.birthday,
+                    "nickname":this.trim(this.userInfo.nickname),
+                    'status':1
+                }
+                var that = this
+                cms.ajax({
+                    url:'${base}/member/memberuser/updateMemberExt',
+                    type: "post",
+                    data: JSON.stringify(params)
+                }, function (res) {
+                    if (res.code == 200) {
+                        that.status = 1
+                        cms.alert('修改信息成功！',4)
+                        that.getUserInfo()
+                    }
+                })
+            },
+            trim(s){
+              var str = s,
+              str = str.replace(/^\s\s*/, ''),
+              ws = /\s/,
+              i = str.length;
+              while (ws.test(str.charAt(--i)));
+              return str.slice(0, i + 1);
+            }
+        },
+        created() {
+            this.getUserInfo()
+        }
+    })
+</script>

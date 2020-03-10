@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>${globalConfig.mallName!}-品牌专区</title>
+		[#include "./includes/common.html"]
+	</head>
+	<body>
+		[#include "./includes/topBar.html"]
+		<div class="header index-search">
+			<div class="container head-wrap">
+				 [#include "./includes/logo.html"]
+				[#include "./includes/search.html"]
+			</div>
+    </div>
+    [#assign status="brands"/]
+		[#include "./includes/categoryMenu.html"]
+		<div id="brands" v-loading="loading" v-cloak class="clearfix">
+      <div class="brands">
+        <div class="brands-nav">
+          <span class="brands-nav__icon"><i class="fa fa-home"></i></span>
+          <a href="${base}/">首页</a>&nbsp;>&nbsp;<a href="">全部品牌</a>
+        </div>
+        <!-- 全部品牌类型 -->
+        <ul class="allbrand clearfix">
+          <li class="allbrand__item" :class="{'allbrand__item--active':allCateAtive}">
+            <a href="javascript:;" @click="cate('')">全部分类</a></li>
+            <ul class="clearfix allbrand__items">
+              <li class="allbrand__item" 
+                v-for="(list,index) in listData" 
+                @click="cate(list.id)"
+                :class='[brandsData.productCategory==list.id?"allbrand__item--active":""]' >
+                <a href="javascript:;">{{list.cateName}}</a>
+              </li>
+            </ul>
+            <a v-if="listData.length>13" class="allbrand__lookMore" href="javascript:;">查看更多<i class="fa fa-angle-down"></i></a>
+        </ul>
+        <!-- 所有品牌名称 -->
+        <ul class="bname clearfix">
+            <li class="bname__item" v-for="(item,index) in brandData" :key="item.id">
+              <div>
+                <a class="bname__img" 
+                :href="'${base}/product-search.htm?brandId='+item.id+'&brandName='+item.name">
+                <img :src="item.resourcesSpaceData?item.resourcesSpaceData.url:'#'" alt="" class="bname__img--size"></a>
+              </div>
+              <p class="bname__text"><a :href="'${base}/product-search.htm?brandId='+item.id+'&brandName='+item.name">{{item.name}}</a></p>
+            </li>
+        </ul>
+        <div class="shop__empty" v-if="brandData.length==0&&!loading">
+          <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+      </div>
+      <!-- 分页按钮 -->
+      <div class="overflow score-pagging"  v-if="brandData.length>0">
+          <el-pagination class="fr" background layout="prev, pager, next" :total="total" :page-size='brandsData.size'
+            @current-change="sizeChange" :current-page="brandsData.page">
+          </el-pagination>
+        </div>
+      </div>
+		</div>
+		[#include "./includes/footer.html"]
+	</body>
+</html>
+<script>
+  var app = new Vue({
+    el: '#brands',
+    data() {
+      return {
+        brandsData: {
+          'page': 1,
+          'size': 16,
+          'productCategory': ""
+        },
+        listData: [],
+        brandData: [],
+        loading: true,
+        allCateAtive:true,//全部分类的样式控制
+        total: 0,
+      }
+    },
+    methods: {
+      sizeChange(value) { //分页
+        this.brandsData.page = value
+        this.getBrandLists()
+      },
+      getBrandLists() {//获取品牌列表
+        this.loading = true;
+        var that = this
+        cms.ajax({
+          url: cms.url + '/brandpage',
+          type: "get",
+          data: that.brandsData,
+          headers: {}
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.brandData = res.data.content
+            that.total = res.data.totalElements //返回总共的记录条数
+          } else {
+            cms.alert(res.message,5)
+            that.loading = false
+          }
+        })
+      },
+      getCateList() { //获取分类商品信息列表
+        var that = this
+        $.get(cms.url + '/productcategory/list', function (res) {
+          if (res.code == 200) {
+            that.listData = res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      cate(id) { //分类
+        if(id==''){
+          this.allCateAtive=true
+        }else{
+          this.allCateAtive=false
+        }
+        this.brandsData.productCategory = id
+        this.getBrandLists()
+        this.brandsData.productCategory = id
+      },
+    },
+    created() {
+      this.getBrandLists()
+      this.getCateList()
+    }
+  })
+</script>

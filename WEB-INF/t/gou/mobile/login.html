@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-登陆</title>
+
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+  [#include "./includes/common.html"]
+  <script src="${mobileRes}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${mobileRes}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${mobileRes}/js/login.js"></script>
+  <script>
+   var ua = window.navigator.userAgent.toLowerCase();
+     if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+       location.href="${base}/thirdParty/wechat/third?backUrl=${backUrl!}"
+      }
+ </script>
+</head>
+
+<body>
+  <!-- pages/login/login.wxml -->
+  [#assign topName="登陆"/]
+  [#include "./includes/topbar.html"]
+  <div class="container cms nav-top" id="login" v-cloak>
+    <div class="login-tab">
+      <div class="login-content" :class="isActive == 1?'login-note':''" @click="tabsTap(1)">账号密码登录</div>
+      <div class="login-content" :class="isActive == 2?'login-note':''" @click="tabsTap(2)">短信验证码登录</div>
+    </div>
+    <div class="account-login" v-if="isActive == 1">
+      <van-cell-group class="t-coll">
+        <van-field v-model="account.userName" maxlength="50" clearable focus placeholder='用户名/手机/邮箱' label="账号" title-width='90px' />
+      </van-cell-group>
+      <van-cell-group>
+        <van-field custom-class="cell-input" maxlength="16" v-model=" account.pwd " placeholder='请输入密码' clearable type="password"
+          label="密码" title-width='90px' />
+      </van-cell-group>
+      <div class="login__submit">
+        <van-button @click="login" type='primary' size="large" :disabled="account.userName === '' || account.pwd === ''">登录</van-button>
+      </div>
+    </div>
+    <div class="phone-login" v-if="isActive == 2">
+      <van-cell-group class="t-coll">
+        <van-field placeholder="请输入手机号码" label="手机号" maxlength="11" title-width='120px' v-model="tel.phone" clearable />
+      </van-cell-group>
+      <van-cell-group>
+        <van-field placeholder="请输入短信验证码" label="验证码" maxlength="6" title-width='120px' v-model="tel.eyetxt" use-button-slot
+          clearable>
+          <van-button type="primary" style="height: 24px;line-height: 23px" 
+          slot="button" size="small" @click="getAuthCode(tel.phone)"
+            v-if="sendAuthCode">获取验证码</van-button>
+          <van-button style="height: 24px;line-height: 23px" v-if="!sendAuthCode" disabled type="primary" slot="button"
+            size="small">
+            <span class="auth_span_blue"></span>重新发送({{auth_time}}s)</van-button>
+        </van-field>
+      </van-cell-group>
+      <div class="login__submit">
+        <van-button @click="phoneLogin" type='primary' size="large" :disabled="tel.phone === '' || tel.eyetxt === ''">登录</van-button>
+      </div>
+    </div>
+    <div class="forget__pwd" selectable="false" space="false" decode="false">
+      <a href="${base}/retrieve.htm" class="t-color">
+        忘记密码？
+      </a>
+    </div>
+    <div class="reg__box">
+      <a class="reg__btn" href="${base}/register.htm">立即注册</a>
+    </div>
+    <div class="third-wrap container">
+      <div class=" t-14 t-label t-center"
+       v-if="thirdInfo.QQ||thirdInfo.WECHAT_WEB||thirdInfo.WEIBO">
+       <span class="third-title">其他登录方式</span> <div class="third-hr"></div></div>
+      <div class="third-flex">
+        <div class="third-box" @click="toThird('/thirdParty/sina/pc?backUrl=')" v-if="thirdInfo.WEIBO">
+          <div class="third-cont"><img src="${mobileRes}/img/xinlangThird.png" alt=""></div>
+          <div class="third-cont">新浪微博</div>
+        </div>
+        <div class="third-box" @click="toThird('/thirdParty/qq/pc?backUrl=')" v-if="thirdInfo.QQ">
+          <div class="third-cont"><img src="${mobileRes}/img/qqThird.png" alt=""></div>
+          <div class="third-cont">QQ</div>
+        </div>
+        <div class="third-box" @click="toThird('/thirdParty/wechat/third?backUrl=')" v-if="thirdInfo.WECHAT_WEB">
+          <div class="third-cont"><img src="${mobileRes}/img/weixinThird.png" alt=""></div>
+          <div class="third-cont">微信</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  //登录验证
+    
+  new Vue({
+    el: '#login',
+    data() {
+      return {
+        account: { //账号登陆
+          userName: '',
+          pwd: '', //密码
+          captcha: ''
+        },
+        tel: { //短信登陆
+          phone: '',
+          eyetxt: ''
+        },
+        theUrl:'${url!}',
+        captchaImg: '${base}/common/kaptcha?d=',
+        isActive: 1, //账户/短信登陆tab
+        sendAuthCode: true, //发送短信状态
+        auth_time: 120, //定义重新发送时间
+        auth_timetimer: '', //定时器
+        thirdInfo:{QQ:'',WECHAT_WEB:'',WEIBO:'',WECHAT_H5:''},
+        backUrl:[#if backUrl?? ]'${backUrl!}' [#else] '${base}/' [/#if]
+      }
+    },
+    methods: {
+      toThird(url){
+        location.href = '${base}'+url+this.backUrl
+      },
+      getCaptcha() {
+        this.captchaImg = this.captchaImg += new Date() * 1
+      },
+      // 登录
+      login() {
+        const params = {
+          captcha: this.account.captcha,
+          identity: this.account.userName,
+          desStr: encrypt(JSON.stringify({
+            pStr: this.account.pwd
+          }))
+        }
+        // 调用登录
+        userLogin(params).then(res => {
+          if (res.code === 200) {
+            localStorage.setItem("token", res.data["JSPGOU-Auth-Token"])
+            if(this.theUrl){
+              location.href = this.theUrl
+            }else{
+              location.href = this.backUrl
+            }
+            
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      phoneLogin() {
+        //短信验证
+        const params = {
+          targetNumber: this.tel.phone,
+          validateCode: this.tel.eyetxt,
+          type: 5
+        }
+        loginPhone(params).then(res => {
+          if (res.code === 200) {
+            localStorage.setItem("token", res.data.authToken)
+            location.href = this.backUrl
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      //切换登陆方式
+      tabsTap(e) {
+        this.isActive = e
+      },
+      //发送短信验证
+      getAuthCode(phone) {
+        var reg = /^1[3456789]\d{9}$/
+        if(reg.test(phone)) {
+          let query = {
+            type: 5,
+            targetNumber: this.tel.phone
+          }
+          sendPhoneMsg(query).then(res => {
+            if (res.code == 200) {
+              this.$toast('发送成功');
+            } else {
+              this.$toast(res.message);
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }).catch(err => {})
+          this.sendAuthCode = false
+          let num = this.auth_time //定义时间
+          this.auth_timetimer = setInterval(() => {
+            num--
+            this.auth_time = num
+            if (num <= 0) {
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }, 1000)
+        }else{
+          this.$toast({
+            message: '请输入正确的手机号码',
+            position: 'bottom',
+            duration: 1500
+          });
+        }
+      },
+      getThirdInfos(){
+          getThirdInfo().then(res => {
+            if (res.code === 200) {
+            this.thirdInfo = res.data
+            res.data.forEach(item => {
+              switch (item.code){
+                case 'QQ':
+                this.thirdInfo.QQ=item.isEnable
+                break;
+                case 'WECHAT_WEB':
+                this.thirdInfo.WECHAT_WEB=item.isEnable;
+                break;
+                case 'WEIBO':
+                this.thirdInfo.WEIBO=item.isEnable;
+                break;
+                case 'WECHAT_H5':
+                this.thirdInfo.WECHAT_H5=item.isEnable;
+                break;
+              }
+            })
+           }
+          })
+        }
+      },
+      created () {
+        this.getThirdInfos()
+      }
+  })
+</script>
+

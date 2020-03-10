@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-店铺街</title>
+  [#include "../includes/common.html"]
+</head>
+<body>
+  [#include "../includes/topBar.html"]
+  <div class="header">
+    <div class="container head-wrap">
+				<div class="fl"> 
+					[#assign name="产品目录"]
+					[#include "../includes/logo.html"]
+        </div>
+        [#assign search="product"/]
+				[#include "../includes/search.html"]
+		</div>
+  </div>
+  [#include "../includes/categoryMenu.html"]
+  <div id="app">
+    <div class="brands">
+      <div class="brands-nav">
+        <span class="brands-nav__icon"><i class="fa fa-home"></i></span><a href="">首页</a>&nbsp;>&nbsp;<a href="">全部店铺</a>
+      </div>
+      <!-- 全部品牌类型 -->
+      <ul class="allbrand clearfix">
+        <li class="allbrand__item allbrand__item--active"><a href="" class="allbrand__item--color">全部品牌</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+        <li class="allbrand__item"><a href="">家用电器</a></li>
+        <li class="allbrand__item"><a href="">电脑办公</a></li>
+      </ul>
+      <ul class="stostr clearfix">
+        <li class="stostr__item stostr__item--nobor">排序</li>
+        <li class="stostr__item">销量<span class="stostr__icon"><i class="fa fa-long-arrow-down"></i></span></li>
+        <li class="stostr__item">人气<span class="stostr__icon"><i class="fa fa-long-arrow-down"></i></span></li>
+        <li class="stostr__item">自营</li>
+      </ul>
+      <!-- 所有店铺名称 -->
+      <ul class="stoname clearfix stostr-box">
+        <!-- 循环 -->
+        <li class="stoname__item" v-for="(item, index) in stostrList" :key="index">
+          <!-- 是否收藏 -->
+          <span class="stoname__heart"><i class="fa" :class="item.isLike?'fa-heart':'fa-heart-o'" @click="likeChange(item.id,index);dislikeChange(item.id,index)"></i></span>
+
+          <!-- 店铺Logo -->
+          <div class="stoname__imgs">
+            <a href="">
+              <img src="${res}/images/sto1.png" alt="" class="stoname__img">
+            </a>
+          </div>
+          <!-- 店铺名称 -->
+          <p class="stoname__store" :title="item.storeName">{{item.storeName}}</p>
+          <!-- 主营类目 -->
+          <p class="stoname__style">主营类目：{{item.productCategory.cateName}}</p>
+          <!-- 店铺等级 -->
+          <p class="stoname__style"> 店铺等级：<img :src="'http://192.168.0.200:8500'+item.storeLevel.resourcesSpaceData.url"
+              alt="" class="stoname__state"></p>
+        </li>
+      </ul>
+      <!-- 分页按钮 -->
+      <div class="overflow score-pagging">
+        <el-pagination class="fr" background layout="prev, pager, next" :total="total" :page-size='stostrData.size'
+          @current-change="sizeChange" :current-page="stostrData.page">
+        </el-pagination>
+      </div>
+    </div>
+  </div>
+  [#include "../includes/footer.html"]
+</body>
+</html>
+<script>
+  var app = new Vue({
+    el: '#app',
+    data() {
+      return {
+        loading: false,
+        stostrData: {
+          'page': 1,
+          'size': 12
+        },
+        stostrList: [],
+        total: 0,
+      }
+    },
+    methods: {
+      likeChange(id, index) { //收藏
+        var that = this
+        if(!that.stostrList[index].isLike){
+          cms.ajax({
+          url: cms.url + '/member/followStore/save',
+          type: 'get',
+          data: {
+            "storeId": id
+          }
+        }, function (res) {
+          if (res.code == 200) {
+            that.$set(that.stostrList[index], 'isLike', true)
+            cms.alert('收藏成功',4)
+          } else {
+            cms.alert('发生错误')
+          }
+        })
+      }
+  
+      },
+      dislikeChange(id, index) { //取消收藏
+        
+        var that = this
+        if(that.stostrList[index].isLike){
+          cms.ajax({
+          url: cms.url + '/member/followStore/delete',
+          type: 'get',
+          data: {
+            "storeId": id
+          }
+        }, function (res) {
+          if (res.code == 200) {
+            that.$set(that.stostrList[index], 'isLike', false)
+            cms.alert('取消收藏成功',4)
+          } else {
+            cms.alert('发生错误')
+          }
+        })
+        }
+       
+
+      },
+
+      sizeChange(value) { //分页
+        this.stostrData.page = value
+        this.getStostrData()
+      },
+      getStostrData() { //获取数据
+        this.loading = true;
+        var that = this
+        cms.ajax({
+          url: cms.url + '/storestreet',
+          type: 'get',
+          data: {
+            'page': that.page,
+            'size': that.size
+          }
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.stostrList = res.data.content
+            that.total = res.data.totalElements
+          } else {
+            that.loading = false
+            cms.alert('获取信息出错')
+          }
+        })
+      }
+    },
+    created() {
+      this.getStostrData();
+    }
+  })
+</script>

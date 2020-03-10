@@ -1,0 +1,31 @@
+<div class="member-nav">
+    <!-- 导航组 -->
+    <dl class="member-nav__items">
+      <dt class="member-nav__header">账户设置</dt>
+      <dd class="member-nav__item ">
+        <a href="${base}/member-account-info.htm" 
+        class="member-nav__link 
+        [#if activeName=='accountInfo'] member-nav__link--active[/#if]">个人信息</a>
+      </dd>
+      <dd class="member-nav__item">
+        <a href="${base}/member-account-security.htm" 
+        class="member-nav__link 
+        [#if activeName=='accountSecurity'] member-nav__link--active[/#if]">账户安全</a>
+      </dd>
+      <dd class="member-nav__item">
+        <a href="${base}/member-account-bind.htm" 
+        class="member-nav__link 
+        [#if activeName=='accountBind'] member-nav__link--active[/#if]">账号绑定</a>
+      </dd>
+      <dd class="member-nav__item">
+        <a href="${base}/member-account-invoice.htm" 
+        class="member-nav__link
+        [#if activeName=='accountInvoice'] member-nav__link--active[/#if]">增票资质</a>
+      </dd>
+      <dd class="member-nav__item">
+        <a href="${base}/member-account-address.htm" 
+        class="member-nav__link 
+        [#if activeName=='accountAddress'] member-nav__link--active[/#if]">收货地址</a>
+      </dd>
+    </dl>
+  </div>

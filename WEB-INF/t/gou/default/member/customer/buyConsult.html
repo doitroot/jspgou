@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>购买咨询</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container" >
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="buyConsult"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body " id="buyConsult" v-cloak>
+          <div class="ecoupon__head">
+              <p style="font-weight:bold;">商品咨询</p>
+          </div>       
+          <!-- 主体内容的展示 -->
+         <div class="buycon__wrap buycon__allcontainer">
+          <div class="ecoupon__nav">
+              <ul class="ecoupon__list">
+                <li v-for="(item,index) in navList" :key="index"
+                 class="ecoupon__li" :class="{'ecoupon__li--active':navSelected==index}"
+                 @click="toggleMenu(index)">
+                {{item}}</li>
+              </ul>
+         </div>
+        <!-- 主体内容的具体展示 -->
+         <div class="buycon__body">
+           <div class="buycon__item" v-for="(item, index) in consultData" :key="index">
+             <div class="buycon__goods">
+               <div class="buycon__picwrap">
+                 <img :src="item.product.coverImage" alt="1" class="buycon__pic">
+               </div>
+               <p class="buycon__name"><a :href="'${base}/product-detail.htm?productId='+item.product.id">{{item.product.name}}</a> </p>
+               <p class="buycon__productname">{{item.product.store.storeName}}</p>
+             </div>
+             <div class="buycon__content">
+                <p class="q_maintitle clearfix">
+                  <span class="o__symbol alpha__symbol">Q</span>
+                  <span class="q__content">{{item.comefrom|handlerSender}}：</span>
+                  <span class="asked__content">{{item.content}} </span>
+                  <span class="q__date">{{formatTime(item.createTime)}}</span>
+                </p>
+                <div class="answer__area" :class="{'answer__area-bg':item.assocatedAnswer.length==0}">
+                  <p class="a_piece clearfix" v-for="(msg, index) in item.assocatedAnswer" :key="index">
+                    <span class="g_symbol alpha__symbol">A</span>
+                    <span class="g_sender">{{msg.comefrom|handlerSender}}:</span>
+                    <span class="answer__content">{{msg.content}}</span>
+                  </p>
+                  <p class="buycon_none" v-if="item.assocatedAnswer.length==0">暂无互动消息！</p>
+                </div>
+             </div>
+           </div>          
+         </div>
+         <!-- 主体内容的具体展示结束 -->
+         <div style="text-align:center;">
+          <a href="javascript:;" class="buycon-load__btn" @click="loadMore" 
+            v-if="total>5" v-show="hidebtn">查看更多</a>
+         </div>
+         <div class="buycon_tips__wrap" v-if="total>4">
+           <p class="tips" v-show="!hidebtn" >╭❤～ 亲，已经加载完了哦!</p>
+         </div>
+           <!-- 列表内容暂无时显示 -->
+        <div v-if="consultData.length==0&&!loading" style="text-align:center;margin-top: 120px;">
+            <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    [#include "../../includes/footer.html"]
+  </body>
+  </html>
+  <script>
+    var defaultData={
+          "page":1,
+          "size":3,
+          "status":"",
+          "answerContentSize":""
+    }
+    var buyConsult=new Vue({
+     el:"#buyConsult",
+     data:{
+        consultData:[],   //列表内容
+        total:'',         //信息总条数
+        hidebtn:true,     //加载更多按钮的显示隐藏
+        queryParams:Object.assign({},defaultData),
+        navList:["全部","已回复","未回复"],//tab栏的数据
+        navSelected:'',    //tab栏的选中状态
+        loading:false
+      },
+    methods:{
+        getInfo(){
+          var self=this
+          self.loading=true
+           cms.ajax({
+            url:cms.url + '/member/productconsultation/pagePc',
+            type:"get",
+            data:self.queryParams
+           },function(res){
+            if(res.code == 200){
+              self.consultData=res.data.content
+              self.total=res.data.totalElements
+              self.loading=false
+            }else{
+              self.loading=false
+              cms.alert(res.message,5)
+            }
+           })
+        },
+        formatTime(timeStr){  //调整时间的方法
+            return moment(parseInt(timeStr)).format('YYYY/MM/DD')
+        },
+        loadMore(){   //加载更多
+          if(this.queryParams.size<this.total){
+            this.queryParams.size+=this.queryParams.size
+            this.getInfo()
+          }else{
+             this.hidebtn=false
+          }
+        },
+        toggleMenu(index){//导航栏和数据的切换
+          this.navSelected=index
+           switch (index){
+             case 0:
+             this.queryParams=Object.assign({},defaultData)
+             this.getInfo()
+             break;
+             case 1:
+             this.queryParams=Object.assign({},defaultData)
+             this.queryParams.status=1
+             this.getInfo()
+             break;
+             case 2:
+             this.queryParams=Object.assign({},defaultData)
+             this.queryParams.status=0
+             this.getInfo()
+             break;
+           }
+        }     
+      },
+    filters:{
+        handlerSender(val){     //处理发送者
+          if (val==1) {
+            return '我'
+          }
+          if(val==2){
+            return '商家'
+          }
+        }
+    },
+    created() {
+        this.getInfo()
+    }
+  })
+      
+     </script>

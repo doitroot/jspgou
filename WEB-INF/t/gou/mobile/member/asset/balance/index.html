@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>账户余额</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body class="t-page">
+  [#assign topName="账户余额"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms nav-top" id="balance" v-cloak>
+    <div class="balance__head">
+      <div class="balance__box">
+        <div class="balance__label">账户余额(元)</div>
+        <!-- <div class="balance__detailed">明细</div> -->
+      </div>
+      <div class="balance__money">{{$float(balance)}}</div>
+    </div>
+    <div class="t-space"></div>
+    <div class="balance__foot">
+      <van-cell-group>
+        <van-cell title="充值" is-link @click="toRecharge" :border="false">
+          <div class="balance__icon" slot="icon">
+            <van-icon name="debit-pay" />
+          </div>
+        </van-cell>
+      </van-cell-group>
+    </div>
+    <div class="t-space"></div>
+    <div class="balance__txt t-14 ">
+      <div>账户余额是什么？</div>
+      <div class="t-12 balance_text">
+        <div>1、</div>
+        <div class="balance__num">账户余额可用在下单时简单快捷的进行结算使用</div>
+      </div>
+      <div class="t-12 balance_text">
+        <div>2、</div>
+        <div class="balance__num">当您出现退款失败等极端少数情况时，可将退款金额转至账户余额，您也可以在我的账户中查看记录</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#balance',
+    data() {
+      return {
+        balance: 0.00
+      }
+    },
+    methods: {
+      getBalance() {
+        memberaccountGet().then(res => {
+          if (res.code == 200) {
+            this.balance = res.data.balance
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { })
+      },
+      toRecharge(){
+        window.location.href='${base}/member-asset-balance-charge.htm'
+      },
+    },
+    created() {
+      this.getBalance()
+    }
+  })
+</script>

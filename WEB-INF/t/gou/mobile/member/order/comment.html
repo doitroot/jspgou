@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-评价管理</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="评价管理"/]
+  [#include "../../includes/topbar.html"]
+  <div id="comment" v-cloak>
+    <div class="cms nav-top">
+      <div class="es-wrap " v-for="(item,index) in proItem.items" :key="index">
+      <!-- 商品评价，标签部分 -->
+        <div class="es-top container">
+          <div class="es-top-img">
+            <img :src="baseUrl+ item.product.coverImage" />
+          </div>
+          <div class="es-top-cont">
+            <van-rate v-model="params.commentdList[index].matchV"></van-rate>
+            <div class="es-top-tags" v-if="item.product.ext.evaluationView!==''">
+              <van-tag class="es-top-tag"  v-for="(eva,evaIndex) in item.evaluation" :key="evaIndex"
+              :type="item.evalua[evaIndex].tagActive?'danger':''" 
+              size="medium" plain  @click.stop="getEvalua(eva,index,evaIndex)" >{{eva}}</van-tag>
+            </div>
+          </div>
+        </div>
+        <!-- 商品描述，图片 -->
+        <div class="es-bottom">
+          <div class="es-bottom-txt">
+            <van-field
+              v-model="params.commentdList[index].content"
+              type="textarea"
+              placeholder="分享你的使用体验吧！"
+              maxlength="140"
+              :border="false"
+            ></van-field>
+          </div>
+          <div class="es-bottom-img">
+              <div class="upload-wrap">
+                  <div v-if="params.commentdList[index].files.length >0"  class="upload-wrap">
+                    <div  class="up-upload" v-for="(item,index2) in params.commentdList[index].files" :key="index">
+                      <img class="up-img" :src="baseUrl+item.fileUrl" />
+                      <span @click.stop="deleteImg(index,index2)" class="del-img" >删除</span>
+                    </div>
+                  </div>
+                  <van-uploader v-show="params.commentdList[index].files.length<5" class="up-upload up-dashed" 
+                  style="position:relative"
+                  :before-read="getIndex(index)"
+                  :after-read="selectFile" accept="image/gif, image/jpeg,image/jpg,image/png" multiple>
+                  <span style="position:absolute;top:27%;left:32%;display: inline-block;height: 25px;width: 25px;">+</span>
+                  </van-uploader>
+                </div>
+          </div>
+        </div>
+        <div class="t-space"></div>
+      </div>
+      <div class="es-foot container">
+        <div class="es-foot-name" v-if="proItem.store"><van-icon class="icon" name="shop"></van-icon> {{proItem.store.storeName}}</div>
+        <div class="es-foot-rate">
+          <div class="t-cell-lefts">商品符合度</div>
+          <van-rate class="t-cell-rights" v-model="params.matchV" ></van-rate>
+        </div>
+        <div class="es-foot-rate">
+          <div class="t-cell-lefts">卖家服务态度</div>
+          <van-rate class="t-cell-rights" v-model="params.service"></van-rate>
+        </div>
+        <div class="es-foot-rate">
+          <div class="t-cell-lefts">卖家发货速度</div>
+          <van-rate class="t-cell-rights" v-model="params.express" ></van-rate>
+        </div>
+      </div>
+      <van-submit-bar  button-text="提交评价"  @submit="esSubmit" ></van-submit-bar>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#comment',
+    data () {
+      return {
+        proItem:{},//订单详情
+        orderId:'${orderId!}',//订单id
+        baseUrl:'${base}',
+        isSub:true,
+        params:{
+          "orderId":'',
+          "express":5,//发货
+          "matchV":5,//符合
+          "service":5,//服务
+          "storeId":'',
+          "commentdList":[{
+            "productId":'',
+            "matchV":5,
+            "content":"",
+            "labels":"",
+            "spaceDataIds":[],
+            'evas':[],
+            'files':[]
+          }]
+        },
+        theIndex:0
+      }
+    },
+    methods: {
+      getIndex(i){
+        this.theIndex = i
+      },
+      selectFile(files) { // 选择上传的文件
+        let formData = new FormData()
+        if(files.file){
+          formData.append("uploadFile", files.file);
+          this.startUpLoad(formData)
+        }
+      },
+      startUpLoad(data){
+        memberUpload(data).then(res => {
+          if (res.code === 200) {
+            this.params.commentdList[this.theIndex].files.push(res.data)
+          } else {
+            this.$toast(res.message)
+          }
+        })
+      },
+     deleteImg(i,j) {//删除当前图片
+       this.params.commentdList[i].files.splice(j,1)
+     },
+      getEvalua(eva,i,j){//获取标签文字
+        var index = this.params.commentdList[i].evas.indexOf(eva)
+        if(index>-1){
+          this.params.commentdList[i].evas.splice(index,1)
+          this.proItem.items[i].evalua[j].tagActive = false
+        }else{
+          this.params.commentdList[i].evas.push(eva)
+          this.proItem.items[i].evalua[j].tagActive = true
+        }
+      },
+      esSubmit(){//提交评价
+        var params = this.params
+        var isSub = this.isSub
+        params.commentdList.forEach(v => {
+          if(v.content === ''){
+            this.isSub = false
+            this.$toast('请输入评论内容')
+            return
+          }
+          if(v.evas&&v.evas.length >0){
+            v.labels = v.evas.join(',')
+          }
+          v.files.forEach(e => {
+            v.spaceDataIds.push(e.resourceId)
+          })
+          delete v.files
+          delete v.evas
+        })
+        if(this.isSub){
+          this.isSub = false
+          saveComment(params).then(res => {
+            if(res.code === 200){
+              this.isSub=true
+              this.$toast('评论成功')
+              setTimeout(() => {
+                window.history.go(-1)
+              }, 1000);
+            }else{
+              this.isSub=true
+              this.$toast(res.message)
+            }
+          }).catch(err => {})
+        }
+      },
+      getProItem(id){//获取订单详情
+        getSaveComment({orderId:id}).then(res => {
+          if(res.code === 200){
+            var data = res.data
+            var params = {
+              "orderId":data.id,
+              "express":5,
+              "matchV":5,
+              "service":5,
+              "storeId":data.store.id,
+              "commentdList":[]
+            }
+            data.items.forEach(v => {
+              var comment = {
+                "productId":v.product.id,
+                "matchV":5,
+                "content":"",
+                "labels":"",
+                "spaceDataIds":[],
+                'evas':[],
+                'files':[]
+              }
+              params.commentdList.push(comment)
+              if(v.product.ext.evaluationView!=''){
+                v.evaluation = v.product.ext.evaluationView.split(',')
+                v.evalua = []
+                v.evaluation.forEach(e=>{
+                  v.evalua.push({tagActive:false})
+                })
+              }
+            })
+            this.params = params
+            this.proItem = data
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+    },
+    created () {
+      this.getProItem(this.orderId)
+    }
+  })
+</script>

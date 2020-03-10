@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-找回密码</title>
+  [#include "./includes/common.html"]
+  <script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+	<script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${res}/js/login.js"></script>
+</head>
+<body>
+  <div class="header head-shadow">
+    <div class="container head-wrap">
+      [#assign name="找回密码"]
+      [#include "./includes/logo.html"]
+      <div class="user-welcome">
+          <span class="user-welcome__title">您好，欢迎来到${(globalConfig.mallName)!}！</span>
+          <a href="${base}/login.htm" class="user-welcome__link">请登录</a>
+          <a href="${base}/" class="user-welcome__link">返回首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="register-wrap border-bottom">
+    <div class="container" id="app">
+        <div class="register-box register-box--wid400">
+          <el-form size="mini" class="account-personab-inner-havebadge" ref="form" label-position="right" label-width="120px"
+            :rules="rules" :model="regData">
+            <el-form-item label="验证方式：" :prop="status==1?'email':'phone'">
+                <el-select v-model="status"  style="width: 100px;" placeholder="请选择" @change="changeType">
+                    <el-option :label="item.name" :value="item.value" v-for='item in options' :key="item.value"></el-option>
+                  </el-select>
+              <el-input v-if="status==1" placeholder="请输入当前绑定邮箱" class="c-input"
+               v-model="regData.email" style="position:relative;width: 195px;" ></el-input>
+              <el-input v-if="status==2" placeholder="请输入当前绑定手机号" class="c-input"
+               v-model="regData.phone" style="position:relative;width: 195px;" ></el-input>
+            </el-form-item>
+            <el-form-item label="验证码：" prop="validateCode" ref="code" style="position: relative;" >
+              <el-input placeholder="请输入验证码" @input="showPwd" v-model="regData.validateCode" maxlength="6">
+              </el-input>
+                <el-button v-if="status == 1" style="position: absolute;" type="primary el-button--pos"
+                 @click="sendEmailMsg" :disabled='isSendStatus||isEmail'>{{sendStr}}</el-button>
+                <el-button v-else style="position: absolute;" type="primary el-button--pos"
+                 @click="sendEmailMsg" :disabled='isSendStatus2||isEmail'>{{sendStr2}}</el-button>
+            </el-form-item>
+            <el-form-item label="新密码：" prop="pStr" v-if="isPwd" >
+              <el-input type="password" placeholder="6-16位字符，可由大小写英文、数字和下划线组成" v-model="regData.pStr"></el-input>
+              <span class="register-box__attention"></span>
+            </el-form-item>
+            <el-form-item label="确认新密码：" prop="checkpass" v-if="isPwd">
+              <el-input type="password" placeholder="请确认密码" v-model="regData.checkpass"></el-input>
+            </el-form-item>
+            <el-form-item label="">
+              <el-button :disabled="regData.pStr==''||regData.validateCode==''" type="primary"
+               class="reg-btn" @click="retrieve('form')"> 提交</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+</div>
+  [#include "./includes/footer.html"]
+</body>
+</html>
+<script>
+  var app = new Vue({
+    el: '#app',
+    data() {
+      //输入密码验证规则
+      var self = this
+      var validatePass = function(rule, value, callback){
+        var patrnPass = /^\w+$/
+        if (value === '') {
+          callback(new Error('请输入密码'));
+        } else {
+          if (!patrnPass.test(value)) {
+            callback(new Error('密码格式错误'));
+          }
+          callback();
+        }
+      };
+      // 确认密码验证规则
+      var validatePass2 = function(rule, value, callback){     
+        if (value === '') {
+          callback(new Error('请再次输入密码'));
+        } else if (value !== self.regData.pStr) {
+          callback(new Error('两次输入密码不一致!'));
+        } else {
+          callback();
+        }
+      };
+      //邮箱验证规则
+      var validateEmail = function(rule, value, callback){
+        var patrnEmail = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        if (value === '') {
+          callback(new Error('请输入邮箱'));
+        } else {
+          if (!patrnEmail.test(value)) {
+            callback(new Error('邮箱格式不正确'))
+          } else {
+            $.get(cms.url + '/register/checkEmail', {
+              email: value
+            }, function (res) {
+              if (res.data) {
+                callback(new Error('该邮箱未绑定用户，不可用'));
+              } else {
+                callback()
+              }
+            })
+          }
+        }
+      };
+      // 手机验证规则
+      var validatePhone = function(fule,value,callback){
+        var patrnPhone = /^1(3|4|5|7|8)\d{9}$/
+        if(value ===""){
+          callback(new Error('请输入手机号'));
+        }else{
+          if(!patrnPhone.test(value)){
+            callback(new Error('手机格式不正确'))
+          }else{
+            $.get(cms.url + '/register/checkPhone',{
+              phone:value
+            },function(res){
+              if(res.data){
+                callback(new Error('该手机未绑定用户，不可用'));
+              }else{
+                callback()
+              }
+            })
+          }
+        }
+      }
+      //  验证码验证规则
+      var code = function(rule, value, callback){
+        if (value === '') {
+          callback(new Error('请输入验证码'));
+        } else {
+          if (false) {
+            callback(new Error('验证码错误'))
+          }
+          callback();
+        }
+      };
+      return {
+        regData: {
+          "pStr": "",
+          "checkpass": "",
+          "email": "",
+          "phone":"",
+          "validateCode": ""
+        },
+        options: [{
+          value: 1,
+          name: '邮箱'
+        },{
+          value: 2,
+          name: '手机'
+        }],
+        isSub:false,
+        isPwd:false,
+        status:1,
+        isSendStatus: false, //邮件发送禁用状态
+        isSendStatus2: false, //手机发送禁用状态
+        time: 120, //定时时间
+        timer: null, //倒计时定时器
+        time2: 120, //定时时间
+        timer2: null, //倒计时定时器
+        sendStr: '发送验证码',
+        sendStr2: '发送验证码',
+        rules: { //注册验证规则
+          email: [{
+            required: true,
+            validator: validateEmail,
+            trigger: 'blur'
+          }],
+          phone:[{
+            required:true,
+            validator:validatePhone,
+            trigger:'blur'
+          }],
+          pStr: [{
+            required: true,
+            validator: validatePass,
+            trigger: 'blur'
+          },
+          {
+            min: 6,
+            max: 16,
+            message: '长度在6到16个字符',
+            trigger: 'blur'
+          }],
+          checkpass: [{
+            required: true,
+            validator: validatePass2,
+            trigger: 'blur'
+          },{
+              min: 6,
+              max: 16,
+              message: '长度在6到16个字符',
+              trigger: 'blur'
+            }],
+          validateCode: [{
+            required: true,
+            validator: code,
+            trigger: 'blur'
+          },{
+              max: 6,
+              message: '长度为6个字符',
+              trigger: 'blur'
+            }]
+        }
+      }
+    },
+    computed: {
+      isEmail() {
+        var data = this.regData
+        if (data.email !== ''||data.phone !=="") {
+          return false
+        } else {
+          return true
+        }
+      }
+    },
+    methods: {
+      regClose(done) {//关闭弹窗
+        this.$confirm('确认关闭？')
+          .then(_ => {
+            done();
+          })
+          .catch(_ => {});
+      },
+      setTimer() {
+        var that = this
+        that.timer = setInterval(function () {
+          that.time = that.time - 1
+          if (that.time <= 0) {
+            clearInterval(that.timer)
+            that.sendStr = '发送验证码'
+            that.time = 120
+            that.isSendStatus = false
+          } else {
+            that.sendStr = that.time + '秒后重新发送'
+            that.isSendStatus = true
+          }
+        }, 1000)
+      },
+      setTimer2() {
+        var that = this
+        that.timer2 = setInterval(function () {
+          that.time2 = that.time2 - 1
+          if (that.time2 <= 0) {
+            clearInterval(that.timer2)
+            that.sendStr2 = '发送验证码'
+            that.time2 = 120
+            that.isSendStatus2 = false
+          } else {
+            that.sendStr2 = that.time2 + '秒后重新发送'
+            that.isSendStatus2 = true
+          }
+        }, 1000)
+      },
+      sendEmailMsg() {  //发送验证码
+        var that = this 
+        if(that.status==1){
+          this.$refs['form'].validateField('email',(val)=>{
+            if(val != ""){
+                return false;
+            }else{
+              that.isSendStatus = true
+              that.sendStr = that.time + '秒后重新发送'
+              that.setTimer()
+              cms.ajax({
+                url: cms.url + '/sms/sendEmailMsg',
+                type: 'post',
+                headers:{}, 
+                data: JSON.stringify({
+                  type: 2,
+                  targetNumber: that.regData.email,
+                })
+              }, function (res) {
+                if (res.code == 200) {
+                  cms.alert('验证码发送成功',4);
+                  return true
+                }else {
+                  cms.alert(res.message,5)
+                }
+              })
+            }
+          })
+        }
+        if(that.status==2){
+          this.$refs['form'].validateField('phone',(val)=>{
+            if(val != ""){
+              return false;
+            }else{
+              that.isSendStatus2 = true
+              that.sendStr2 = that.time2 + '秒后重新发送'
+              that.setTimer2()
+              cms.ajax({
+                url: cms.url + '/sms/sendPhoneMsg',
+                type: 'post',
+                headers:{}, 
+                data: JSON.stringify({
+                  type: 2,
+                  targetNumber: that.regData.phone,
+                })
+              }, function (res) {
+                if (res.code == 200) {
+                  cms.alert('验证码发送成功',4);
+                  return true
+                }else {
+                  cms.alert(res.message,5)
+                }
+              })
+            }
+          })
+        }
+      },
+      retrieve() {
+        var self = this
+        if(self.isSub){
+          return
+        }else{
+          self.$refs['form'].validate(function (valid) {
+          if (valid) {
+            self.isSub = true
+            let formData = JSON.parse(JSON.stringify(self.regData))
+            formData.pStr = encrypt(formData.pStr)
+            if(self.status==1){
+              cms.ajax({
+                  url: cms.url + '/rectrieve/email',
+                  type: 'post',
+                  headers:{},
+                  data: JSON.stringify(formData)
+                },
+                function (res) {
+                  if(res.code == 200){
+                    cms.alert('密码修改成功',4)
+                    location.href="${base}/login.htm"
+                  }else{
+                    self.isSub = false
+                    cms.alert(res.message,5)
+                  }
+                })
+            }
+            if(self.status==2){
+              cms.ajax({
+                  url: cms.url + '/rectrieve/phone',
+                  type: 'post',
+                  headers:{},
+                  data: JSON.stringify(formData)
+                },
+                function (res) {
+                  if(res.code == 200){
+                    cms.alert('密码修改成功',4)
+                    location.href="${base}/login.htm"
+                  }else{
+                    self.isSub = false
+                    cms.alert(res.message,5)
+                  }
+                })
+            }
+          } else {
+            self.isSub = false
+            return false
+          }
+        })
+        }
+      },
+      changeType(value){
+        this.$refs['form'].clearValidate();
+      },
+      showPwd(val){
+        if(val && val != ''){
+          this.isPwd = true
+        }
+      }
+    }
+  })
+</script>

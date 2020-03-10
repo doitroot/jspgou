@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-关注的店铺</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="attentionStore"] 
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body clearfix" id="personinfo" v-loading='loading' v-cloak>
+          <div class="member-title index-title att-goods-title"> 
+            <!-- 主体头部 -->
+            <h3 class="att-head-title">关注的店铺</h3>
+            
+            <!-- 右侧搜索框 -->
+            <div class="att-sch-group att-shop-title">
+              <input type="text" v-model="followData.storeName" class="att-input" placeholder="请输入店铺名称" 
+              v-on:change="defaultData($event)" @keyup.enter="searchShop">
+              <a href="#" @click.prevent="searchShop" class="att-sch-btn">搜索</a>
+            </div>
+          </div>
+         
+          <div class="att-shop-body">
+            <!-- 店铺 -->
+              <!-- 循环 -->
+            <div class="att-shop" v-for="(item, index) in fshopList" :key="index">
+  
+              <div class="att-left">
+               <!-- 下拉 -->
+               <div class="att-have-drop"> 
+  
+                <!-- 置顶 -->
+                <h3 class="att-left-top" v-show="item.isTop"><i class="fa fa-long-arrow-up"></i> 已置顶</h3>
+                <!-- 左侧 -->
+                <div class="att-left-main" style="height:207px">
+                  <!-- 店铺logo -->
+                  <div class="atleft-box" style="height:102px">
+                    <img :src="item.store.storeLogoResource?baseUrl+item.store.storeLogoResource.url:'${res}/images/store.png'"
+                     class="att-left-main__logo" width="80px" height="92px">
+                  </div>
+                  <h3 class="att-left-main__desc">
+                   <!-- 店铺名称 -->
+                   <a href="#" class="prodSearch-intro-box__link prodSearch-intro-box__line1 att-intro-desc__link"
+                    :title="item.store.storeName">{{item.store.storeName}}</a>
+                  </h3>
+                  <!-- 关注人数 -->
+                  <h3 class="att-left-main-likes"><i class="fa fa-heart-o att-shop-fa"></i>
+                     <span class="att-left-main__like">{{item.store.storeStatistic.collections}}</span></h3>
+                </div>
+                <div class="att-drop att-drop--active">
+                    <div class="attlf-left attlf-left-head attlf-left-head-nb">
+                      <!-- 置顶与否 -->
+                       <!-- 取消置顶 -->
+                       <a href="#" class="attlf-link" v-show="item.isTop" @click.prevent="cancelTop(item.id)">取消置顶</a>
+                       <!-- 置顶 -->
+                       <a href="#" class="attlf-link" v-show="!item.isTop" @click.prevent="isTop(item.id)">置顶</a>
+                    </div>
+                    <div class="attlf-right attlf-left-head">
+                      <!-- 取消关注 -->
+                      <a href="#" class="attlf-link" @click.prevent="cancelFollow(item.storeId)">取消关注</a>
+                    </div>
+                </div>
+               </div>     
+                <div class="att-left-foot">
+                  <div class="attlf-left">
+                    <i class="fa fa-shopping-bag"></i>
+                    <!-- 进入店铺 -->
+                    <a :href="'${base}/store-index.htm?storeId='+item.storeId" class="attlf-link attlf-link-dark">进入店铺</a>
+                  </div>
+                  <div class="attlf-right">
+                     <i class="k-ali"></i>
+                     <!-- 联系客服 -->
+                     <a @click="getStoreInfo(item.storeId)" class="attlf-link attlf-link-dark">联系客服</a>
+                  </div>
+                </div>
+              </div>
+  
+              <!-- 右侧商品 -->
+              <div class="att-right">           
+                <h3 class="att-right-head clearfix">
+                  <a href="#" class="att-right__link">热销商品</a>
+                  <div class="att-right-box" v-show="item.store.productList.length!=0">
+                    <!-- 分页 -->
+                    <span class="attshops-right-title" :id="'attPagination'+index">
+                      <span class="att-red"></span>
+                       / 
+                    </span>
+                    <el-button-group>
+                      <el-button type="primary" size="mini" icon="el-icon-arrow-left" 
+                       :disabled="item.preStatus" :id="'attshopleft'+index">上一页</el-button>
+                      <el-button type="primary" size="mini" :id="'attshopright'+index" 
+                      :disabled="item.nextStatus">下一页<i class="el-icon-arrow-right el-icon--right"></i></el-button>
+                    </el-button-group>
+                  </div>
+                </h3>
+                <!-- 商品循环 -->
+                <div :id="'attshopulwrap'+index" class="swiper-container" 
+                  v-if="item.store.productList.length!=0" 
+                 >
+                <ul class="swiper-wrapper" :id="'attshopul'+index" >                   
+                  <li class="swiper-slide" v-for="(product,indexs) in item.store.productList" :key="indexs">
+                    <a :href="'${base}/product-detail.htm?productId='+product.id" class="att-shop-li__link">
+                      <!-- 商品图片 -->
+                      <img :src="baseUrl+product.resources[0].imageResouce.url"
+                      v-if='product.resources[0].imageResouce'
+                      class="att-shop-img">
+                    </a>
+                      <!-- 商品名称 -->
+                    <a :href="'${base}/product-detail.htm?productId='+product.id" :title="product.name" class="atshop-title">
+                        {{product.name}}
+                    </a>
+                      <!-- 商品价格 -->
+                      <h3  class="att-intro-price atshop-price">
+                        <a href="#">￥{{$float(product.salePrice)}}</a><!-- 价格规整加两个小数 -->
+                      </h3>
+                    </a>
+                  </li>
+                </ul>
+               </div>
+          
+                  <!-- 关注的暂无时显示 -->
+               <div v-if="item.store.productList.length==0&&!loading" style="margin:25px;text-align:center;">
+                  <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+               </div>
+              </div>
+            </div>
+  
+            <!-- 分页按钮 -->
+            <div class="overflow score-pagging"  v-show="fshopList.length!==0">
+              <el-pagination class="fr" 
+              background 
+              layout="prev, pager, next" 
+              :total="total" :page-size='followData.size'
+              @current-change="handlerCurrentChange"
+              :current-page="followData.page"
+              >
+              </el-pagination>
+            </div>
+          <!-- 关注的店铺暂无时显示 -->
+         <div v-if="fshopList.length==0&&!loading" style="margin:130px auto;text-align:center;">
+            <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+        </div>
+          </div>
+        </div>
+    </div>
+  </div>
+
+  [#include "../../includes/footer.html"]
+</body>
+</html>
+<script>
+  var personinfo = new Vue({
+    el: '#personinfo',
+    data() {
+      return {
+        loading: false,
+        followData: {
+          "storeName": "",
+          "selfShop": "",
+          "provinceName": "",
+          "page": 1,
+          "size": 2
+        },
+        fshopList: [],
+        total: 0,
+        searchVal: '',
+        baseUrl: cms.url
+      }
+    },
+    methods: {
+      cancelFollow(id) { //取消关注
+        var that = this
+            cms.ajax({
+              url:'${base}/member/followStore/delete',
+              type: 'get',
+              data: {
+                'storeId': id
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.getFollowData()
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+      },
+      cancelTop(id) { //取消置顶
+        var that = this
+            cms.ajax({
+              url:'${base}/member/followStore/isTop',
+              type: 'get',
+              data: {
+                'id': id,
+                'isTop': false
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.getFollowData()
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+      },
+      isTop(id) { //置顶
+        var that = this
+            cms.ajax({
+              url:'${base}/member/followStore/isTop',
+              type: 'get',
+              data: {
+                'id': id,
+                'isTop': true
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.getFollowData()
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+      },
+      searchShop() { //店铺搜索   
+        this.followData.page = 1
+        this.getFollowData()
+      },
+      defaultData(event) {//搜索框change事件
+        var el = event.currentTarget
+        if (el.value == "") {
+          this.getFollowData()
+        }
+      },
+      handlerCurrentChange(value) { //分页
+        this.followData.page = value
+        this.getFollowData()
+      },
+      getFollowData() { //获取数据
+        this.loading = true;
+        var that = this
+        cms.ajax({
+          url:'${base}/member/followStore/page',
+          data: that.followData
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            res.data.content.forEach(element => {
+              element.preStatus=true
+              element.nextStatus=false
+            })
+            that.fshopList = res.data.content
+            that.total = res.data.totalElements      
+            that.initSlider(res.data.content)   
+          } else {
+            cms.alert(res.message,5)
+            that.loading = false
+          }
+        })
+      },
+      initSlider(items){  //切换了分页都要去重新初始化轮播
+        for (let i = 0; i < this.fshopList.length; i++) {
+          this.$nextTick(()=>{
+                 new Swiper('#attshopulwrap'+i, {
+                   pagination: {
+                      el: '#attPagination'+i,
+                      type: 'fraction',
+                    },
+                    navigation: {
+                      prevEl: '#attshopleft'+i,
+                      nextEl: '#attshopright'+i,
+                    },
+                    // loop:true,
+                    observer: true,
+                    observeParents: true,                  
+                    slidesPerView: 5, 
+                    slidesPerGroup : 5, 
+                    // loopAdditionalSlides:5, 
+                    // loopedSlides: 5,
+                    on: {
+                      slideChangeTransitionEnd: function(){
+                        if(this.isEnd){
+                          items[i].preStatus=false
+                          items[i].nextStatus=true
+                        }else if(this.isBeginning){
+                          items[i].preStatus=true
+                          items[i].nextStatus=false
+                       }else{
+                          items[i].preStatus=false
+                          items[i].nextStatus=false
+                       }
+                    },
+                 }           
+               })
+          })   
+        }
+      },
+      getStoreInfo(storeId) { //获取店铺信息
+						var self = this
+						$.get('${base}/store/get', {
+								storeId: storeId
+							},
+							function (res) {
+								if (res.code == 200) {
+                  if(res.data.customerService){
+                    if(res.data.customerService.salePre){
+                      var salePre = JSON.parse(res.data.customerService.salePre)[0]
+                      location.href = salePre.type == 1?'tencent://message/?uin='+salePre.number
+									  :'https://amos.im.alisoft.com/msg.aw?v=2&uid='+salePre.number+'&site=cntaobao&s=1&charset=UTF-8'
+                    }else{
+                      cms.alert('商家尚未设置客服',5)
+                    }
+                  }else{
+                    cms.alert('商家尚未设置客服',5)
+                  }
+								}
+							})
+					},
+    },
+    filters: {
+      totlPages(val) { //获取总页数
+        return Math.ceil((val / 6))
+      }
+    },
+    watch: {
+      searchVal(newV, oldV) {
+        var that = this
+        if (newV == "") {
+          this.getFollowData()
+        }
+      }
+    },
+    created() {
+      this.getFollowData()
+    }
+
+  })
+  function animate(ele,target){
+		 	clearInterval(ele.timer)
+			var speed=target>ele.offsetLeft?20:-20;
+			
+			ele.timer=setInterval(function(){	
+				var value=target-ele.offsetLeft
+				 //盒子的位置，每次加上步长         
+				ele.style.left=ele.offsetLeft+speed+"px";			
+				 //停止盒子的时候，清除定时器    
+				if (Math.abs(value)<Math.abs(speed)) {
+					ele.style.left=target+"px"     //直接等于目标值，解决了抖动问题
+					clearInterval(ele.timer)
+				}
+			},20)
+		}
+   
+</script>

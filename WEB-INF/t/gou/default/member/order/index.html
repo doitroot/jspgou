@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-我的订单</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+    <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="member-gray-container clearfix">
+    <div class="container" id="orders" v-cloak>
+      <!-- member -->
+      [#assign activeName="list"]
+      [#include "../../includes/memberNav.html"]
+      <!-- order -->
+      <div class="member-body" >
+        <h3 class="member-title">全部订单</h3>
+        <div class="member-orders__body">
+          <div class="member-orders__header clearfix">
+            <!-- 选项卡切换 -->
+            <ul class="member-order__tabs fl">
+              <li class="member-order__tab" :class="{'member-orders__tabred':queryParams.status==''}"
+              @click="toggleMenu('')">全部订单
+              </li>
+              <li class="member-order__tab" :class="{'member-orders__tabred':queryParams.status==1}"
+              @click="toggleMenu(1)">待付款
+              <span class="order-badge" v-if="orderNum.waitPayNum>0">{{orderNum.waitPayNum}}</span>
+              </li>
+              <li class="member-order__tab" :class="{'member-orders__tabred':queryParams.status==2}"
+              @click="toggleMenu(2)">待发货
+              <span class="order-badge" v-if="orderNum.waitSendNum>0" >{{orderNum.waitSendNum}}</span>
+              </li>
+              <li class="member-order__tab" :class="{'member-orders__tabred':queryParams.status==3}"
+              @click="toggleMenu(3)">待收货
+              <span class="order-badge" v-if="orderNum.waitRecNum>0">{{orderNum.waitRecNum}}</span>
+              </li>
+              <li class="member-order__tab" :class="{'member-orders__tabred':queryParams.status==4}"
+              @click="toggleMenu(4)">待评价
+              <span class="order-badge" v-if="orderNum.waitEvaNum>0">{{orderNum.waitEvaNum}}</span>
+              </li>
+            </ul>
+            <a href="${base}/member-order-recycle.htm" class="fr member-order__recycle  member-order__tab--inactive"><i
+                class="fa fa-trash-o"></i> 回收站</a>
+          </div>
+          <!-- 筛选 -->
+          <div class="member-search">
+            <div class="member-search__inner">
+              <input type="text" placeholder="请输入商品名称/订单编号进行检索" class="member-search__input" v-model="queryParams.orderNum"
+                @keydown.enter="searchOrders" />
+              <div class="member-search__submit member-search__btn" @click="searchOrders">搜索</div>
+              <div class="member-ordsearch__more  member-search__btn" @click="toggleSearchMenu">
+                更多搜索条件
+                <i :class="menuStatus?'fa fa-angle-up':'fa fa-angle-down'"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 筛选组 -->
+          <div class="member-condition__box" ref="searchMenu" v-show="menuStatus">
+            <div class="member-condition__group">
+              <label class="member-condition__label">订单类型</label>
+              <el-select v-model="queryParams.orderType" @change="searchOrders" size="mini" style="width:60%;">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="实物订单" value="1"></el-option>
+                <el-option label="虚拟订单" value="2"></el-option>
+              </el-select>
+            </div>
+            <div class="member-condition__group">
+              <label class="member-condition__label">订单状态</label>
+              <el-select v-model="queryParams.status" @change="searchOrders" size="mini" style="width:60%;">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="待付款" :value="1"></el-option>
+                <el-option label="待发货" :value="2"></el-option>
+                <el-option label="待收货" :value="3"></el-option>
+                <el-option label="已完成" :value="4"></el-option>
+                <el-option label="已取消" :value="5"></el-option>
+                <el-option label="超时交易关闭 " value="6"></el-option>
+              </el-select>
+            </div>
+            <div class="member-condition__group">
+              <label class="member-condition__label">评价状态</label>
+              <el-select v-model="queryParams.commentStatus"  @change="searchOrders" size="mini" style="width:60%;">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="待评价" value="1"></el-option>
+                <el-option label="已评价" value="2"></el-option>
+                <el-option label="对方已评" value="3"></el-option>
+                <el-option label="双方已评" value="4"></el-option>
+              </el-select>
+            </div>
+            <div class="member-orders__group">
+              <label class="member-condition__label">成交时间</label>
+              <el-date-picker v-model="queryParams.orderTimeBegin" type="date" size="mini" style="width:90px;"
+                value-format="yyyy-MM-dd"  @change="searchOrders" :picker-options="startDatePicker"></el-date-picker>
+              <span class="seg">~</span>
+              <el-date-picker v-model="queryParams.orderTimeEnd" type="date" size="mini" style="width:90px;"
+                value-format="yyyy-MM-dd"  @change="searchOrders"  :picker-options="endDatePicker"></el-date-picker>
+            </div>
+            <div class="member-condition__group">
+              <label class="member-condition__label">售后状态</label>
+              <el-select v-model="queryParams.refundStatus"  @change="searchOrders" size="mini" style="width:60%;">
+                <el-option label="全部" value="0"></el-option>
+                <el-option label="售后中" value="1"></el-option>
+              </el-select>
+            </div>
+          </div>
+          <!-- 内容列表 -->
+          <table class="member-table" v-loading="loading">
+            <thead>
+              <tr style="border-right: 1px solid #f5f5f5">
+                <th class="member-table__th">订单详情</th>
+                <th class="member-table__th">收货人</th>
+                <th class="member-table__th">金额</th>
+                <th class="member-table__th">状态</th>
+                <th class="member-table__th">操作</th>
+              </tr>
+            </thead>
+            <!-- 列表循环 -->
+            <tbody v-for="(order, index) in orderList" :key="index">
+              <tr>
+                <td class="member-table__title" colspan="5">
+                  <span class="member-table__time member-table__time--pad" >
+                    {{formatTime(order.createTime)}}
+                  </span>
+                  <span class="member-orders__code">订单号:
+                      {{order.orderCode}}
+                  </span>
+                  <a :href="'${base}/store-index.htm?storeId='+order.store.id" class="code-link">
+                    <img src="${res}/images/store.png" alt="logo" width="10px" height="10px" style="vertical-align:center">
+                    <span class="member-table__name" style="vertical-align:center">{{order.store.storeName}}</span>
+                  </a> 
+                </td>
+              </tr>
+              <tr>
+                <td class="member-orders__desc">
+                  <div class="member__orders--info" v-for="(item,index) in order.items" :key="index">
+                    <div class="member-product__media">
+                      <img :src="baseUrl+item.productInfo.coverImageUrl" alt="" class="member-product__img">
+                    </div>
+                    <div class="member-product__info">
+                      <a class="member-indexproduct__name" :href="'${base}/product-detail.htm?productId='+item.productId">
+                        {{item.productInfo.productName}}
+                      </a>
+                      <div class="member-product__standard" v-if="item.productInfo.skuAttr">
+                        <span v-for="(sku, indexs) in JSON.parse(item.productInfo.skuAttr)" :key="indexs">
+                          {{sku.name}}: {{sku.value}}&nbsp;&nbsp;&nbsp;
+                        </span>
+                      </div>
+                      <div class="member-product__sever">
+                      </div>
+                    </div>
+                    <!-- 数量 -->
+                    <div class="member-orders__num">  
+                      x{{item.productCount}}
+                    </div>
+                    <div class="member-orders__repair">
+                      <a :href="'${base}/member-order-service.htm?orderId='+order.id+ '&productId='+ item.productId" class="code-link-dark" 
+                       v-if="order.status > 1 && order.status < 5 && ( 
+                        item.newRefund && item.newRefund.status > 8 ||  !item.newRefund ) ">
+                        申请售后
+                      </a>
+                      <a :href="'${base}/member-order-service.htm?orderId='+order.id+ '&productId='+ item.productId" class="code-link-dark" 
+                       v-if="(item.newRefund && item.newRefund.status == 8) && (item.productCount - item.returnCount >0 )">
+                        申请售后
+                      </a>
+                      <a class="btnCColor" v-if="item.newRefund && item.newRefund.status < 8  ">
+                        {{item.newRefund.status | handlerRefundStatus}}
+                      </a>
+                      <span class="code-link-dark btnCColor" v-if="(item.newRefund && item.newRefund.status == 8) &&(item.productCount - item.returnCount == 0)  ">
+                          理赔成功
+                      </span>
+
+                    </div>
+                  </div>
+                </td>
+                <td class="member-table__td memeber__orders_name" rowspan="2">
+                    <span class="member-product__user" v-if="!order.member.nickname==''">{{order.member.nickname}}<i class="fa fa-user-o"></i></span>
+                    <span class="member-product__user" v-if="order.member.nickname==''">{{order.member.username}}<i class="fa fa-user-o"></i></span>
+                  </span>
+                </td>
+                <td class="member-table__td memeber__orders_amount" rowspan="2">
+                  <div>
+                    <p class="member-product__total">总额:¥ {{$float(order.orderPayAmount)}}</p>
+                    <p class="member-product__pay">
+                      <span v-if="order.payMode==1">支付宝</span>
+                      <span v-if="order.payMode==2">微信</span>
+                      <span v-if="order.payMode==3">银联</span>
+                      <span v-if="order.payMode==4">余额</span>  
+                    </p>
+                  </div>
+                </td>
+                <td class="member-table__td memeber__orders_status" rowspan="2">
+                  <div>
+                    <div class="member-product__state">
+                      <p class="btnCColor" v-if="order.status<5">{{order.status|orderStatus}}</p>
+                      <p class="btnDColor" v-if="order.status==5||order.status==6">{{order.status|orderStatus}}</p>
+                    </div>
+                    <a href="javascript:;" class="code-link" @click.prevent="orderDesc(order.id)"> 订单详情</a>
+                  </div>
+                </td>
+                <td class="member-table__td memeber__orders_handle" rowspan="2">
+                  <div class="member-table__inner" v-if="order.status==3" class="member__orderstatus__btn">
+                    <a href="javascript:;" class="cms-button" @click.prevent="confirmReceive(order.id)">确认收货</a>
+                  </div>
+                  <div class="member-table__inner" v-if="order.status==3&&!order.hasExtendReceive" class="member__orderstatus__btn">
+                    <a href="javascript:;" class="cms-button" @click.prevent="extendReceive(order.id)">延迟收货</a>
+                  </div>
+                  <div class="member-table__inner" v-if="handlerTipBtn(order)" class="member__orderstatus__btn">
+                    <el-button :disabled="order.availRemind" @click="remindSend(order)" size="mini">提醒卖家</el-button>
+                  </div>
+                  <div class="member-table__inner" v-if="order.status==1" class="member__orderstatus__btn">
+                    <a href="javascript:;" class="cms-button" @click.prevent="orderPay(order)">
+                      立即支付
+                    </a>
+                  </div>
+                  <div style="margin-bottom: 5px;" v-if="order.status==4||order.status==5||order.status==6">
+                    <a href="javascript:;" class="code-link" @click.prevent="delOrder(order.id)"> 删除</a>
+                  </div>
+                  <div v-if="order.commentStatus==1&&order.status==4">
+                    <a :href="'${base}/member-order-comment.htm?orderId='+order.id" class="cms-button-eval"> 评价</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- 分页按钮 -->
+          <div class="overflow score-pagging att-orders__paginantion" v-if="orderList.length!==0">
+            <el-pagination 
+              class="fr" 
+              background 
+              layout="prev, pager, next" 
+              :total="total" 
+              :page-sizes="[100, 200, 300, 400]"
+              :page-size='queryParams.size' 
+              @current-change="handleCurrentChange" 
+              :current-page="queryParams.page">
+            </el-pagination>
+          </div>
+          <!-- 列表内容暂无时显示 -->
+          <div  v-if="orderList.length==0&&!loading" class="list__empty-wrap" style="margin-top:100px;">
+            <img src=" ${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var defaultData = {
+    "page": 1,
+    "size": 10,
+    "source": "",
+    "orderType": "",
+    "status": "",
+    "payMode": "",
+    "orderNum": "",
+    "storeName": "",
+    "orderTimeBegin": "",
+    "orderTimeEnd": "",
+    "commentStatus": "",
+    "refundStatus": '',
+    "useDelStatu": 0,
+  }
+  var orders = new Vue({
+    el: '#orders',
+    data() {
+      return {
+        orderList: [],//订单的详情
+        baseUrl: cms.imgUrl,
+        total: '',
+        loading: false,
+        orderNum:0,//会员订单状态数量
+        menuStatus: false,//详细搜索菜单的显示隐藏
+        queryParams: Object.assign({}, defaultData),//订单列表的请求参数
+        startDatePicker:this.beginDate(),//搜索框组的开始日期控制
+        endDatePicker:this.processDate(),//搜索框组的结束日期控制
+      }
+    },
+    methods: {
+      saleDesc(type,id){
+            var types = ['','refund','regood','chgood']
+            location.href='${base}/member-customer-returns-'+types[parseInt(type)]+'.htm?saleId='+id
+          },
+      getOrderList() {//获取订单列表
+        let that = this
+        that.loading = true
+        this.getOrderNum()
+        cms.ajax({
+          url:  '${base}/member/order/page',
+          type: 'get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            res.data.content.forEach(v=>{//添加提醒卖家按钮控制
+               v.availRemind=false//禁用提醒按钮
+            })
+            that.orderList = res.data.content
+            that.total = res.data.totalElements
+            that.loading = false
+          } else {
+            that.loading = false
+          }
+        })
+      },
+      handleCurrentChange(val) {//分页的切换
+        this.queryParams.page = val
+        this.getOrderList()
+      },
+      toggleMenu(index) {//导航栏的切换
+        this.queryParams = Object.assign({}, defaultData)
+        this.queryParams.status = index
+        if(index==4){
+          this.queryParams.commentStatus = '1'
+        }
+        this.getOrderList()
+      },
+      orderPay(order) {//立即支付
+        let params = Qs.stringify(
+          {
+          'orderNo':order.orderCode,
+        'description':'商品订单支付',
+        'subject':'商品订单支付',
+        'payScene':'memberOrderPay',
+        'amount':order.orderAmount}
+        )
+        location.href="${base!}/member/tradePage.htm?"+params
+      },
+      delOrder(id) {//删除订单(加入回收站)
+        var that = this
+        let arr = []
+        arr.push(id)
+        that.$confirm('确定将该订单信息移入回收站?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/order/userCycle',
+            type: 'post',
+            data: JSON.stringify({ "ids": arr })
+          }, function (res) {
+            if (res.code == 200) {
+              if (that.orderList.length = 0) {//删除之后当前页为空的时候，往上一页翻页
+                that.queryParams.page - 1
+                that.getOrderList()
+              } else {
+                that.getOrderList()//再次获取订单列表
+              }
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        })
+      },
+      confirmReceive(id) {//确认收货
+        let that=this
+        that.$confirm('亲，确定宝贝已送至您的手中?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/order/confirm',
+            type: 'get',
+            data: { "orderId": id }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              that.getOrderList()//重新加载订单列表
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        })
+      },
+      extendReceive(id) {//延迟收货
+        let that=this
+        that.$confirm('亲，确定要延长收货时间?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/order/extendReceive',
+            type: 'get',
+            data: { "orderId": id }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              that.getOrderList()//重新加载订单列表
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        })
+      },
+      remindSend(order){  //提醒卖家
+        let that=this
+          cms.ajax({
+            url: '${base}/member/order/remind',
+            type: 'get',
+            data: { "orderId": order.id }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert('卖家已收到你的提醒，马上就会发货了',4)
+            } else if(res.code == 11568){//一分钟后提醒
+              order.availRemind=true
+              let countdown=60
+              let timer=setInterval(function(){
+                 countdown--
+                 if(countdown>0&&countdown<60){
+                  order.availRemind=true
+                 }else{
+                  that.$set(order,'availRemind',false)
+                  countdown=60
+                  clearInterval(timer)
+                 }
+              },1000)
+              cms.alert(res.message,1)
+            }else if(res.code == 11569){//已用尽时
+              order.availRemind=true
+              cms.alert(res.message,5)
+            }else{
+              cms.alert(res.message,5)
+            }
+          })
+      },
+      handlerTipBtn(order) {//提醒卖家按钮的显示控制
+        if ((order.status != 2 || order.payTime == '')) {//非待发货状态时
+          return false
+        } else {
+          let alertBegin = moment(order.payTime)+(2*3600000*24)
+          var alertEnd = moment(new Date().getTime())
+          if (alertBegin < alertEnd) {
+            return true
+          } else {
+            return false
+          }
+        }
+      },
+      beginDate(){//提出开始时间必须小于今天
+        let self = this
+        return {
+            disabledDate(time){
+                return time.getTime() > Date.now()//开始时间不选时，结束时间最大值小于等于当天
+            }
+        }
+      },
+      processDate(){//提出结束时间必须大于提出开始时间
+        let self = this
+        return {
+            disabledDate(time){
+                if(self.queryParams.orderTimeBegin){
+                    return new Date(self.queryParams.orderTimeBegin).getTime() > time.getTime()
+                }else{
+                    return time.getTime() > Date.now()
+                    //开始时间不选时，结束时间最大值小于等于当天
+                }
+            }
+        }
+      },
+      searchOrders() {//商品搜索
+        this.queryParams.page = 1
+        this.getOrderList()
+      },
+      toggleSearchMenu() {//显示隐藏详细搜索
+        this.menuStatus = !this.menuStatus
+      },
+      formatTime(timeStr) {  //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      },
+      orderDesc(id) {//跳转至订单详情
+        window.location.href = "${base}/member-order-detail.htm?orderId=" + id
+      },
+      getRouterParams() {//获取路由参数
+        let url = window.location.search.substr(1)
+        let vars = url.split('&')
+        for (let i = 0; i < vars.length; i++) {
+          let params = vars[i].split('=')
+          if (params[0] == 'active') {
+            this.navSelected = params[1]
+            this.queryParams.status = params[1].toString()
+            if(params[1]==4){
+              this.queryParams.commentStatus='1'
+            }
+          }
+        }
+      },
+      getOrderNum(){ //会员订单状态数量
+        let that=this
+        cms.ajax({
+          url: cms.url + '/member/order/orderNum',
+          type: 'get'
+        }, function (res) {
+          if (res.code == 200) {
+            that.orderNum=res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      }
+    },
+    filters: {
+      orderStatus(val) {//交易状态的过滤器
+        var orderStatus = ['','待付款','待发货','待收货','已完成','已取消','超时交易关闭']
+        return orderStatus[parseInt(val)]
+      },
+      handlerRefundStatus(val) {//售后处理状态的过滤器
+        var refundStatus = ['待卖家确认','退款中','卖家拒绝','','待买家发货','待卖家收货','待买家收货','待卖家发货','已完成','买家取消']
+        return refundStatus[parseInt(val)]
+      }
+    },
+    created() {
+      this.getRouterParams()//路由的切换
+      this.getOrderList()//获取订单列表
+      this.getOrderNum() //会员订单状态数量
+    }
+  })
+</script>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-举报中心</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+<body>
+  [#include "../../includes/topBar.html"]
+  <div class="header">
+    <div class="container head-wrap">
+      [#assign name="会员中心"] 
+      [#include "../../includes/logo.html"]
+      [#include "../../includes/search.html"]
+    </div>
+  </div>
+    <div class="gray-container">
+      <div class="container">
+        <!-- 订单导航 -->
+        <div class="container__nav">
+          <span class="container__report">举报中心</span>
+        </div>
+        <div class="report" id="app" v-cloak>
+          <h3 class="report__title">
+            商品信息
+          </h3>
+          [@product_report_page  proId='${productId!}']
+          <div class="report__info">
+            <div class="report__inner">
+              <div class="report__img"><img src="${tag_bean.product.coverImage}" class="report__img report__img--nobg" alt=""></div>
+              <div class="report__text">
+                  <p class="report__item">商品名称:<a :href="'${base!}'+'/product-detail.htm?productId='+'${tag_bean.product.id!}'" class="report__item--hover">${(tag_bean.product.name)!}</a></p>
+                  <p class="report__item">商品ID:${(tag_bean.product.id)!}</p>
+                  <p class="report__item">商品类目:${(tag_bean.product.category.cateName)!}</p>
+                  <p class="report__item" v-show="${(tag_bean.product.brand.name)!}">商品品牌:${(tag_bean.product.brand.name)!}</p>
+                  <p class="report__item">店铺名称:${(tag_bean.product.store.storeName)!}</p>
+              </div>
+              <div class="clear"></div>
+            </div>
+          </div>
+          [/@product_report_page]
+          <h3 class="report__title report__title--pad">
+            <span class="imColor">*</span>
+            举报类型
+          </h3>
+          <div class="report__info report__info--nobg">
+            <div class="report__inner">
+              <ul class="report__btngroup"  class="clearfix">
+                <li class="report__btn" v-for="(item, index) in reportDictType" :key="index"
+                :class="{'report__btn--active':reportSelected==index,'report__btn--nomar':index==5}"
+                @click="changeType(index)">
+               {{item}}
+                </li>
+                <div class="clear"></div>
+              </ul>
+            </div>
+          </div>
+          <h3 class="report__title report__title--pad">
+              <span class="imColor">*</span>
+            描述信息
+          </h3>
+          <div class="report__info report__info--nobg">
+            <div class="report__inner">
+                <el-input
+                type="textarea"
+                style="width: 70%"
+                maxlength="200"
+                :autosize="{ minRows: 5, maxRows: 8}"
+                placeholder="请描述你认为该商品存在的问题及理由："
+                v-model="specificDescription">
+              </el-input>
+              <div class="errorMsg errorMsg--pos" style="margin: 10px 0" v-cloak>
+                  {{errorMsg}}
+                </div>
+              <span class="report__warn">(注意：被举报人能且只能看到此框中的内容，请您注意不要在此框填写会员名、订单号、运单号等任何可能泄露身份的信息，仅限200字)</span>
+            </div>
+          </div>
+          <h3 class="report__title report__title--pad">
+              <span class="imColor">*</span>
+            上传凭证
+          </h3>
+          <div class="report__info report__info--nobg">
+            <div class="report__inner">
+                <div class="clearfix">
+                  <ul class="fl"> 
+                    <li v-for="(item,index) in fileList" :key="index" class="upload-box__item">
+                      <img :src="'${base}'+item.fileUrl" alt="">
+                      <span class="upload-box__del" @click="delImg(index)">删除</span>
+                    </li>  
+                  </ul>
+                  <cms-upload :custom="true" class="fl" @change="getImgs" v-if="isUpload">
+                    <div class="upload-box__warp">
+                      <span class="fa fa-plus"></span>
+                    </div>
+                  </cms-upload>
+                </div>
+                <div class="errorMsg errorMsg--pos" style="margin: 10px 0" v-cloak>
+                    {{errorMsg2}}
+                  </div>
+              <span class="report__warn">请您提供能证明该商品问题截图，要求凭证清晰完整无修改（仅限5张）。</span>
+            </div>
+          </div>
+          <h3 class="report__title report__title--pad report__title--font">
+              您可以在【个人中心】-【客户服务】-【举报/投诉】查询您的举报信息
+          </h3>
+          <div class="report__ok">
+              <a href="" class="report__submit" @click.prevent="submit">提交</a>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+    <!-- start -->
+    [#include "../../includes/footer.html"]
+  </body>
+  
+  </html>
+  <script type="text/babel">
+     var vm=new Vue({
+       el:"#app",
+       data(){
+         return {
+           productId:${productId!},
+           fileList:[],//图片资源的数组
+            isUpload:true,//控制是否能继续上传    
+           reportDictType:["虚假宣传","信息有误","违禁品","侵权","价格违规","政治有害","滥发信息"],
+           reportSelected:0,  //当前选中的举报类型
+           specificDescription:'',
+           errorMsg:'',
+           errorMsg2:'',
+           baseUrl:cms.url,   
+           spaceDataIds:[],
+         }
+       },
+       watch: {
+        fileList:{
+          handler(){
+              if(this.fileList.length>=5){
+               this.isUpload=false
+              }else{
+                this.isUpload=true
+              }
+          },
+          deep:true
+        }
+       },
+       methods:{
+        getImgs(data){
+           
+            if(this.fileList.length<5){
+              this.fileList.push(data)
+              this.spaceDataIds.push(data.resourceId)
+            }
+            this.errorMsg2=this.fileList.length<=0 ?"必须上传至少一张图片":''       
+        },
+        delImg(index){
+          this.fileList.splice(index,1);
+          this.spaceDataIds.splice(index,1);
+          if(this.fileList<=0){
+              this.errorMsg2='必须上传至少一张图片'
+            }
+        },
+         changeType(index){
+           this.reportSelected=index        
+         },         
+         submit(){
+           if(this.specificDescription == ''){
+             this.errorMsg = '此项必填'
+           }else {
+              this.errorMsg = ''
+           }
+           if(this.fileList == 0){
+            this.errorMsg2 = '必须上传至少一张图片'
+           }else{
+            this.errorMsg2 = ''
+           }
+           if(this.errorMsg == '' && this.errorMsg2 == ''){
+             this.subInfo()
+           }
+         },
+         subInfo(){
+          var that=this
+          let params = {
+            'productId': that.productId,
+            'reportDictType':that.reportSelected+1,
+            'specificDescription':that.specificDescription,
+            'spaceDataIds':that.spaceDataIds
+          }
+          this.$confirm('是否确定提交举报信息?', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            cms.ajax({
+              url:cms.url + '/member/memberreport/save',
+              type:"post",
+              data:JSON.stringify(params)
+            },function(res){
+              if(res.code == 200){
+                cms.alert('举报成功',4)
+                location.href="${base}/member-customer-complaint.htm"
+              }else{
+                cms.alert(res.message,5)
+              }
+            })
+          }).catch(() => {
+            cms.alert('已取消举报')
+          }) 
+         },
+       }
+     })
+  </script>

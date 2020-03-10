@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>${globalConfig.mallName!}-订单结算</title>
+    [#include "../../includes/common.html"]
+    <script src="${res}/js/components/upload.js" type="text/babel"></script>
+    <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+
+<body>
+    [#include "../../includes/topBar.html"]
+    <div class="header head-shadow">
+
+        <div class="container shopCart-head">
+            <div class="shopCart__process">
+                <div class="shopCart__processitem clearfix">
+                    <div class="shopCart__processlogo"><img src="${res}/images/cartlogo.png" alt="1"></div>
+                    <div class="shopCart__processlinewrap"><img src="${res}/images/check.png" alt="1" class="checklogo"><span class="shopCart__processline-left"></span></div>
+                    <p class="shopCart__processinfo">我的购物车</p>
+                </div>
+                <div class="shopCart__processitem clearfix">
+                    <div class="shopCart__processlogo"><img src="${res}/images/order.png" alt="1"></div>
+                    <div class="shopCart__processlinewrap"><span class="shopCart__processline-leftm"></span><img src="${res}/images/check.png" alt="1" class="checklogo"><span class="shopCart__processline-left"></span></div>
+                    <p class="shopCart__processinfo">订单结算</p>
+                </div>
+                <div class="shopCart__processitem clearfix">
+                    <div class="shopCart__processlogo"><img src="${res}/images/donepay.png" alt="1"></div>
+                    <div class="shopCart__processlinewrap"><img src="${res}/images/checkdark.png" alt="1" class="checklogo"><span class="shopCart__processline-right"></span></div>
+                    <p class="shopCart__processinfo shopCart__processinfo-gray">完成支付</p>
+                </div>
+            </div>
+            [#include "../../includes/logo.html"]
+        </div>
+    </div>
+    <div class="shopCart-order" id="shopCartOrder" v-cloak>
+        <div class="container order-box" v-loading='loading'>
+            <p class="topic-title">
+                <span class="topic-title__txt">选择收货地址</span>
+            </p>
+            <div class="order-box__address">
+                <ul class="order-box__areaList" v-if="addrList.length > 0&&createAddress">
+                    <template v-for="(item,index) in addrList">
+            <li class="order-box__areaItem " :class="defaultAddr.id==item.id?'order-box__areaItem--active':''" @click='getAddrInfo(item)' v-if="index<=4" :key="index">
+              <p class="order-box__name">
+                <span class="order-box__name--area">
+                  {{item.provinceName}}{{item.cityName}}{{item.areaName}}
+                </span>
+                <span class="order-box__name--user"> {{item.customerName}}（收）</span>
+              </p>
+              <p class="order-box__area">{{item.address}} {{item.tel}}</p>
+            </li>
+            <li class="order-box__areaItem" :class="defaultAddr.id==item.id?'order-box__areaItem--active':''" @click='getAddrInfo(item)' v-else v-show="index>4&&addrshowAll" :key="index">
+              <p class="order-box__name">
+                <span class="order-box__name--area">
+                  {{item.provinceName}}{{item.cityName}}{{item.areaName}}
+                </span>
+                <span class="order-box__name--user"> {{item.customerName}}（收）</span>
+              </p>
+              <p class="order-box__area">{{item.address}} {{item.tel}}</p>
+            </li>
+          </template>
+                </ul>
+                <div v-else-if="addrList.length==0&&createAddress" class="nothing" style="padding: 50px 0;">目前没有收货地址，请
+                    <a style="color: #FB4C77;" @click="setAddressShow = true">添加收货地址</a> ~</div>
+                <div class="topic-title">
+                    <a v-if="addrList.length > 5" class="topic-title__left" @click="showAddr">{{changeAddrInfo}}</a>
+                    <a v-if="addrList.length < 20 && addrList.length > 0" 
+                        @click="setAddressShow = true" target="_blank" class="topic-title__right">添加收货地址</a>
+                </div>
+            </div>
+            <p class="topic-title">
+                <span class="topic-title__txt">确认订单信息</span>
+            </p>
+            <div class="order-box__information">
+                <table class="shopCart-box__table">
+                    <tr class="shopCart-box__table--th">
+                        <th style="text-align:center">商品</th>
+                        <th style="text-align:right">单价</th>
+                        <th style="text-align:center">数量</th>
+                        <th class="shopCart-box__amount">优惠信息</th>
+                        <th class="shopCart-box__prices" style="padding-right: 50px;">小计</th>
+                    </tr>
+                    <tbody class="shopCart-box__tbody order-tbody" v-for="(item,index) in orderInfo.orderStoreItems">
+                        <tr>
+                            <td colspan="5" class="shopCart-box__title order__title">
+                                店铺：<span>{{item.storeName}}</span>
+                            </td>
+                        </tr>
+                        <tr class="jsMerchandise" v-for="child in item.items">
+                            <td class=" shopCart-box__name">
+                                <div class="overflow">
+                                    <div class="shopCart-box__img">
+                                        <img :src="baseUrl+child.product.coverImage" v-if="child.product.coverImage">
+                                    </div>
+                                    <div class="shopCart-box__detail">
+                                        <!--  -->
+                                        <div class="shopCart-product__name">
+                                        <a :href="'${base}/product-detail.htm?productId='+child.product.id+'&storeId='+item.storeId">
+                                        {{child.product.name}}
+                                        </a>
+                                        </div>
+                                        <ul class="overflow" v-if="child.productSku&&child.productSku.saleAttrs">
+                                            <li class="shopCart-p-attr" v-for="attr in child.productSku.saleAttrs">
+                                                {{attr.name}}:{{attr.value}}
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="shopCart-box__newPrice">
+                                <span class="">
+                  ¥{{$float(child.salePrice)}}
+                </span>
+                            </td>
+                            <td class="shopCart-box__num" style="text-align:center">
+                                *{{child.productCount}}
+                            </td>
+                            <td class="shopCart-box__amount">
+                                <span v-if="child.promote">
+                                    <em v-text="child.promote.promoteType==1?'(单品折扣)':'(一口价)'"></em>
+                                    {{child.promote.name}}
+                                    </span>
+                                <span v-else>-</span>
+                            </td>
+                            <td class="shopCart-box__prices">
+                                ¥{{$float(child.amount)}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <!-- 发票信息 -->
+                                <div class="order-ext">
+                                    发票信息：
+                                    <el-checkbox v-model="extData[index].needInvoice"></el-checkbox>
+                                    普通发票
+                                    <span>{{extData[index].invoiceTitle}}
+                    <span v-if="extData[index].invoiceType==2">({{extData[index].invoiceTaxpayerNum}})</span>
+                                    </span>
+                                    <span class="ext-edit" @click="showExtData(index,extData[index])">修改</span>
+                                </div>
+                            </td>
+                            <td colspan="3">
+                                <div class="store-promote">
+                                    <div class="store-promote__items product-select">
+                                        <span>店铺优惠: </span>
+                                        <el-select size="mini"
+                                         v-model="item.couponId?orderData.orders[index].couponId:orderData.orders[index].promoteId"
+                                          @change="changeStorePromote">
+                                            <el-option v-for="promote in item.promoteItemVos" 
+                                            :label="promote.itemName" :value="promote.itemId"></el-option>
+                                        </el-select>
+                                    </div>
+                                    <div class="store-promote__discount">
+                                        <span class="amount">-¥{{$float(item.discount)}}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="order-ext">
+                                    <div class="order-ext__label">
+                                        卖家留言:
+                                    </div>
+                                    <div class="order-ext__input product-input">
+                                        <el-input size="mini" style="width:300px" maxlength="150" v-model="extData[index].customerTxt"></el-input>
+                                    </div>
+                                </div>
+                            </td>
+                            <td colspan="3">
+                                <div class="store-promote">
+                                    <div class="store-promote__items">
+                                        <span>运送方式:
+                                            快递
+                                        </span>
+                                    </div>
+                                    <div class="store-promote__discount" style="margin-left:291px">
+                                        <span class="amount">¥{{$float(item.freight)}}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5">
+                                <div class="order-count">
+                                    店铺合计(含运费) :
+                                    <span class="amount"> ¥{{$float(item.amount)}}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!--平台优惠信息  -->
+            <el-collapse accordion class="order-collapse">
+                <el-collapse-item>
+                    <template slot="title">
+                         <div class="fl">优惠信息</div>
+                     </template>
+                    <el-tabs type="border-card">
+                        <el-tab-pane label="优惠券">
+                            <ul class="overflow" v-if="orderInfo.coupons.length>0">
+                                <li v-for="coupons in orderInfo.coupons" class="order-coupons__warp">
+                                    <div class="order-coupons " :data-id="coupons.coupon.id" @click="changeCouponId(coupons.id)">
+                                        <div><i class="fa fa-exclamation-triangle"></i>{{coupons.coupon.name}}</div>
+                                        <div>有效期至 {{coupons.expirateTime}}</div>
+                                        <!-- 选中的状态标识 -->
+                                        <div class="order-coupons__checked" v-if="orderData.pay.couponId==coupons.id">
+                                            <i class="fa fa-check"></i>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                            <div v-else>
+                                <span class="font">暂无可用优惠券</span>
+                            </div>
+                        </el-tab-pane>
+                        <el-tab-pane label="积分">
+                            <div>
+                                <p class="font" style="margin-bottom: 10px"><i class="fa fa-exclamation-triangle"></i> 订单总额（未使用积分抵扣之前的订单总额）满${globalConfig.userScoreMinAmount!}积分即可使用，本次最高可使用{{orderInfo.maxIntegral}}积分，使用积分数必须为100的整数倍且不小于100</p>
+                                <p class="font">账户共${user.score!}积分,本次使用
+                                    <el-input-number v-model="orderData.pay.integral" :step="100" :min='0' :max="orderInfo.maxIntegral" @change="changeMaxIntegral" size="mini"></el-input-number>
+
+                                </p>
+                            </div>
+                        </el-tab-pane>
+                        <el-tab-pane label="红包">
+                            <p class="font" style="margin-bottom: 10px"><i class="fa fa-exclamation-triangle"></i> 订单总额（未使用红包抵扣之前的订单总额）满￥${globalConfig.userRhMinAmount!}即可使用，本次最高可使用{{orderInfo.maxRedPacket}}红包，使用红包额度必须为100的整数倍且不小于100</p>
+                            <p class="font">红包账户共${user.redEnvelope!},本次使用
+                                <el-input-number v-model="orderData.pay.redPacket" :step="100" :min='0' :max="orderInfo.maxRedPacket" @change="changeMaxRedPacket" size="mini"></el-input-number>
+
+                            </p>
+                        </el-tab-pane>
+                    </el-tabs>
+                </el-collapse-item>
+            </el-collapse>
+        </div>
+        <div class="container">
+            <!-- 抵扣信息 -->
+            <div class="deduction-info">
+                <div class="deduction-info__inner">
+                    <span><em>{{orderInfo.productCount}}</em> 件商品，总金额:</span>
+                    <span class="deduction-info__amount">
+            ¥{{$float(orderInfo.productAmount)}}
+          </span>
+                </div>
+                <div class="deduction-info__inner">
+                    <span>积分抵扣:</span>
+                    <span class="deduction-info__amount"> -¥{{$float(orderInfo.integralDiscount)}}</span>
+                </div>
+                <div class="deduction-info__inner">
+                    <span>红包抵扣:</span>
+                    <span class="deduction-info__amount"> -¥{{$float(orderInfo.redPacketDiscount)}}</span>
+                </div>
+            </div>
+            <div class="order-amount">
+                <div class="order-amount__inner">实付款:
+                    <em class="all-price">¥{{$float(orderInfo.amount)}}</em> </div>
+                <div class="order-amount__inner">
+                    寄送至： {{defaultAddr.provinceName}} {{defaultAddr.cityName}} {{defaultAddr.areaName}} {{defaultAddr.address}} &nbsp; &nbsp; 收货人:&nbsp;&nbsp; {{defaultAddr.customerName}} {{defaultAddr.tel}}
+                </div>
+            </div>
+            <div class="btn-warp">
+                <el-button type="primary" @click="createOrder">提交订单</el-button>
+            </div>
+        </div>
+        <!-- 添加或修改地址信息 -->
+        <el-dialog title="新增收货地址" :visible.sync="setAddressShow" width="680px" custom-class="set-address" :before-close="handleClose">
+            <div class="add" style="padding: 0;">
+                <el-form size="mini" class="account-personab-inner-havebadge" style="width: 90%;margin: 0 auto;" label-position="right" label-width="120px" :model="formData" ref="form" :rules="rules">
+                    <el-form-item style="height:35px;" label="所在地区" prop="areaName">
+                        <cms-area-select @change="getAreaInfo" :data="areaData"></cms-area-select>
+                    </el-form-item>
+                    <el-form-item style="width: 520px; height: 35px;" label="详细地址" prop="address">
+                        <el-input :maxlength="50" class="add__w300" v-model="formData.address"></el-input>
+                    </el-form-item>
+                    <el-form-item style="width: 520px;height: 35px;" label="收货人姓名" prop="customerName">
+                        <el-input :maxlength="16" v-model="formData.customerName" style="width:160px"></el-input>
+                    </el-form-item>
+                    <el-form-item style="width: 520px;height: 35px;" label="手机号码" prop="tel">
+                        <el-input v-model="formData.tel" style="width:160px"></el-input>
+                    </el-form-item>
+                    <el-form-item style="width: 520px;height: 35px;" label="邮政编码" prop="postCode">
+                        <el-input :maxlength="6" v-model="formData.postCode" style="width:160px"></el-input>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <span slot="footer" class="dialog-footer" style="padding-top: 0;">
+        <el-button size="mini" @click="setAddressShow = false">取 消</el-button>
+        <el-button size="mini" type="primary" @click="saveUserAdd">保 存</el-button>
+      </span>
+        </el-dialog>
+        <!-- 发票修改 -->
+        <el-dialog title="发票信息" :visible.sync="extVisable" width="500px" custom-class="set-address" :show-close="false">
+            <div class="add" style="padding: 0;">
+                <el-form size="mini" class="account-personab-inner-havebadge" style="width: 90%;margin: 0 auto;" label-position="right" label-width="120px" :model="extForm" ref="extForm" :rules="extRules">
+                    <el-form-item style="width: 400px; height: 35px;" label="发票类型">
+                        <el-radio-group v-model="extForm.invoiceType" @change="changeInvoiceType">
+                            <el-radio :label="1">个人</el-radio>
+                            <el-radio :label="2">企业</el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                    <el-form-item style="width: 400px;height: 35px;" label="发票抬头" prop="invoiceTitle">
+                        <el-input :maxlength="50" v-model="extForm.invoiceTitle"></el-input>
+                    </el-form-item>
+                    <el-form-item style="width: 400px;height: 35px;" label="纳税人识别号" prop="invoiceTaxpayerNum" v-if="extForm.invoiceType==2">
+                        <el-input :maxlength="16" v-model="extForm.invoiceTaxpayerNum"></el-input>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <span slot="footer" class="dialog-footer" style="padding-top: 0;">
+        <el-button size="mini" @click="extVisable= false">取 消</el-button>
+        <el-button size="mini" type="primary" @click="saveExtData">保 存</el-button>
+      </span>
+        </el-dialog>
+
+    </div>
+    [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var defaultData = '${params!}'
+    var defaultForm = {
+        "provinceCode": "",
+        "provinceName": "",
+        "cityCode": "",
+        "cityName": "",
+        "areaCode": "",
+        "areaName": "",
+        "address": "",
+        "customerName": "",
+        "tel": "",
+        "isDefault": true,
+        "postCode": ""
+    }
+    var areaData = {
+        province: {
+            areaCode: "",
+            areaName: ""
+        },
+        city: {
+            areaCode: "",
+            areaName: "",
+
+        },
+        area: {
+            areaCode: "",
+            areaName: ""
+        }
+    }
+    var orderCart = new Vue({
+        el: '#shopCartOrder',
+        data() {
+            var validatePhone = (rule, value, callback) => {
+                var patrnPhone = /^0?(13[0-9]|15[012356789]|17[013678]|18[0-9]|14[57])[0-9]{8}$/
+                if (value === '') {
+                    callback(new Error('请输入手机号码'));
+                } else {
+                    if (!patrnPhone.test(value)) {
+                        callback(new Error('请输入11位数手机号'));
+                    }
+                    callback();
+                }
+            };
+            var validateUserName = (rule, value, callback) => {
+                var patrnUserName = /^[a-zA-Z0-9_-]{2,16}$/
+                if (value === '') {
+                    callback(new Error('请输入用户名'));
+                } else {
+                    if (patrnUserName.test(value)) {
+                        callback(new Error('用户名格式不正确'));
+                    }
+                    callback();
+                }
+            };
+            var validateAddr = (rule, value, callback) => {
+                var patrnAddr = /[\dA-Za-z\u4E00-\u9FA5]+/
+                if (value === '') {
+                    callback(new Error('请输入详细地址'));
+                } else {
+                    if (!patrnAddr.test(value)) {
+                        callback(new Error('地址格式不正确'));
+                    }
+                    callback();
+                }
+            };
+            var validatePostCode = (rule, value, callback) => {
+                var patrnCode = /^[0-9]{6}$/
+                if (value === '') {
+                    callback()
+                } else {
+                    if (!patrnCode.test(value)) {
+                        callback(new Error('输入6位数字邮政编码'));
+                    } else {
+                        callback();
+                    }
+                }
+            }
+            return {
+                isSubmit: false,
+                loading: false,
+                addrshowAll: false,
+                changeAddrInfo: '显示全部收货地址',
+                createAddress: false, //判断加载数据表示
+                setAddressShow: false, //是否显示设置地址弹窗
+                addrList: [], // 收货地址
+                orderInfo:JSON.parse(defaultData), //承接订单数据的中间变量
+                extData: [],
+                defaultAddr: '', //默认收货地址信息
+                baseUrl: cms.url,
+                isAddress: true, //未保存
+                orderData: { //最终提交的目标变量
+                    addressId: '',
+                    pay: {
+                        couponId: '',
+                        integral: '',
+                        redPacket: ''
+                    },
+                    orders: [{
+                        ext: {
+                            customerTxt: "",
+                            needInvoice: false,
+                            invoiceType: 1,
+                            invoiceTitle: "个人",
+                            invoiceTaxpayerNum: ""
+                        },
+                        couponId: '',
+                        storeId: null,
+                        promoteIds: [],
+                        products: [{
+                            productId: '',
+                            productSkuId: null,
+                            count: '',
+                            deliveryWay: 1
+                        }]
+                    }],
+                    isFromShopCart: false,
+                    orderSource: 1
+                },
+                areaData: JSON.parse(JSON.stringify(areaData)), //临时存储编辑的省市信息
+                type: 'save',
+                formData: JSON.parse(JSON.stringify(defaultForm)),
+                extVisable: false,
+                extForm: {
+                    invoiceType: 1,
+                    invoiceTitle: "个人",
+                    invoiceTaxpayerNum: ""
+                },
+                extRules: {
+                    invoiceTitle: [{
+                        required: true,
+                        message: '此项必填',
+                        trigger: 'blur'
+                    }],
+                    invoiceTaxpayerNum: [{
+                        required: true,
+                        message: '此项必填',
+                        trigger: 'blur'
+                    }]
+                },
+                rules: {
+                    areaName: [{
+                        required: true,
+                        message: '此项必填',
+                        trigger: 'blur'
+                    }],
+                    address: [{
+                        required: true,
+                        message: '此项必填',
+                        trigger: 'blur'
+                    }, {
+                        max: 50,
+                        message: '地址过长',
+                        trigger: 'blur'
+                    }],
+                    customerName: [{
+                        required: true,
+                        validator: validateUserName,
+                        trigger: 'blur'
+                    }, {
+                        min: 2,
+                        max: 16,
+                        message: '用户名在2-16个字符之间',
+                        trigger: 'blur'
+                    }],
+                    tel: [{
+                        required: true,
+                        validator: validatePhone,
+                        trigger: 'blur'
+                    }],
+                    postCode: [{
+                        required: false,
+                        validator: validatePostCode,
+                        trigger: 'blur'
+                    }, {
+                        min: 6,
+                        max: 6,
+                        message: '请输入正确的区域编码',
+                        trigger: 'blur'
+                    }]
+                }
+            }
+        },
+        watch: {
+            orderInfo: {
+                handler(oldData, newData) {
+                    let data = this.orderInfo
+                    let orders = []
+                    data.orderStoreItems.forEach((v, i) => { //处理商品内的订单优惠信息
+                        let obj = {
+                            couponId: v.couponId ? v.couponId : '',
+                            storeId: v.storeId,
+                            promoteIds: v.promoteId ? [v.promoteId] : [],
+                            products: []
+                        }
+                        v.items.forEach(item => {
+                            let products = {
+                                productId: item.productId,
+                                productSkuId: item.productSkuId,
+                                count: item.productCount,
+                                deliveryWay: 1
+                            }
+                            obj.products.push(products)
+                        })
+                        orders.push(obj)
+                    });
+                    this.$set(this.orderData, 'orders', orders)
+                },
+                deep: true,
+                immediate: true
+            }
+        },
+        methods: {
+            getAreaInfo(data) { //获取地址列表
+                this.formData.provinceCode = data.province.areaCode
+                this.formData.provinceName = data.province.areaName
+                this.formData.cityCode = data.city.areaCode
+                this.formData.cityName = data.city.areaName
+                this.formData.areaCode = data.area.areaCode
+                this.formData.areaName = data.area.areaName
+                if (data.area.areaName && data.area.areaName != '') {
+                    this.$refs['form'].clearValidate('areaName');
+                }
+            },
+            saveUserAdd() { //添加收货地址方法
+                var that = this
+                this.$refs['form'].validate(function(valid) {
+                    if (valid && that.isAddress) {
+                        that.isAddress = false
+                        cms.ajax({
+                                url: cms.url + '/member/memberaddress/save',
+                                type: "post",
+                                data: JSON.stringify(that.formData),
+                            },
+                            function(res) {
+                                if (res.code == 200) {
+                                    that.setAddressShow = false
+                                    that.formData = JSON.parse(JSON.stringify(defaultForm))
+                                    that.areaData = JSON.parse(JSON.stringify(areaData))
+                                    that.getAddrList()
+                                    that.$refs['form'].clearValidate()
+                                    that.isAddress = true
+                                } else {
+                                    cms.alert(res.message, 5)
+                                    return false
+                                }
+                            })
+                    } else {
+                        return false
+                    }
+                })
+            },
+            handleClose() { //关闭弹窗
+                this.setAddressShow = false
+            },
+            showAddr() {//显示收货地址
+                if (this.addrshowAll) {
+                    this.addrshowAll = false
+                    this.changeAddrInfo = '显示全部收货地址'
+                } else {
+                    this.addrshowAll = true
+                    this.changeAddrInfo = '收起'
+                }
+            },
+            getAddrInfo(item) { //修改收货地址
+                this.defaultAddr = item
+                this.orderData.addressId = this.defaultAddr.id
+                this.orderAfterChange(this.orderData)
+            },
+            getAddrList() {
+                // 获取收货地址
+                cms.ajax({
+                        url: '${base}/member/memberaddress/list'
+                    },
+                    res => {
+                        if (res.code == 200) {
+                            this.addrList = res.data
+                            if(res.data.length >0){
+                                for (let i = 0; i < res.data.length; i++) {
+                                    if (res.data[i].isDefault) {
+                                        this.defaultAddr = res.data[i];
+                                        break;
+                                    }else{
+                                        this.defaultAddr = res.data[0];
+                                        break;
+                                    }
+                                }
+                            }
+                            this.orderData.addressId = this.defaultAddr.id
+                            this.createAddress = true
+                        }
+                    }
+                )
+            },
+            changeStorePromote(val) { //选择店铺活动时重新调用订单信息,数据绑定会直接修改店铺活动信息
+                this.orderAfterChange(this.orderData)
+            },
+            changeCouponId(id) { //切换平台优惠券触发订单信息
+                if (this.orderData.pay.couponId == id) {
+                    this.orderData.pay.couponId = ''
+                } else {
+                    this.orderData.pay.couponId = id
+                }
+
+                this.orderAfterChange(this.orderData)
+            },
+            changeMaxIntegral(value) { //使用积分后重新触发订单
+                if (value <= this.orderInfo.maxIntegral) {
+                    this.orderAfterChange(this.orderData)
+                } else {
+                    cms.alert('使用积分不能超过拥有的积分')
+                }
+            },
+            changeMaxRedPacket(value) {
+                if (value <= this.orderInfo.maxRedPacket) {
+                    this.orderAfterChange(this.orderData)
+                } else {
+                    cms.alert('使用积分不能超过拥有的红包')
+                }
+            },
+            orderAfterChange(data) { //重新生成新的结算信息 数据结构参考orderData
+                this.loading = true
+                cms.ajax({
+                        url: '${base}/member/order/getPrePayAfterChange',
+                        type: 'post',
+                        data: JSON.stringify(data)
+                    },
+                    res => {
+                        if (res.code === 200) {
+                            this.orderInfo = res.data
+                        }
+                        this.loading = false
+                    }
+                )
+            },
+            createOrder() { //生成构造好的订单数据
+                if (this.addrList.length > 0) {
+                    if (!this.isSubmit) {
+                        this.isSubmit = true
+                        var params = JSON.parse(JSON.stringify(this.orderData))
+                        params.orders.forEach((v, i) => {
+                            v.ext = this.extData[i]
+                        })
+                        cms.ajax({
+                            url: '${base}/member/order/submit',
+                            type: 'post',
+                            data: JSON.stringify(params)
+                        }, (res) => {
+                            if (res.code === 200) {
+                                this.goPay(res.data.orderNo, res.data.totalAmount)
+                            } else {
+                                cms.alert(res.message, 5)
+                                this.isSubmit = false
+                                this.loading = false
+                            }
+                        })
+                    } else {
+                        return
+                    }
+                } else {
+                    this.setAddressShow = true //显示收货地址弹窗
+                }
+            },
+            goPay(orderNo, amount) { //订单号,订单价格
+                this.loading = true
+                this.isSubmit = false
+                this.loading = false
+                let params = Qs.stringify({'orderNo':orderNo,'description':'商品订单支付','subject':'商品订单支付','payScene':'memberMergerOrderPay','amount':amount})
+                location.href="${base!}/member/tradePage.htm?"+params
+            },
+            getOrderInfo() {
+                // 获取订单预结算信息
+                this.loading = true
+                cms.ajax({
+                        url: '${base}/member/order/getPrePay',
+                        type: 'post',
+                        data: JSON.stringify(defaultData)
+                    },
+                    res => {
+                        if (res.code === 200) {
+                            this.orderInfo = res.data
+                        }
+                        this.loading = false
+                    }
+                )
+            },
+            createdExtData() { //预先构造附加信息
+                let arr = []
+                for (let i = 0; i < this.orderInfo.orderStoreItems.length; i++) {
+                    let obj = {
+                        customerTxt: '',
+                        needInvoice: false,
+                        invoiceType: 1,
+                        invoiceTitle: "个人",
+                        invoiceTaxpayerNum: ""
+                    }
+                    arr.push(obj)
+                }
+                this.extData = arr
+            },
+            changeInvoiceType(val) {
+                if (val == 1) {
+                    this.extForm.invoiceTitle = '个人'
+                    this.extForm.invoiceTaxpayerNum = ''
+                } else {
+                    this.extForm.invoiceTitle = ''
+                    this.extForm.invoiceTaxpayerNum = ''
+                }
+            },
+            showExtData(index, data) {
+                this.extForm = Object.assign({
+                    index: index
+                }, data)
+                this.extVisable = true
+            },
+            saveExtData() {
+                var self = this
+                this.$refs['extForm'].validate(function(valid) {
+                    if (valid) {
+                        self.$set(self.extData, self.extForm.index, self.extForm)
+                        self.extVisable = false
+                    } else {
+                        return false
+                    }
+                })
+
+            }
+        },
+        created() {
+            this.getAddrList()
+            this.createdExtData()
+        }
+    })
+</script>

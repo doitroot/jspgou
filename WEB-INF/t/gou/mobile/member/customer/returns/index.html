@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-退换货</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body class="t-page">
+  [#assign topName="退换货"/]
+  [#include "../../../includes/topbar.html"]
+  <div id="returns" v-cloak>
+    <div class="cms nav-top">
+        <div v-if="orderList.length<= 0">
+          <div class="empty-coupon">
+            <img class="empty-coupon__bg" src="${mobileRes}/img/order_01.png" />
+          </div>
+          <div class="empty-coupon__txt">您当前暂无此类退换单</div>
+        </div>
+        <div v-else>
+          <div class="order__items"  v-for="(item,index) in orderList" :key="index">
+            <van-cell-group class="t-coll">
+                <van-cell custom-class="order__shop" icon="shop" title-width="210rpx" title-class="shop-fonts" :border="false">
+                <div slot="title" style="width:200%;" @click="toStore(item.store.id)">
+                  {{item.store.storeName}}
+                  <van-icon class="t-icon"  name="arrow" />
+                </div>
+                <span class="shop__status">{{item.state}}</span>
+              </van-cell>
+            </van-cell-group>
+            <div  @click="openDetail(item.orderRefund.id)" class="order__goods order-refund" style="background-color: #fafafa">
+              <div class="order__goodsImages"><img class="order__goodsImg t-bgColor" :src="baseUrl+item.productVO.product.coverImage" /></div>
+              <div class="order__goodstxt ">
+                <div class="order__goodstitle cell-2">
+                    <span class="order__number order__numbers">x{{item.orderRefund.productRefundCount}}</span>
+                  {{item.productVO.product.name}}</div>
+                <div class="detail-txt">
+                  <span v-for="(sku,skuIndex) in item.proSkuAttrList"
+                  :key="skuIndex">{{sku.name+':'+sku.value}};</span>
+                </div>
+              </div>
+            </div>
+            <div class="order__goods t-bottom">
+              <div class="refund__status">
+                <img class="refund-icon" :src="'${mobileRes}/img/refund0'+item.orderRefund.refundType+'.png'" /> 
+                {{item.type}} </div>
+            </div>
+            <div class="order__btns">
+              <van-button @click="openDetail(item.orderRefund.id)" class="order__btn" type="primary" size="small"  plain>查看详情</van-button>
+            </div>
+          </div>
+          <div  v-show="!hidden">
+            <div v-if="info != ''" class="van-list__finished-text ">{{info}}</div>
+            <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+          </div>
+        </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var returns = new Vue({
+    el:'#returns',
+    data () {
+      return {
+        active:0,
+        hidden:true,
+        orderList:[],
+        baseUrl:'${base}',
+        total:0,
+        info:"",
+        pages:0,
+        params:{
+          "page": 1,
+          "size": 10,
+          "number": "",
+          "refundType": ""
+        }
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    },
+    methods: {
+      onReachBottom(event){//上拉加载处理
+        var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+      　　　if(this.params.page <this.pages){
+              this.params.page +=1
+              this.hidden = false
+              this.info = ''
+              this.getOrderList()
+            }else{
+              this.hidden = false
+              this.info = '没有更多了'
+              return
+            }
+      　　}
+      },
+      toStore(id){//查看店铺
+        location.href = '${base}/store-index.htm?storeId='+id
+      },
+      getOrderList(){//获取退换单列表
+        refundPage(this.params).then(res => {
+          if(res.code == 200){
+            let arr = res.data.content
+            arr.forEach(v => {
+              v.state = this.statusFilter(v.orderRefund.status)
+              v.type = this.typeFilter(v.orderRefund.refundType)
+            });
+            this.orderList = this.orderList.concat(arr)
+            this.pages=res.data.totalPages
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      openDetail(id){
+        location.href = '${base}/member-customer-returns-refund.htm?saleId='+id
+      },
+      typeFilter(val){
+        var arr = ['','仅退款','退款/退货','换货']
+        return arr[parseInt(val)]
+      },
+      statusFilter(val){
+        var arr = ['待卖家确认', '退款中', '卖家拒绝','' ,'待买家发货' ,'待卖家收货' ,'待买家收货' ,'待卖家发货', '已完成', '买家已取消']
+        return arr[parseInt(val)]
+      },
+    },
+    created () {
+      this.getOrderList()
+    }
+  })
+</script>

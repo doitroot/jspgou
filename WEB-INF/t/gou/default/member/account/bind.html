@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-账号绑定</title>
+ [#include "../../includes/common.html"]
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+ [#include "../../includes/topBar.html"]
+ [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="accountBind"]
+      [#include "../../includes/accountNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" v-if="!loading">
+        <h3 class="member-title index-title">账号绑定</h3>
+         <!-- 个人中心主体 -->
+          <div id="personinfo" class="bind bind-padding">
+            <ul class="bind__way clearfix">
+              <li class="bind__item" @click="bindTab('qq')" v-if="thirdEnabled.QQ">QQ
+                <div class="bind__item--line" v-show="params.typeCode === 'qq'"></div>
+              </li>
+              <li class="bind__item" @click="bindTab('wechat')" v-if="thirdEnabled.WECHAT_WEB">微信
+                <div class="bind__item--line" v-show="params.typeCode === 'wechat'"></div>
+              </li>
+              <li class="bind__item" @click="bindTab('sina')" v-if="thirdEnabled.WEIBO">微博
+                <div class="bind__item--line" v-show="params.typeCode === 'sina'"></div>
+              </li>
+            </ul>
+            <!-- qq内容 -->
+            <div class="bind__con" v-loading="loading">
+          	  <div v-if="!hasThird"   class="bind__nowstate" v-show="!isDisableBind()">平台暂未开启第三方登录绑定方式</div>
+              <div v-if="!hasThird" v-show="isDisableBind()">
+                <p class="bind__nowstate">当前状态：未绑定</p>
+                <p class="bind__nowstate bind__info" >绑定账号之后可直接使用{{params.typeCode | codeFilter}}快捷登陆，不必再输入账号和密码</p>
+                <div class="bind__nowbind" @click="loginBind">立即绑定</div>
+              </div>  
+              <div v-if="hasThird">
+                  <p class="bind__nowstate">当前状态：已绑定</p>
+                  <div class="bind__qqcon" v-cloak>
+                      <p class="bind__infotip">
+                        <img :src="'${res}/images/'+params.typeCode+'.png'" alt="" class="bind__qqimg">
+                        <span class="bind__qqinfo">{{params.typeCode | codeFilter}}信息</span>
+                        <span class="bind__thinfo">本站信息</span>
+                      </p>
+                      <div class="bind__num clearfix"  >
+                        <div class="bind__leid fl">
+                            <div  class="bind__id">{{thirdLabel[params.typeCode]}}：{{thirdInfo.thirdUsername}} </div>
+                          <!-- <div  v-if="params.typeCode == 'wechat'" class="bind__id">微信公众号：JEECMS</div>
+                          <div class="bind__id">账号ID:{{thirdInfo.thirdId}}</div> -->
+                          <div class="bind__default" @click="bindRelieve(thirdInfo.thirdId,thirdInfo.thirdTypeCode)">解除绑定</div> 
+                        </div>
+                        <div class="bind__mid">
+                          <img src="${res}/images/dbjian.png" alt="" class="bind__dbjian">
+                        </div>
+                        <div class="bind__right fr">
+                          <img :src="${base!}thirdInfo.member.headImageUrl" alt="" class="bind__user1 account-person-box">
+                          会员名：{{thirdInfo.username}}
+                        </div>
+                      </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- start -->
+ [#include "../../includes/footer.html"]
+</body>
+</html>
+<script>
+  var personinfo=new Vue({
+      el:'#personinfo',
+      data(){
+          return{
+        	thirdLabel:{'qq':'QQ','wechat':'微信号','sina':'微博帐号'},
+            thirdInfo:null,
+            params:{
+              typeCode:'qq' //第三方平台类型编号 qq-腾讯QQ wechat-微信 sina-新浪
+            },
+            hasThird:false,
+            loading:false,
+            thirdEnabled:{QQ:'',WECHAT_WEB:'',WEIBO:'',WECHAT_H5:''}
+          }
+      },
+      methods:{
+        isDisableBind(){//是否支持绑定第三方登录(平台是否开启)
+          if(!this.hasThird){
+            if(this.thirdEnabled.QQ||this.thirdEnabled.WECHAT_WEB||this.thirdEnabled.WEIBO){
+              return true
+            }else{//若一种方式都未开启
+              return false
+            }
+          }
+        },
+        qqLogin(){//qq登陆
+          location.href = '${base}/member/thirdParty/qq/pc?backUrl=${base}/member-account-bind.htm'
+        },
+        wxLogin(){//微信登陆
+          location.href = '${base}/member/thirdParty/wechat/pc?backUrl=${base}/member-account-bind.htm'
+        },
+        wbLogin(){//微博登陆
+          location.href = '${base}/member/thirdParty/sina/pc?backUrl=${base}/member-account-bind.htm'
+        },
+        loginBind(){
+          var code = this.params.typeCode
+          localStorage.setItem('typeCode',code)
+          switch(code){
+            case 'qq':
+            this.qqLogin()
+            break;
+            case 'wechat':
+            this.wxLogin()
+            break;
+            case 'sina':
+            this.wbLogin()
+            break;
+          }
+        },
+        bindTab(type){
+          this.params.typeCode = type
+          this.getThirdInfo()
+        },
+        getThirdInfo(){
+          let that = this 
+          that.loading = true
+          cms.ajax({
+            url: '${base}/member/memberthird/get',
+            type: 'get',
+            data: that.params
+          }, function (res) {
+            that.loading = false
+            if (res.code == 200) {
+              that.thirdInfo = res.data
+              if(res.data != null ){
+                that.hasThird = true
+              }else{
+                that.hasThird = false
+              }
+            }
+          })
+        },
+        getThirdEnabled() {
+          var self = this
+          cms.ajax({
+            url: '${base}/member/third/thirdInfo',
+            type: 'get',
+          }, function (res) {
+            if (res.code === 200) {
+             self.thirdEnabled = res.data
+             res.data.forEach(item => {
+               switch (item.code){
+                case 'QQ':
+                self.thirdEnabled.QQ=item.isEnable
+                break;
+                case 'WECHAT_WEB':
+                self.thirdEnabled.WECHAT_WEB=item.isEnable;
+                break;
+                case 'WEIBO':
+                self.thirdEnabled.WEIBO=item.isEnable;
+                break;
+                case 'WECHAT_H5':
+                self.thirdEnabled.WECHAT_H5=item.isEnable;
+                break;
+              }
+            })
+           }
+           self.getBindType()//获取到平台是否开启之后，再去获取表单信息
+          }
+        )
+      },
+      getBindType(){//获取第一种可以绑定的方式（然后获取表单信息）
+       let self=this
+       for (let i in self.thirdEnabled){
+         if(self.thirdEnabled[i]===true){
+          switch(i){
+            case 'QQ':
+            self.params.typeCode='qq'
+            break
+            case 'WECHAT_WEB':
+            self.params.typeCode='wechat'
+            break
+            case 'WEIBO':
+            self.params.typeCode='sina'
+            break
+          }
+          break//跳出循环
+         }
+       }
+        self.getThirdInfo()
+      },
+      bindRelieve(id,type){
+          let that = this
+          this.$confirm('是否解除当前绑定?', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.loading = true
+            var relieveParams = {
+              thirdId:id,
+              thirdTypeCode:type
+            }
+            cms.ajax({
+              url: '${base}/member/memberthird/unbind',
+              type: 'post',
+              data: JSON.stringify(relieveParams)
+            }, function (res) {
+              that.loading = false
+              if (res.code == 200) {
+                cms.alert('已解除当前绑定',4)
+                that.getThirdInfo()
+              }else{
+                cms.alert(res.message,5)
+              }
+            })
+          }).catch(() => {
+            cms.alert('操作已取消',5)
+          })
+        }
+      },
+      filters:{
+        codeFilter(val){
+          switch(val){
+            case 'qq':
+            return 'QQ'
+            case 'wechat':
+            return '微信'
+            case 'sina':
+            return '微博'
+          }
+        }
+      },
+      created(){
+        var code = localStorage.getItem('typeCode')
+        if(code && code !=''){
+          this.params.typeCode = code
+          localStorage.clear('typeCode')
+        }
+        this.getThirdEnabled()
+      }
+  })
+</script>

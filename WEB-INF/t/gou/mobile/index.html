@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <title>${globalConfig.mallName!}-首页</title>
+  [#include "./includes/common.html"]
+  <script src="${mobileRes}/js/components/index.js"></script>
+</head>
+
+<body>
+  <div class="cms" id="app" v-cloak>
+    <div class="pg-wrapper">
+      <!-- 头部 -->
+      <div class="pg-header" :class="isTop?'pg-h-is':'pg-h-dis'">
+        <div class="pg-header-logo">
+          <img src="${base}${globalConfig.mallLoginAndRegLogo!}" />
+        </div>
+        <div class="pg-header-serch" @click="toSearch">
+          <van-icon style="position: relative;top: 2px;" name="search" size="22px" />
+        </div>
+        <div class="pg-header-massge" @click="toMessage">
+            <van-icon name="chat" size="25px" />
+            <span v-if="unread>0" class="tidings tidings-mes">{{unread>99?'99+':unread}}</span>
+        </div>
+      </div>
+      <!-- banner -->
+      <div class="pg-banner">
+          <van-swipe :autoplay="5000" touchable class="pg-banner" indicator-color="white">
+              [@position_page  positionCode='index_slider']
+              [#if tag_bean.adPosition.sysAds??]
+              [#list tag_bean.adPosition.sysAds as slider]
+              <van-swipe-item class="pg-banner" >
+                  <a href="javascript:;"
+                  data-type="${slider.linkType!}"
+                  data-target="${slider.isTarget!?string('2','1')}"
+                  data-productid="${slider.productId!}"
+                  data-storeid="${slider.storeId!}"
+                  data-articleid="${slider.articleId!}"
+                  data-productCateid="${slider.productCateId!}"
+                  data-linkurl="${slider.linkUrl!}"
+                  class="JsLink"
+                ><img class="pg-banner_img slide-image" src="${base!}${(slider.resourcesSpaceData.url)!}" ></a>
+                </van-swipe-item>  
+               [/#list]  
+              [/#if] 
+          [/@position_page]
+            </van-swipe>
+      </div>
+      <!-- 分类 -->
+      <div class="pg-category t-bgColor">
+        <div class="pg-cate-item" v-for="(item,index) in cateList" :key="index">
+          <a :href="item.url">
+            <img :src="item.imgUrl" />
+            <div class="pg-cate-txt">{{item.name}}</div>
+          </a>
+        </div>
+      </div>
+     
+      <!-- 今日大牌 -->
+      <div class="pg-brand t-bgColor">
+        <div class="pg-brand-title">
+          <img src="${mobileRes}/img/title-dapai.png" />
+        </div>
+        <div class="pg-brand-items">
+          <div class="pg-brand-item" v-for="(item,index) in brandList" :key="index" @click="brandSearch(item.id)" >
+            <img class="pg-brand-img" :src="'${base}'+item.resourcesSpaceData.url" />
+          </div>
+        </div>
+      </div>
+      <div class="t-space"></div>
+      <!-- 为你推荐 -->
+      <recommend-list></recommend-list>
+    </div>
+    <div  v-show="!hidden">
+        <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+        <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+      </div>
+  </div>
+  [#assign active="0"/]
+  [#include "./includes/tabBar.html"]
+</body>
+
+</html>
+<script>
+  new Vue({
+    el: '#app',
+    data() {
+      return {
+        timer: null,
+        baseUrl: '${base}',
+        unread: 0,
+        status: 'stop',
+        hidden: true,
+        isTop: true,
+        info: '',
+        recommendList: [],
+        brandList: [],
+        cateList: [ {
+          tab: true,
+          url: '${base}/member-account-index.htm',
+          name: '个人中心',
+          imgUrl: '${mobileRes}/img/icon-06-geren.png'
+        }, {
+          url: '${base}/member-asset-coupon.htm',
+          name: '我的卡券',
+          imgUrl: '${mobileRes}/img/icon-07-kaquan.png'
+        }, {
+          url: '${base}/coupon.htm',
+          name: '领券中心',
+          imgUrl: '${mobileRes}/img/icon-08-lingquan.png'
+        }, {
+          tab: true,
+          url: '${base}/member-cart-index.htm',
+          name: '购物车',
+          imgUrl: '${mobileRes}/img/icon-09-shopcart.png'
+        }, {
+          tab: true,
+          url: '${base}/classify.htm',
+          name: '商品分类',
+          imgUrl: '${mobileRes}/img/icon-10-fenlei.png'
+        }
+        ]
+      }
+    },
+    mounted() {
+      window.addEventListener('scroll', this.handleScroll, true)
+    },
+    methods: {
+      brandSearch(id){
+        location.href = '${base}/product-category.htm?brandId='+id
+      },
+      getCateList(){
+        indexCateList({max:5,clientType:'wap'}).then(res=>{
+          if(res.code===200){
+            let arr=[]
+            res.data.forEach(v => {
+              let obj={
+                url:'${base}/product-category.htm?ctgId='+v.proCategoryId,
+                name:v.alias,
+                imgUrl:'${base}'+v.logoResource.url
+              }
+              arr.push(obj)
+            })
+            this.cateList=arr.concat(this.cateList)
+          }
+        })
+      },
+      toMessage(){
+        location.href = '${base}/member-message-message.htm'
+      },
+      handleScroll() {
+        var timer = this.timer
+        var scrollTop = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+        var that = this
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          if (scrollTop > 20) {
+            that.isTop = false
+          } else {
+            that.isTop = true
+          }
+        }, 100)
+      },
+      getBrands() {//获取品牌列表
+        let params = {
+          page: 1,
+          size: 12,
+          productCategory: ''
+        }
+        brandpage(params).then(res => {
+          if (res.code === 200) {
+            this.brandList = res.data.content
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { })
+      },
+      getUnread() {//获取未读信息总和
+        messageUnread().then(res => {
+          if (res.code == 200) {
+            this.unread=res.data.UnreadSysteam + res.data.UnreadPrivate
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { })
+      },
+      toSearch() {//跳转到商品搜索页
+        window.location.href = "${base}/product-search.htm"
+      }
+    },
+    created() {
+      this.getBrands()
+      this.getCateList()
+      let token = localStorage.getItem('token')
+      if (token && token != '') {
+        this.getUnread()
+      }
+    }
+  })
+</script>

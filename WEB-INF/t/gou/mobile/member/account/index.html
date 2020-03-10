@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-个人中心</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/components/index.js"></script>
+</head>
+<body>
+  <div class="cms" id="userCenter" v-cloak>
+      <div class="person-zhong">
+        <div class="person">
+          <div class="my-card">
+            <div class="card-name">
+              <div class="card-name-left">
+                <span>用户名：</span>
+                <span>{{user.username&&user.username!=''?user.username:'-'}}</span>
+              </div>
+              <div class="card-name-right" @click="tosetAccount">
+                <van-icon class="setting-icon" name="setting" ></van-icon>
+                <span>账号设置</span>
+              </div>
+            </div>
+            <div class="portrait">
+                <img :src="memberImg" class="portrait-head" >
+              <div class="portrait-name">
+                <div class="portrait-name-p">
+                  [#if user.nickname?? && user.nickname!='' ]
+                  <span>${user.nickname!}</span>
+                  [#else]
+                  <span>${user.username!}</span>
+                  [/#if]
+                  <img @click="toEditName" class="portrait-name-img img-seat" src="${mobileRes}/img/my_01.png"></img>
+                </div>
+                <div class="portrait-name-p2" v-if="user.levelName">
+                  <span>{{user.levelName}}</span>
+                </div>
+              </div>
+               
+            </div>
+             
+          </div>
+          </div>
+          <div class="order">
+             <div class="order-name">
+              <div class="order-name-left">
+                <span>我的订单</span>
+              </div>
+              <div class="order-name-right" @click="toOrderTab(0)">
+                  <span>全部订单</span>
+                  <van-icon class="arow-icon" name="arrow" />
+              </div>
+               
+            </div>
+            <div class="details">
+              <div class="details-kids details-two" @click="toOrderTab(1)">
+                  <img class="details-img" src="${mobileRes}/img/my_07.png" />
+                  <div class="details-p">待付款</div>
+                  <div v-if="user.tobepaid && user.tobepaid!=0" class="detaols-p2">{{user.tobepaid}}</div>
+              </div>
+              <div class="details-kids" @click="toOrderTab(2)">
+                  <img class="details-img" src="${mobileRes}/img/my_02.png" />
+                  <div class="details-p">待发货</div>
+                  <div v-if="user.tobedelivery && user.tobedelivery!=0" class="detaols-p2">{{user.tobedelivery}}</div>
+              </div>
+              <div class="details-kids" @click="toOrderTab(3)">
+                  <img class="details-img" src="${mobileRes}/img/my_03.png" />
+                  <div class="details-p">待收货</div>
+                  <div v-if="user.tobereceive && user.tobereceive!=0" class="detaols-p2">{{user.tobereceive}}</div>
+              </div>
+              <div class="details-kids" @click="toOrderTab(4)">
+                  <img class="details-img" src="${mobileRes}/img/my_04.png" />
+                  <div class="details-p">待评价</div>
+                  <div v-if="user.finish && user.finish!=0" class="detaols-p2">{{user.finish}}</div>
+              </div>
+              <div class="details-kids" @click="toRturns">
+                <img class="details-img" src="${mobileRes}/img/my_06.png" />
+                <div class="details-p">退换/售后</div>
+                <div v-if="user.undoneRefund && user.undoneRefund!=0" class="detaols-p2">{{user.undoneRefund}}</div>
+              </div>
+            </div>
+          </div>
+          <div class="t-space"></div>
+          <div class="discounts">
+            <div class="discounts-li1" @click="toCouponTab">
+                <div class="discounts-li1-p"><span>{{user.coupon && user.coupon != ''?user.coupon:0}} </span>张</div>
+                <div class="discounts-li1-p2">优惠券</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toAalance">
+                <div class="discounts-li1-p"><span class="cell-1 yue">￥{{$float(user.balance)}}</span></div>
+                <div class="discounts-li1-p2">我的余额</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toRedEnvelope(user.redEnvelope)">
+                <div class="discounts-li1-p"><span>{{user.redEnvelope && user.redEnvelope != ''?user.redEnvelope:0}}</span>元</div>
+                <div class="discounts-li1-p2">红包</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toIintegral(user.score)">
+                <div class="discounts-li1-p"><span>{{user.score && user.score != ''?user.score:0}}</span></div>
+                <div class="discounts-li1-p2">积分</div>
+            </div>
+          </div>
+          <div class="t-space"></div>
+          <div class="discounts">
+            <div class="discounts-li1" @click="toStoreupTab(0)">
+                <div class="discounts-li1-p"><span>{{user.followProduct && user.followProduct != ''?user.followProduct:0}}</span></div>
+                <div class="discounts-li1-p2">商品收藏</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toStoreupTab(1)">
+                <div class="discounts-li1-p"><span>{{user.followStore && user.followStore != ''?user.followStore:0}}</span></div>
+                <div class="discounts-li1-p2">店铺收藏</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toConsultTab">
+                <div class="discounts-li1-p"><span>{{user.pConsultationCount && user.pConsultationCount != ''?user.pConsultationCount:0}}</span></div>
+                <div class="discounts-li1-p2">我的咨询</div>
+                <span class="wire">|</span>
+            </div>
+            <div class="discounts-li1" @click="toMyTracks">
+                <div class="discounts-li1-p"><span>{{user.myTracks&&user.myTracks!=''?user.myTracks:0}}</span></div>
+                <div class="discounts-li1-p2">我的足迹</div>
+            </div>
+          </div>
+          <div class="t-space"></div>
+          <!-- 为你推荐 -->
+          <recommend-list></recommend-list>
+      </div>      
+    </div>
+    [#assign active="3"/]
+  [#include "../../includes/tabBar.html"]
+</body>
+</html>
+
+<script>
+  var userCenter = new Vue({
+    el:'#userCenter',
+    data () {
+      return {
+        size:20,
+        user:{},//个人信息
+        baseUrl:'${base}',
+       memberImg:'${mobileRes}/img/member_header.png'
+      }
+    },
+    methods: {
+      tosetAccount(){//设置
+        location.href='${base}/member-account-security.htm'
+      },
+      toEditName(){//编辑昵称
+        location.href='${base}/member-account-info.htm'
+      },
+      toOrderTab(active){//到订单页
+        location.href='${base}/member-order-index.htm?active='+active
+      },
+      toStoreupTab(active){//收藏夹
+        location.href='${base}/member-collect-collect.htm?active='+active
+      },
+      toCouponTab(){//优惠券
+        window.location.href='${base}/member-asset-coupon.htm'
+      },
+      toAalance(){//我的余额
+        window.location.href='${base}/member-asset-balance-index.htm'
+      },
+      toRedEnvelope(envelope){//红包
+        window.location.href='${base}/member-asset-redBag-index.htm?envelope='+envelope
+       },
+      toIintegral(score){//积分
+        window.location.href='${base}/member-asset-score-index.htm?score='+score
+      },
+      toConsultTab(){//我的咨询
+        window.location.href='${base}/member-consult-consult.htm'
+      },
+      toMyTracks(){//我的足迹
+        window.location.href='${base}/member-attention-tracks.htm'
+      },
+      toRturns(){//退换货列表
+        window.location.href = '${base}/member-customer-returns-index.htm'
+      },
+      getUserInfo(){//获取用户信息
+        getWap().then(res=>{
+          if(res.code == 200){
+            this.user=res.data
+            if(res.data.memberImg){
+              this.memberImg = res.data.memberImg
+            }
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      
+    },
+    created () {
+      var token = localStorage.getItem('token')
+      //是否登录
+      if(token && token !=''){
+        this.getUserInfo()
+      }else{
+        this.$dialog.alert({
+          message: '请登录继续进行操作'
+        }).then(() => {
+          location.href="${base}/login.htm"
+        });
+      }
+    },
+    
+  })
+</script>

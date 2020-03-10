@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <title>${globalConfig.mallName!}-${topname!}</title>
+  [#include "../../includes/common.html"]
+</head>
+
+<body>
+  [#assign topName=topname /]
+  [#include "../../includes/topbar.html"]
+  <div class="nav-top" id="addAddress" v-cloak>
+    <div class="cms">
+      <van-cell-group>
+        <van-field v-model="params.customerName" clearable maxlength="30" label="收货人" placeholder="请输入收货人姓名"></van-field>
+        <van-field v-model="params.tel" clearable maxlength="13" label="联系方式" placeholder="请输入收货人联系方式"></van-field>
+        <van-cell title="选择地区" class="van-field"  is-link @click="getArea">
+          <div v-if="params.areaCode!==''"  class="address-text" >
+            {{params.provinceName + params.cityName + params.areaName}}</div>
+          <div v-else style="color:#999999;">请选择</div>
+        </van-cell>
+        <van-field class="address" v-model="params.address" clearable maxlength="60" label="详细地址" placeholder="请输入详细地址"></van-field>
+      </van-cell-group>
+      <van-cell title-width="200rpx" :border="false">
+        <div slot="icon">
+          <van-checkbox v-model="params.isDefault" @change="checkChange">设置默认地址</van-checkbox>
+        </div>
+      </van-cell>
+      <div class="login__submit container sub-btn">
+        <van-button @click="saveAddress" type='primary' size="large" :disabled="prohibit">保存</van-button>
+        <div class="nav-top">
+          <van-button v-if="type=='update'" @click="delDress" plain type="primary" size="large">删除地址</van-button>
+        </div>
+      </div>
+    </div>
+    <van-popup v-model="selcAddress" @close="onClose" position="bottom">
+      <van-area @confirm="getAddressItem" @cancel="onClose" :area-list="areaList" :value="params.areaCode" />
+    </van-popup>
+  </div>
+</body>
+
+</html>
+
+<script>
+  let repeatLoad=false
+  new Vue({
+    el: '#addAddress',
+    data() {
+      return {
+        type: 'add',
+        addressId: '${addressId!}',
+        addressDetail: {}, //地址详情
+        params: {
+          customerName: '',
+          tel: '',
+          provinceName: '', //省
+          provinceCode: '',
+          cityName: '', //市
+          cityCode: '',
+          areaName: '', //区
+          areaCode: '',
+          isDefault: false,
+          postCode: '', //邮编
+          address: '' //详细地址
+        },
+        areaList: [], //地区区域数据
+        selcAddress: false //是否选择为默认地址
+      }
+    },
+    computed: { 
+      prohibit(){
+          if(this.params.customerName!=''
+            && this.params.tel!=''
+            && this.params.provinceCod!=''
+            && this.params.cityCode!=''
+            && this.params.areaCode!=''
+            && this.params.address!=''){
+              return false
+            } else{
+              return true
+            }
+
+      }
+    },
+    methods: {
+      // 获取收货人地区
+      getArea() {
+        this.selcAddress = true
+      },
+      getAreaList(){
+        getAreaCodeList().then(res=>{
+          if(res.code===200){
+            this.areaList=res.data
+          }
+        })
+      },
+      //关闭地址弹窗
+      onClose() {
+        this.selcAddress = false
+      },
+      getAddressItem(data) { //获取选中地区
+        this.params.provinceName = data[0].name
+        this.params.provinceCode = data[0].code
+        this.params.cityName = data[1].name
+        this.params.cityCode = data[1].code
+        this.params.areaName = data[2].name
+        this.params.areaCode = data[2].code
+        this.onClose()
+      },
+      //是否为默认地址
+      checkChange(value) {
+        if (value&&this.type === 'update') {
+          memberaddressDefault({
+            id: this.addressId
+          }).then(res => {})
+        }
+      },
+      delDress() { //删除当前地址
+        memberaddressDelete({
+          id: this.addressId
+        }).then(res => {
+          this.$toast.success('删除成功！')
+          setTimeout(() => {
+            window.history.go(-1)
+          }, 1000);
+        })
+      },
+      saveAddress() {
+        
+        if (!this.prohibit) {
+          if (this.type == 'add') { //新增地址
+            if(!repeatLoad){//防止重复添加
+              memberaddressSave(this.params).then(res => {
+              if (res.code == 200) {
+                this.$toast.success('添加成功！')
+                window.history.go(-1)
+               
+              }else{
+                repeatLoad=true
+              }
+            })
+            }
+        
+          } else { //修改地址
+            if(!repeatLoad){
+                memberaddressUpdate(this.params).then(res => {
+                  if (res.code == 200) {
+                    this.$toast.success('修改成功！')
+                    window.history.go(-1)
+                  }else{
+                     repeatLoad=true
+                     }
+                })
+          }
+        }
+        }
+      },
+      getAddressDetail() { //获取地址详情
+        memberaddressGet({
+          id: this.addressId
+        }).then(res => {
+          if (res.code == 200) {
+            this.params = res.data
+          }
+        })
+      },
+    },
+    created() {
+      this.getAreaList()
+      if (this.addressId && this.addressId != '') { //如果id存在则修改，不存在则新增
+        this.type = 'update'
+        this.getAddressDetail()
+      }
+    }
+  })
+</script>

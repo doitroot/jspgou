@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="full-page">
+<head>
+  <title>${globalConfig.mallName!}-订单结算页</title>
+  [#include "../../includes/common.html"]
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+<body class="full-page">
+  [#assign topName="订单结算页"/]
+  [#include "../../includes/topbar.html"]
+  <div class="classify-warpper">
+      <div class="cms t-wrap" id="settlement" v-cloak >
+          <div class="t-space"></div>
+          <div class="t-address" @click="selAddress(defaultAddr)">
+            <div class="t-address-icon t-label" >
+              <van-icon name="location-o" size="20px" />
+            </div>
+            <div v-if="disAddr" class="t-address-cont">
+              <span style="line-height:55px">去新增收货地址</span>
+            </div>
+            <div v-else class="t-address-cont">
+              <div class="t-address-consignee" style="position:relative">
+                <span class="t-label">收货人： </span>
+                <span class="addr-name" style="max-width:115px;">{{defaultAddr.customerName}}</span>
+                <span class="addr-name" style="position:absolute;right:20px">{{defaultAddr.tel}}</span>
+              </div>
+              <div class="t-address-consignee">
+                <span class="t-label">收货地址： </span>
+                <span >{{defaultAddr.provinceName + defaultAddr.cityName + defaultAddr.areaName + defaultAddr.address}} </span>
+              </div>
+            </div>
+            <div class="t-label" style="padding-top:20px;position: relative;left: 10px">
+                <van-icon name="arrow" size="20px" />
+            </div>
+          </div>
+          <div class="t-space"></div>
+          <div  v-for="(item,index) in orderInfo.orderStoreItems" :key="index">
+            <van-panel use-footer-slot>
+            <div class="cof-title" slot="header">
+              <van-icon class="cof-icon" name="shop" /> 
+              <span >{{item.storeName}}</span>
+            </div>
+              <div  v-for="(info,goodIndex) in item.items" :key="goodIndex">
+                <div class="order__goods">
+                  <div class="order__goodsImages"><image class="order__goodsImg" :src="baseUrl+info.product.coverImage" /></div>
+                  <div class="order__goodstxt">
+                    <div class="order__goodstitle cell-2">{{info.product.name}}</div>
+                    <div class="detail-txt" v-if="info.productSku">
+                      <span v-for="(sku,skuIndex) in info.productSku.saleAttrs" :key="skuIndex">{{sku.name+'：'+sku.value}} </span>
+                    </div>
+                    <div class="order__price">
+                      <span class="coupon__limt">￥</span>
+                      <span class="order__goodsprice">{{$float(info.salePrice)}}</span>
+                      <span class="cof-name t-14">x{{info.productCount}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <van-cell-group>
+                  <van-cell title="店铺优惠" @click="storeDiscount" is-link 
+                  :value="item.promoteItemVos.length>0?couponName:'无可用'" 
+                  value-class="t-label" ></van-cell>
+                  <van-cell title="运费" :value="$float(item.freight)" value-class="t-label" ></van-cell>
+                  <van-cell title="发票" @click="showInvoices" is-link 
+                  :value="extData[index].invoiceTitle?'普通发票（'+extData[index].invoiceTitle+'）':''" 
+                  value-class="t-label" ></van-cell>
+                  <van-field clearable 
+                   v-model="extData[index].customerTxt"  label="备注"  
+                   type="textarea" autosize
+                   maxlength="50" placeholder="选填，给商家留言" ></van-field>
+                </van-cell-group>
+                <div class="t-space"></div>
+              <div slot="footer" class="t-text-right">
+                <span class="order__goodstitle">小计：</span> <span class="coupon__limt">¥ {{$float(item.amount)}}</span>
+              </div>
+            </van-panel>
+            <div class="t-space"></div>
+            <van-popup  style="padding-bottom: 100px;"
+              v-model="showDiscount" position="bottom"
+               @close="closeDiscount" >
+               <div class="vos-title">店铺优惠</div>
+                <van-radio-group v-model="item.couponId?orderData.orders[index].couponId:orderData.orders[index].promoteId">
+                  <van-cell-group>
+                    <van-cell 
+                    v-for="(promote,vosIndex) in item.promoteItemVos" :key="vosIndex"
+                    @click="changeStoreCoupon(promote.itemId,index,promote.itemName)"
+                    :title="promote.itemName" clickable>
+                      <van-radio :name="promote.itemId" />
+                    </van-cell>
+                    <div v-if="item.promoteItemVos.length<=0" class="nothing">暂无可用优惠</div>
+                  </van-cell-group>
+                </van-radio-group>
+                <div class="foot-sub foot-box t-foot" @click="closeDiscount" >关闭</div>
+            </van-popup>
+            <van-popup  
+            style="padding-bottom: 100px;"
+            v-model="showCoupon" 
+              position="bottom"
+               @close="showCoupon = false" >
+               <div class="vos-title">平台优惠</div>
+                <van-radio-group v-model="orderData.pay.couponId" >
+                  <van-cell-group>
+                    <van-cell v-for="(coupons,couIndex) in orderInfo.coupons" :key="couIndex"
+                    @change="changeCouponId(coupons.id)"
+                    :title="coupons.coupon.name" :value="'有效期至'+coupons.expirateTime" clickable>
+                      <van-radio :name="coupons.id" />
+                    </van-cell>
+                    <div v-if="orderInfo.coupons.length<=0" class="nothing">暂无可用优惠</div>
+                  </van-cell-group>
+                </van-radio-group>
+                <div class="foot-sub foot-box t-foot" @click="showCoupon = false" >关闭</div>
+            </van-popup>
+            <van-popup style="padding-bottom: 100px;"
+              v-model="showInvoice" position="bottom"
+               @close="closeDiscount" >
+               <div class="vos-title">发票</div>
+               <div class="inv-label">发票抬头</div>
+                <div @click="invoiceSel(0)" class="inv-tag" 
+                :class="invIndex === 0?'inv-active':''">个人</div>
+                <div @click="invoiceSel(1)" class="inv-tag" 
+                :class="invIndex === 1?'inv-active':''">企业</div>
+                <van-cell-group>
+                  <van-field 
+                    v-model="extForm.invoiceTitle"
+                    maxlength="50"
+                    placeholder="发票抬头"
+                    :border="false"
+                  ></van-field>
+                </van-cell-group>
+                  <van-cell-group v-if="invIndex === 1">
+                    <van-field 
+                    maxlength="50"
+                      v-model="extForm.invoiceTaxpayerNum"
+                      placeholder="纳税人识别号"
+                      :border=" false "
+                    ></van-field>
+                  </van-cell-group>
+               <div class="foot-sub foot-box t-foot" @click="saveExtData(index)" >保存</div>
+            </van-popup>
+          </div>
+          <div >
+            <van-cell-group>
+                <van-cell title="优惠券" is-link :value="orderInfo.coupons.length>0?'':'无可用'" @click="showCoupon = true" ></van-cell>
+                <van-cell>
+                  <div slot="title">
+                    积分 <span>共 {{orderInfo.memberIntegral}}，最高可使用{{orderInfo.maxIntegral}}抵扣{{$float(orderInfo.maxIntegral/20)}}元</span>
+                  </div>
+                  <div slot="right-icon" v-if="orderInfo.maxIntegral>0">
+                    <van-switch v-model="sorceChecked" size="20px" 
+                    @change="checkedHidden(sorceChecked,1)"
+                    active-color="#FFCBD8" inactive-color="#fff" />
+                  </div>
+                </van-cell>
+                <van-cell v-if="sorceChecked">
+                  <div slot="title" class="t-12">
+                    积分 账户共 {{orderInfo.memberIntegral}} ，使用
+                    <van-stepper
+                    v-model="orderData.pay.integral"
+                    class="t-block" style="position:relative;bottom:5px;"
+                    integer
+                    min="0"
+                    :max="orderInfo.maxIntegral"
+                    step="100"
+                    @change="changeMaxIntegral(orderData.pay.integral)" ></van-stepper>
+                     抵扣 <span class="t-color">￥ {{$float(orderData.pay.integral/20)}}</span>
+                  </div>
+                  <div slot="right-icon" >
+                    <van-icon></van-icon>
+                  </div>
+                </van-cell>
+                <van-cell>
+                  <div slot="title">
+                      红包 <span>共{{$float(orderInfo.memberRedPacket)}}，最高可使用{{orderInfo.maxRedPacket}}
+                        抵扣{{$float(orderInfo.maxRedPacket/20)}}元</span>
+                  </div>
+                  <div slot="right-icon" v-if="orderInfo.maxRedPacket>0">
+                    <van-switch v-model="redBagChecked" size="20px" active-color="#FFCBD8"
+                    @change="checkedHidden(redBagChecked,2)"
+                     inactive-color="#fff" />
+                  </div>
+                </van-cell>
+                <van-cell v-if="redBagChecked">
+                    <div slot="title" class="t-12">
+                        红包 账户共{{$float(orderInfo.memberRedPacket)}}，使用
+                        <van-stepper
+                          v-model="orderData.pay.redPacket"
+                          class="t-block" style="position:relative;bottom:5px;"
+                          integer
+                          min="0"
+                          :max="orderInfo.maxRedPacket"
+                          step="100"
+                          @change="changeMaxRedPacket(orderData.pay.redPacket)" ></van-stepper>
+                        抵扣 <span class="t-color">￥ {{$float(orderData.pay.redPacket/20)}}</span>
+                      </div>
+                  <div slot="right-icon">
+                    <van-icon></van-icon>
+                  </div>
+                </van-cell>
+            </van-cell-group>
+            <div class="t-space"></div>
+            <div class="t-cell-group">
+              <div class="t-cell">
+                <div class="t-cell-left t-label">总金额</div>
+                <div class="t-cell-right">¥ {{$float(orderInfo.productAmount)}}</div>
+              </div>
+              <div class="t-cell">
+                <div class="t-cell-left t-label">优惠</div>
+                <div class="t-cell-right">¥ {{$float(orderInfo.discount)}}</div>
+              </div>
+              <div class="t-cell">
+                <div class="t-cell-left t-label">积分抵扣</div>
+                <div class="t-cell-right">-¥ {{$float(orderInfo.integralDiscount)}}</div>
+              </div>
+              <div class="t-cell">
+                <div class="t-cell-left t-label">红包抵扣</div>
+                <div class="t-cell-right">-¥ {{$float(orderInfo.redPacketDiscount)}}</div>
+              </div>
+            </div>
+            <div class="t-space"></div>
+            <div v-if="defaultAddr&&scrollTop">
+              <div class="t-space"></div>
+              <div class="t-space"></div>
+              <div class="t-space"></div>
+              <div class="t-space"></div>
+            </div>
+          </div>
+          <van-submit-bar 
+            custom-class="t-top" :price="orderInfo.amount*100" 
+            button-text="提交订单" @submit="getOrderNumber" >
+            <span slot="tip" v-if="defaultAddr&&scrollTop">
+              {{defaultAddr.customerName+' ' + defaultAddr.tel+' ' + defaultAddr.provinceName + defaultAddr.cityName + defaultAddr.areaName + defaultAddr.address}}
+            </span>
+          </van-submit-bar>
+        </div>
+  </div>
+  
+</body>
+</html>
+
+<script>
+  var defaultData=localStorage.getItem('submit')
+  var settlement = new Vue({
+    el:'#settlement',
+    data () {
+      return {
+        load:true,
+        couponName:'',//选择的优惠
+        promoteId:'',
+        integral:0,//积分抵用
+        isSub:false,
+        baseUrl:'${base}',
+        orderInfo:JSON.parse(defaultData),
+        orderItem:null,//订单生成信息
+        extData:null,//发票信息构建
+        addrList:[],//地址列表
+        createAddress:false,//判断加载数据表示
+        allPrice:0,//总金额
+        showCoupon:false,//平台优惠
+        sorceChecked:false,
+        redBagChecked:false,
+        showDiscount:false,
+        showInvoice:false,
+        scrollTop:false,
+        invIndex:0,
+        extForm: {
+            invoiceType: 1,
+            invoiceTitle: "个人",
+            invoiceTaxpayerNum: ""
+        },
+        orderData: { //最终提交的目标变量
+          addressId: '',
+          pay: {
+              couponId: '',
+              integral: '',
+              redPacket: ''
+          },
+          orders: [{
+              ext: {
+                  customerTxt: "",
+                  needInvoice: false,
+                  invoiceType: 1,
+                  invoiceTitle: "个人",
+                  invoiceTaxpayerNum: ""
+              },
+              couponId: '',
+              storeId: null,
+              promoteIds: [],
+              products: [{
+                  productId: '',
+                  productSkuId: null,
+                  count: '',
+                  deliveryWay: 1
+              }]
+          }],
+          isFromShopCart: true,
+          orderSource:5
+        },
+        defaultAddr: null, //默认收货地址信息
+        addressId:'${addressId!}',
+        disAddr:true,
+        showTip:false,//是否显示当前页面tip
+      }
+    },
+    methods: {
+      showInvoices(){//显示发票类型
+        this.showInvoice = true
+      },
+      invoiceSel(index){//选择发票类型
+        this.invIndex=index
+        if (index == 0) {
+          this.extForm.needInvoice = true
+            this.extForm.invoiceType = 1
+            this.extForm.invoiceTitle = '个人'
+            this.extForm.invoiceTaxpayerNum = ''
+        } else {
+          this.extForm.needInvoice = true
+            this.extForm.invoiceType = 2
+            this.extForm.invoiceTitle = ''
+            this.extForm.invoiceTaxpayerNum = ''
+        }
+      },
+      // 关闭红包，积分优惠
+      checkedHidden(status,type){
+        if(!status){
+          switch(type){
+            case 1:
+            this.orderData.pay.integral = ''
+            break;
+            case 2:
+            this.orderData.pay.redPacket = ''
+          }
+          this.orderAfterChange(this.orderData)
+        }
+      },
+      storeDiscount(){//店铺优惠
+        this.showDiscount=true
+      },
+      closeDiscount(){//关闭店铺优惠弹窗
+        this.showDiscount=false
+        this.showInvoice=false
+      },
+      changeMaxIntegral(value) { //使用积分后重新触发订单
+          if (value <= this.orderInfo.maxIntegral) {
+              this.orderAfterChange(this.orderData)
+          } else {
+              this.$toast('使用积分不能超过拥有的积分')
+          }
+      },
+      changeMaxRedPacket(value) {
+          if (value <= this.orderInfo.maxRedPacket) {
+              this.orderAfterChange(this.orderData)
+          } else {
+            this.$toast('使用红包不能超过拥有的红包')
+          }
+      },
+      saveExtData(index) {
+        if(this.invIndex === 0){
+          if(this.extForm.invoiceTitle===''){
+            this.$toast('请填写发票抬头')
+              return
+          }
+        }else{
+          for(var item in this.extForm){
+            if(this.extForm[item]===''){
+              this.$toast('请填写完整发票信息')
+              return
+            }
+          }
+        }
+          this.$set(this.extData, index, this.extForm)
+          this.closeDiscount()
+      },
+      /**选择店铺活动时重新调用订单信息,数据绑定会直接修改店铺活动信息*/
+      changeStoreCoupon(id,index,name) {
+          if(orderInfo.orderStoreItems[index].promoteItemVos.couponId){
+            this.orderData.orders[index].couponId = id
+          }else{
+            this.orderData.orders[index].promoteId = id
+          }
+          this.couponName = name
+          this.orderAfterChange(this.orderData)
+      },
+      changeCouponId(id) { //切换平台优惠券触发订单信息
+          if (this.orderData.pay.couponId == id) {
+              this.orderData.pay.couponId = ''
+          } else {
+              this.orderData.pay.couponId = id
+          }
+          this.orderAfterChange(this.orderData)
+      },
+      createdExtData(data) { //预先构造附加信息
+        let arr = []
+        this.orderInfo.orderStoreItems.forEach(v => {
+          let obj = {
+            customerTxt: '',
+            needInvoice: false,
+            invoiceType: 1,
+            invoiceTitle: "个人",
+            invoiceTaxpayerNum: ""
+          }
+          arr.push(obj)
+          if(v.coupons.length>0){
+            this.couponName = v.coupons[0].coupon.name
+          }
+        })
+        this.extData=arr
+      },
+      orderAfterChange(data){
+        getPrePayAfterChange(data).then(res => {
+          if(res.code == 200){
+            this.orderInfo = res.data
+            this.load=true
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      getAddrList() {
+          // 获取收货地址
+          memberaddressList().then(res => {
+            if (res.code == 200) {
+              this.disAddr = false
+              if(res.data.length >0 ){//是否有收货地址
+                this.addrList=res.data
+                this.createAddress=true
+                if(this.addressId==''){
+                    let defaultData=res.data.filter(v=>v.isDefault)
+                    if(defaultData.length>0){
+                      this.defaultAddr=  defaultData[0]
+                    }else{
+                      this.defaultAddr = res.data[0]
+                    }
+                }else{
+                  let defaultData= res.data.filter(v=>{return v.id==this.addressId})
+                  this.defaultAddr=defaultData[0] 
+                } 
+                this.orderData.addressId= this.defaultAddr.id
+                this.orderAfterChange(this.orderData)
+              }else{
+                this.disAddr = true
+              }
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {
+          this.$toast(err.message)})
+      },
+      getOrderNumber() {//订单生成
+        if(this.disAddr){
+          this.$toast('请设置收货地址！')
+          return
+        }
+        if (!this.isSub) {
+          this.isSub = true
+          var params = JSON.parse(JSON.stringify(this.orderData))
+          params.orders.forEach((v, i) => {
+              v.ext = this.extData[i]
+          })
+          orderSubmit(params).then(res => {
+            if(res.code == 200){
+                  this.goPay(res.data.orderNo, res.data.totalAmount)
+                  this.isSub=false
+            }else{
+              this.$toast(res.message)
+              this.isSub = false
+            }
+          }).catch(err => {})
+        } else {
+          this.$toast('正在支付，请稍候...')
+          return
+        }
+      },
+      goPay(orderNo, amount) { //订单号,订单价格
+          let params = Qs.stringify({'orderNo':orderNo,'description':'商品订单支付','subject':'商品订单支付','payScene':'memberMergerOrderPay','amount':amount})
+          location.href="${base!}/member/tradePage.htm?"+params
+      },
+      getOrder(orderNo) {//获取订单
+       //todo 这个暂时不用复写
+      },
+      selAddress(data){//选择地址
+         let id=data ?data.id:''
+        if(data!=null){
+          location.href='${base}/member-account-address.htm?addressId='+id+'&checkAddr=settlement'
+        }else{
+          location.href='${base}/member-account-address.htm?checkAddr=settlement'
+        }
+      },
+      onPageSrcoll(){
+        var dom = document.getElementById("settlement")
+        var scrollTop=dom.scrollTop//滚动条距离
+        this.$throttle(this.wacthScroll(scrollTop),30)
+      },
+      wacthScroll(scrollTop){
+        if(scrollTop > 100){//当距离大于80发生变化否则还原
+          this.scrollTop=true
+        }else{
+          this.scrollTop=false
+        }
+      }
+    },
+    watch: {
+        orderInfo: {
+            handler(oldData, newData) {
+                let data = this.orderInfo
+                let orders = []
+                data.orderStoreItems.forEach((v, i) => { //处理商品内的订单优惠信息
+                    let obj = {
+                        couponId: v.couponId ? v.couponId : '',
+                        storeId: v.storeId,
+                        promoteIds: v.promoteId ? [v.promoteId] : [],
+                        products: []
+                    }
+                    v.items.forEach(item => {
+                        let products = {
+                            productId: item.productId,
+                            productSkuId: item.productSkuId,
+                            count: item.productCount,
+                            deliveryWay: 1
+                        }
+                        obj.products.push(products)
+                    })
+                    orders.push(obj)
+                });
+                this.$set(this.orderData, 'orders', orders)
+            },
+            deep: true,
+            immediate: true
+        }
+    },
+    mounted () {
+      // if(this.selAddress){
+      //   document.getElementById("settlement").addEventListener('scroll',this.onPageSrcoll)
+      // }
+    },
+    created () {
+        this.orderData.isFromShopCart=this.orderInfo.isFromShopCart
+         this.getAddrList()
+        this.createdExtData()
+    }
+  })
+</script>

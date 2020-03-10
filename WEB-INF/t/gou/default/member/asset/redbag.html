@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>${globalConfig.mallName!}-我的红包</title>
+ [#include "../../includes/common.html"]
+ <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+ [#include "../../includes/topBar.html"]
+ [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container" >
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="redBag"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body " id="redBag" v-cloak>
+        <div class="member-title bace-title">
+          <!-- 主体头部 -->
+          <div class="bace-head bace-head1">
+            <!-- 我的积分 -->
+            <div class="baceh-left">
+              <h3 class="baceh-title">我的红包：<span class="redcolor ">${user.redEnvelope!}</span></h3>
+            </div>
+          </div>
+        </div>
+        <div class="score-main">
+          <!-- 个人中心主体 -->
+          <div class="bace-main-head">
+            <div class="redbag-sch-group fl">
+              <input type="text" placeholder="请输入编号或项目名称进行检索" class="att-input score-input" v-model="queryParams.clue"
+              @change="resetList" @keyup.enter="searchList">
+              <a href="#" class="att-sch-btn" @click.stop.prevent="searchList">搜索</a>
+            </div>
+          </div>
+          <div class="bacem-container">
+            <!-- 表格 -->
+            <div class="score-box">
+              <table class="bacem-table">
+                <tr class="bacem-tr bacem-tr-h">
+                  <td class="bacem-td score-tdf">来源</td>
+                  <td class="bacem-td bacem-tdsta">红包变化</td>
+                  <td class="bacem-td bacem-tdprice">时间</td>
+                  <td class="bacem-td bacem-tdmesg">备注</td>
+                </tr>
+                <!-- 循环 -->
+                <tr class="bacem-tr" v-for="(item, index) in tableList" :key="index">
+                  <!-- 来源 -->
+                  <td class="score-td">
+                    <span v-if="item.sourceName" class="score-line2" :title="item.sourceName">
+                     <span>{{item.sourceName}}</span> 
+                    </span>
+                      <span v-if="item.businessNum">编号：{{item.businessNum}}</span>
+                      <div v-else>用户注册获取</div>
+                  </td>
+                  <!-- 状态 -->
+                  <td class="bacem-td">
+                    <span class="bacem-unpay" :class="item.calculatorType==1?'score__add':'score__decrease'">
+                     <span>{{item.calculatorType|handlerScore}}</span>{{item.redEnve}}
+                    </span>
+                  </td>
+                  <!-- 充值金额 -->
+                  <td class="bacem-td ">{{formatTime(item.createTime)}}</td>
+                  <!-- 备注 -->
+                  <td class="bacem-td">
+                    <span v-if="item.remark" class="score-oflow" :title="item.remark">
+                        {{item.remark}}
+                    </span>
+                    <span v-else class="score-oflow">暂无备注</span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!-- 分页按钮 -->
+            <div class="overflow score-pagging attshop__paginantion" v-if="tableList.length!==0">
+                <el-pagination class="fr" background layout="prev, pager, next" 
+                :total="total" 
+                :page-sizes="[100, 200, 300, 400]"
+                :page-size='queryParams.size'
+                @current-change="handleCurrentChange"
+                :current-page.sync="queryParams.page"
+                >
+                </el-pagination>
+            </div>
+           <!-- 红包列表暂无时显示 -->
+           <div v-if="tableList.length==0&!loading" style="margin-top:90px" class="list__empty-wrap">
+              <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+ [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var defaultData={
+    "page": 1,
+    "size": 10,
+    "clue": ""
+  }
+   var redBag = new Vue({
+      el: '#redBag',
+      data() {
+        return {
+          queryParams:Object.assign({},defaultData),
+          total:'', 
+          loading:false,
+          tableList:'',//红包列表  
+        }
+      },
+      methods: {
+        getTableList(){//获取红包列表
+          let that=this 
+          that.loading=true     
+          cms.ajax({
+            url: '${base}/member/memberredenvedetails/page',
+            type: "get",
+            data: that.queryParams
+            }, function (res) {
+            if (res.code == 200) {
+              that.tableList = res.data.content
+              that.total=res.data.totalElements
+              that.loading=false
+            } else {
+              that.loading=false
+            }
+          })
+        },
+        resetList(event){ //搜索框的内容为空时是重新获取数据
+          let el=event.currentTarget
+          if(el.value==""){
+             this.getTableList()
+          }
+        },
+        searchList(){//信息搜索
+          this.queryParams.page=1//从第一页开始搜索
+          this.getTableList()
+        },
+        handleCurrentChange(value){//分页的切换
+          this.queryParams.page=value
+          this.getTableList()
+        },
+        formatTime(timeStr){  //调整时间的方法
+            return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+        }
+     },
+    filters: {
+        handlerScore(val){//处理积分变化的加减符号
+          if (val==1) {
+            return '+'
+          }
+          if(val==2){
+            return '-'
+          }
+        }
+      },
+    created () {
+        this.getTableList()
+      }
+    })
+  </script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title></title>
+  [#include "../../../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body>
+  [#assign topName="积分明细"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms nav-top" id="scoreDetail">
+    <van-cell-group class="t-coll" v-for="(item,index) in list" :key="index">
+      <van-cell :title="item.sourceName?item.sourceName:'注册赠送'" @click="toDetail" 
+        :label="formatTime(item.createTime)"
+        :value="( item.calculatorType == 1?'+':'-')+ item.score"
+        value-class="detailed__price"
+        :value-class="item.calculatorType == 1?'info':''" 
+        title-class="detailed__title"
+        label-class="detailed__label" :border="false"></van-cell>
+    </van-cell-group>
+  </div>
+</body>
+
+</html>
+<script>
+  new Vue({
+    el: '#scoreDetail',
+    data() {
+      return {
+        params: {
+          page: 1,
+          size: 10,
+          sourceOrNumber: '',//项目名称或者编号
+          businessType: ''//积分途径类型 1-注册 2-签到 3-评论 4-交易
+        },
+        list: []
+      }
+    },
+    methods: {
+      toDetail(){
+     },
+      getList() {
+        memberscorePage(this.params).then(res => {
+          if (res.code === 200) {
+            this.list = res.data.content
+          }
+        })
+      },
+      formatTime(timeStr) {
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      },
+    },
+    created() {
+      this.getList()
+    }
+  })
+</script>

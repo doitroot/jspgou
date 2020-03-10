@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>消息</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body>
+  [#assign topName="消息"/]
+  [#include "../../includes/topbar.html"]
+  <div class="cms nav-top" id="message" v-cloak>
+    <van-cell-group class="t-coll">
+      <van-cell title="系统通知" label-class="cell-1" 
+       value-class="t-12 t-label"
+       data-type="xitong"
+       :label="messageSys.length> 0 ?messageSys[0].content:'暂无信息'"
+        @click="toDetail('xitong')">
+        <div slot="icon" class="messageSys-box">
+          <img class="messageSys-img" src="${mobileRes}/img/xitong.png" />
+          <div v-if="UnreadSysteam > 0" class="dot"></div>
+        </div>
+      </van-cell>
+    </van-cell-group>
+    <van-cell-group>
+      <van-cell title="私信" label-class="cell-1" 
+        data-type="sixin"
+        @click="toDetail('sixin')"
+        value-class="t-12 t-label"
+        :label="messagePri.length> 0 ?messagePri[0].content:'暂无信息'">
+        <div slot="icon" class="messageSys-box">
+          <img class="messageSys-img" src="${mobileRes}/img/sixin.png"  />
+          <div v-if="UnreadPrivate > 0" class="dot"></div>
+        </div>
+      </van-cell>
+     </van-cell-group>  
+  </div>
+</body>
+</html>
+<script>
+
+new Vue({
+  el:'#message',
+  data(){
+    return{    
+    messageSys:[],
+    messagePri:[],
+    UnreadSysteam:0,
+    UnreadPrivate:0
+   }
+  },
+  methods: {
+    toDetail(type){//消息详情
+     window.location.href='${base}/member-message-messageDetail.htm?type='+type
+   },
+   formatTime(timeStr) { //调整时间的方法
+    return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+  },
+   getUnread(){//获取未读信息
+    messageUnread().then( res => {
+      if(res.code == 200){
+        this.UnreadSysteam=res.data.UnreadSysteam
+        this.UnreadPrivate=res.data.UnreadPrivate
+      } else {
+        this.$toast(res.message)
+      }
+    }).catch(err => {})
+  },
+  getSyspage(){ // 获取系统消息列表
+    messageSyspage().then(res => {
+      if(res.code == 200){
+        let arr = res.data.content
+         arr[0].createTime = moment(res.data.content[0].createTime).format('YYYY-MM-DD')
+         ths.messageSys=arr
+      } else {
+        this.$toast(res.message)
+      }
+    }).catch(err => {})
+  },
+  getPripage (){ // 获取私人消息列表
+    messagePripage().then(res => {
+      if(res.code == 200){
+        let arr = res.data.content
+         arr[0].createTime = moment(res.data.content[0].createTime).format('YYYY-MM-DD')
+        this.messagePri=arr
+      } else {
+        this.$toast(res.message)
+      }
+    }).catch(err => {})
+  }
+  },
+  created(){
+    this.getSyspage()
+    this.getUnread()
+    this.getPripage()
+  }
+})
+</script>

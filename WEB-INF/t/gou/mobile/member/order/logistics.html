@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-订单跟踪</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/components/index.js"></script>
+</head>
+<body>
+  [#assign topName="订单跟踪"/]
+  [#include "../../includes/topbar.html"]
+  <div id="logistics" v-cloak>
+    <div class="cms nav-top">
+      <div class="flow-title container">
+        <div><span  class="t-label">订单号：</span><span >{{orderCode}}</span></div>
+        <div class="t-label">{{flowInfo.logisticsCompanyName}} {{flowInfo.logisticCode}}</div>
+      </div>
+      <div class="t-space"></div>
+      <div class="rh-warp">
+        <div class="rh-cell" v-for="(item,index) in details" :key="index">
+          <div class="rh-icon" :class="index == 0 ?'rh-first':''">●</div>
+          <div class="rh-cont t-bottom">{{item.acceptStation}}</div>
+          <div v-if="index >0" class="rh-tline"></div>
+          <div v-if="details.length >1" class="rh-bline"></div>
+        </div>
+      </div>
+      <div class="t-space"></div>
+      <recommend-list></recommend-list>
+      <div  v-show="!hidden">
+        <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+        <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#logistics',
+    data () {
+      return {
+        hidden:true,
+        id:'${id!}',
+        orderCode:'${code!}',//订单编号
+        flowInfo:{},
+        details:[],
+        info:''
+      }
+    },
+    methods: {
+      getFlowInfo(id){
+        orderflowInfo({orderId:id}).then(res => {
+          if(res.code === 200){
+            var arr = []
+            if(res.data.traces.length >0){
+              arr = res.data.traces.reverse()
+            }else{
+              arr = [{
+                  acceptTime: '',
+                  acceptStation: '暂无物流信息'
+              }]
+            }
+            this.flowInfo=res.data
+            this.details=arr
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => { this.$toast(err.message) })
+      },
+    },
+    created () {
+      this.getFlowInfo(this.id)
+    }
+  })
+</script>

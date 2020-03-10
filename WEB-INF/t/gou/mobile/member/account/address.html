@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="full-page">
+
+<head>
+  <title>${globalConfig.mallName!}-收货地址管理</title>
+  [#include "../../includes/common.html"]
+</head>
+
+<body class="full-page">
+  [#assign topName="收货地址管理"/]
+  [#include "../../includes/topbar.html"]
+  <div class=" classify-warpper" id="setAddress" v-cloak>
+    <div class="order__wrap" v-if="addressList.length>0">
+      <van-radio-group v-model="addressId" >
+        <van-cell-group class="t-coll">
+          <van-cell v-for="(item,index) in addressList" is-link center :key="index" clickable @click.stop="getAddrId($event,item.id)">
+              <van-radio :name="item.id" class="addr-radio" />
+                <div class="addr-info">
+                  <div class="t-block t-label">
+                    <span class="addr-name overflow-text">
+                      {{item.customerName}}
+                    </span>
+                    <span class="addr-name">
+                      {{item.tel}}
+                    </span>
+                  </div>
+                  <van-tag  v-if="item.isDefault" color="#fb4c77" size="medium" plain>默认</van-tag>
+                  <div class="addr-details t-label">{{item.provinceName}}{{item.cityName}}{{item.areaName}}{{item.address}}</div>
+                </div>
+          </van-cell>
+        </van-cell-group>
+      </van-radio-group>
+    </div>
+    <div v-else class="nothing"> 暂无收货地址</div>
+    <div class="dress-add">
+      <van-button @click="addDress" type='primary' size="large">新增收货地址</van-button>
+    </div>
+  </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var setAddress = new Vue({
+    el: '#setAddress',
+    data() {
+      return {
+        addressList: [],
+        hidden: true,
+        addressId:parseInt('${addressId!}'),
+        checkAddr:'${checkAddr!}',//是否为订单选择
+        orderId:'${orderId!}'
+      }
+    },
+    methods: {
+      addDress(e) {//新增地址
+        location.href = '${base}/member-account-setAddress.htm?topname=新增收货地址'
+      },
+      getAddrId(e, id) {
+        if(this.checkAddr=='settlement'){//返回地址
+          this.addressId = id
+          location.href='${base}/member-cart-settlement.htm?addressId='+id
+        }else if(this.checkAddr=='refund'){
+          this.addressId = id
+          location.href='${base}/member-order-refund.htm?addressId='+id+'&orderId='+this.orderId+'&refundName=${refundName!}&status=${status!}&productId=${productId!}'
+        }else{
+          location.href = '${base}/member-account-setAddress.htm?addressId=' + id + '&topname=编辑收货地址'
+        } 
+      },
+      getMemberAddressList() {//获取地址列表
+        memberaddressList().then(res => {
+          if (res.code == 200) {
+            this.addressList = res.data
+            this.hidden = false
+          } else {
+            this.$toast(res.message)
+            this.hidden = false
+          }
+        })
+      },
+    },
+    created() {
+      this.getMemberAddressList()
+    }
+  })
+</script>

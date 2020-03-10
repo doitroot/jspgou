@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-提现</title>
+  [#include "../../../includes/common.html"]
+  <script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${res}/js/login.js"></script>
+</head>
+
+<body>
+  [#include "../../../includes/topBar.html"]
+  [#include "../../../includes/vipNav.html"]
+
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="assetIndex"]
+      [#include "../../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="personinfo" v-cloak>
+        <div class="bace-charge bace-main ">
+          <!-- 个人中心主体 -->
+          <div class="bace-main-head charge-head">
+            <h3 class="att-head-title charge-title">
+              提交提现申请
+            </h3>
+            <div class="att-sch-group bacem-sch-group charge-group">
+              <div class="charge-box charge-boxl charge-boxl--active">
+                <!-- charge-boxl--active -->
+                ① 提交审核
+                <span class="charge-arrow"></span>
+              </div>
+              <div class="charge-box charge-boxm">
+                <!-- charge-boxm--active -->
+                ② 系统审核
+              </div>
+              <div class="charge-box charge-boxr">
+                <!-- charge-boxr--active -->
+                ③ 提现完成
+              </div>
+            </div>
+          </div>
+          <div class="charge-container">
+            <h3 class="bacem-info charge-info">
+              温馨提示：<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;可提现金额最大为当前账户的可用余额<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;提现金额必须为大于10且小于50000的整数<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;提现申请会在1~7日内由系统审核并转账<br>
+            </h3>
+            <div class="withd-main">
+              <el-form size="mini" label-width="150px" ref="ruleForm" :rules="rules" :model="params">
+                <!-- 账户可用余额 -->
+                <el-form-item class="widthdraw-h" label="账户可用余额：">
+                  <span class="redcolor fontb">￥${user.balance!}</span>
+                </el-form-item>
+                <!-- 提现金额 -->
+                <el-form-item class="widthdraw-h is-required with-label" label="提现金额：" prop="amount">
+                  <el-input size="mini" placeholder="输入金额" v-model="params.amount">
+                    <template slot="append">元</template>
+                  </el-input>
+                </el-form-item>
+                <!-- 结算账户类型 -->
+                <el-form-item class="verifyid-radio with-label widthdraw-h is-required" label="结算账户类型：">
+                  <el-radio v-model="radio" label="1" @change="clearValidate">支付宝</el-radio>
+                  <!-- <el-radio v-model="radio" label="2" @change="clearValidate">银联</el-radio>
+                  <el-radio v-model="radio" label="3" @change="clearValidate">微信</el-radio> -->
+                </el-form-item>
+
+                <!-- 支付宝 -->
+                <div v-if="radio=='1'">
+                  <!-- 账户 -->
+                  <el-form-item class="widthdraw-h is-required with-label" label="支付宝账户：" prop="aliAccount">
+                    <el-input maxlength="30" v-model="params.aliAccount"></el-input>
+                  </el-form-item>
+                  <!-- 姓名 -->
+                  <el-form-item class="widthdraw-h is-required with-label" label="支付宝姓名：" prop="aliName">
+                    <el-input v-model="params.aliName"></el-input>
+                    <!-- <span class="with-info">请填写账户的真实姓名</span> -->
+                  </el-form-item>
+                  <!-- 支付密码 -->
+                  <el-form-item class="widthdraw-h is-required with-label" label="支付密码：" prop="pStr">
+                    <el-input type="password" v-model="params.pStr"></el-input>
+                    [#if user.isSetPayPassword == 2]
+                    <span class="paysty__tip">你当前未设置支付密码，点击
+                      <a href="${base}/member-account-security.htm">设置</a>
+                    </span>
+                    [/#if]
+                  </el-form-item>
+                </div>
+             
+                <!-- 提交 -->
+                <div class="with-btn">
+                  <el-button type="primary" size="small" @click="widthdraw">提交</el-button>
+                </div>
+
+                <el-dialog title="提示" :visible.sync="dialogVisible" width="30%">
+                  <span>提现申请提交成功，系统将在1~7日内处理，请耐心等候</span>
+                  <span slot="footer" class="dialog-footer">
+                    <a href="${base}/member-asset-balance-index.htm">
+                      <el-button type="primary" @click="dialogVisible = false">确定</el-button>
+                    </a>
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                  </span>
+                </el-dialog>
+
+              </el-form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  [#include "../../../includes/footer.html"]
+</body>
+</html>
+<script>
+  var personinfo = new Vue({
+    el: '#personinfo',
+    data() {
+      var validatePassword = (rule, value, callback) => {
+        var p = /^\w+$/
+        if (value === '') {
+          callback(new Error('输入的密码不能为空'));
+        } else if (!p.test(value)) {
+          callback(new Error('密码由6-16位数字与字母组成'));
+          console.log(value)
+        } else {
+          callback();
+        }
+      };
+      var validateAmount = (rule, val, callback) => {
+        var value = Number(val)
+        var s = /^\d+$/
+        var balance = Number('${user.balance!}')
+        if (value === '' || value < 10) {
+          callback(new Error('提现金额不能小于最小提现金额'));
+        } 
+        if (!Number.isInteger(parseInt(value)) || !s.test(value)) {
+          callback(new Error('请输入10-50000之间的整数'));
+        }
+        if (value > balance || value > 50000){
+          callback(new Error('请输入小于最大提现金额的数值'));
+        } else {
+          callback();
+        }
+      }
+      var validateAliAccount = (rule, value, callback) => {
+        if (value === '') {
+          callback(new Error('账号不能为空'));
+        } else {
+          callback();
+        }
+      };
+      var validateBankAccount = (rule, value, callback) => {
+        let reg = /^([1-9]{1})(\d{14}|\d{18})$/
+        if (value === '') {
+          callback(new Error('账号不能为空'));
+        } else if (!reg.test(value)) {
+          callback(new Error('银行卡号有误,请检查'));
+          console.log(value)
+        } else {
+          callback();
+        }
+      };
+      return {
+        radio: "1",
+        dialogVisible: false,
+        params: {
+          amount: '',
+          aliAccount: '', //提现到支付宝
+          aliName: '',
+          pStr: '',
+          issueBank: '', //提现到银行卡
+          bankAccount: '',
+          bankName: '',
+          queryParams: {}
+        },
+        rules: {
+          amount: [{
+            validator: validateAmount,
+            trigger: 'blur'
+          }],
+          aliAccount: [{
+            validator: validateAliAccount,
+            trigger: 'blur'
+          }],
+          aliName: [{
+              required: true,
+              message: '请输入账户名',
+              trigger: 'blur'
+            },
+            {
+              min: 2,
+              max: 10,
+              message: '长度在 2 到 10 个字符',
+              trigger: 'blur'
+            }
+          ],
+          pStr: [{
+              validator: validatePassword,
+              trigger: 'blur'
+            },
+            {
+              min: 6,
+              max: 16,
+              message: '密码长度为6-16位数字与字母组成',
+              trigger: 'blur'
+            }
+          ],
+          bankAccount: [{
+            validator: validateBankAccount,
+            trigger: 'blur'
+          }],
+          bankName: [{
+            required: true,
+            message: '请输入支付宝账户名',
+            trigger: 'blur'
+          }]
+        }
+      }
+    },
+    methods: {
+      clearValidate() { //切换时清除表单验证
+        this.$refs['ruleForm'].clearValidate()
+      },
+      widthdraw() {
+        var that = this
+        this.$refs['ruleForm'].validate(function (valid) {
+          if (valid) {
+              var params={
+              "amount": that.params.amount,
+              "accountTypeCode": "1",
+              "account": that.params.aliAccount,
+              "accountUsername": that.params.aliName,
+              "pStr": encrypt(that.params.pStr)
+              } 
+            personinfo.$confirm('确认提现?', '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {        
+              cms.ajax({
+                url: '${base}/member/memberpresent/present',
+                type: "post",
+                data: JSON.stringify(params)
+             
+              }, function (res) {
+                if (res.code == 200) {
+                  that.dialogVisible = true //提现成功显示的对话框
+                } else {               
+                  cms.alert(res.message,5)    
+                }
+              })
+            }).catch(() => {
+             
+            })
+          } else { //验证不通过时
+            return false
+          }
+        })
+      }
+    }
+  })
+</script>

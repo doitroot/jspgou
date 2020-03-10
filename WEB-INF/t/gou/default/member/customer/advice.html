@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-意见建议</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${res}/js/login.js"></script>
+  <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  <div class="header">
+    <div class="container head-wrap">
+      [#include "../../includes/logo.html"]
+      [#include "../../includes/search.html"]
+    </div>
+  </div>
+  <div class="gray-container">
+    <div class="container" id="advice">
+      <!-- 订单导航 -->
+      <div class="container__nav">
+        <span class="container__report">意见建议</span>
+      </div>
+      <div class="report">
+        <el-form style="display:inline-block;" size="mini" class="account-personab-inner-havebadge" :rules="rules" ref="form"
+          :model="params" label-position="top" label-width="120px">
+          <h3 class="report__title report__title--pad">
+            <span class="imColor">*</span>
+            选择类型
+          </h3>
+          <div class="report__info report__info--nobg">
+            <div class="report__inner">
+              <ul class="report__btngroup clearfix">
+                <li @click="params.proposalDictType='1'" class="report__btn" :class='[params.proposalDictType==1?"report__btn--active":""]'>功能异常</li>
+                <li @click="params.proposalDictType='2'" class="report__btn" :class='[params.proposalDictType==2?"report__btn--active":""]'>体验问题</li>
+                <li @click="params.proposalDictType='3'" class="report__btn" :class='[params.proposalDictType==3?"report__btn--active":""]'>新功能建议</li>
+                <li @click="params.proposalDictType='4'" class="report__btn" :class='[params.proposalDictType==4?"report__btn--active":""]'>其他</li>
+              </ul>
+            </div>
+          </div>
+          <h3 class="report__title report__title--pad">
+            <span class="imColor">*</span>
+            详细信息
+          </h3>
+          <div class="report__info report__info--nobg">
+            <div class="report__inner rep__textar rep__textar--pos">
+              <!-- <textarea name="" placeholder="请描述您的意见建议，我们会酌情采纳" class="report__textarea" v-model="params.description"></textarea> -->
+              <el-form-item prop="description">
+                <el-input type="textarea" 
+                placeholder="请描述您的意见建议，我们会酌情采纳(仅限200字)" 
+                placement="bottom"
+                v-model="params.description"
+                style="width: 110%;resize: none;"
+                maxlength="200"
+                :autosize="{ minRows: 4, maxRows: 8}">
+              </el-input>
+              </el-form-item>
+            </div>
+          </div>
+          <h3 class="report__title report__title--pad">
+            附件
+          </h3>
+          <div class="report__info report__info--mar report__info--nobg">
+            <div class="report__inner">
+              <div class="clearfix">
+                <ul class="fl"> 
+                  <li v-for="(item,index) in fileList" :key="index" class="upload-box__item">
+                    <img :src="'${base}'+item.fileUrl" alt="">
+                    <span class="upload-box__del" @click="delImg(index)">删除</span>
+                  </li>  
+                </ul>
+                <cms-upload :custom="true" class="fl" @change="getImgs" v-if="isUpload">
+                  <div class="upload-box__warp">
+                    <span class="fa fa-plus"></span>
+                  </div>
+                </cms-upload>
+              </div>
+              <span class="report__warn">上传相关的截图，仅限5张</span>
+            </div>
+          </div>
+          <el-form-item prop="contactName" label="联系人姓名" class="member__advice-formitem member__advice-formitem--pos">
+            <el-input maxlength="10" v-model="params.contactName" placeholder="请输入联系人姓名" class="member__advice-inp">
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="contactPhone" label="联系人号码" class="member__advice-formitem member__advice-formitem--pos">
+            <el-input maxlength="11" v-model="params.contactPhone" placeholder="请输入联系人号码" class="member__advice-inp">
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="code" label="验证码" class="member__advice-formitem member__advice-formitem--pos" >
+            <el-input v-model="params.code" style="width:210px" class="member__advice-inp" maxlength="6">
+            </el-input>
+            <img :src="captchaImg" alt="1" class="member-advice__captcha" @click="getCaptcha">
+          </el-form-item>
+          <el-form-item>
+            <el-button 
+            @click.stop="submitAdvice" type="primary" style="width:140px;margin-left: 576px;"
+            :disabled="canSubmit"> 
+              提交</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+    </div>
+  </div>
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script type="text/babel">
+  var advice=new Vue({
+    el: "#advice",
+    data() {
+      var validatePhone = (rule, value, callback) => {
+        let reg=/^0?(13[0-9]|15[012356789]|17[013678]|18[0-9]|14[57])[0-9]{8}$/
+        if (value === '') {
+          callback(new Error('手机号码不能为空'));
+        } else if (!Number.isInteger(parseInt(value))) {
+          callback(new Error('手机号码只能是数字'));
+        } else if (!reg.test(value)) {
+          callback(new Error('手机号码格式不正确'));
+        } else {
+          callback();
+        }
+      }
+      var validateName = (rule, value, callback) => {
+        let reg= /^[\u4E00-\u9FA5A-Za-z]+$/
+        if (value === '') {
+          callback(new Error('姓名不能为空'));
+        } else if (!reg.test(value)) {
+          callback(new Error('姓名格式不正确'));
+        } else {
+          callback();
+        }
+      }
+            //验证码校验规则
+      var validateCode = function (rule, value, callback) {
+        if (value === '') {
+          callback(new Error('请输入验证码'))
+        } 
+        else{
+          callback()
+        }
+      }
+      return {
+        params: {
+          proposalDictType: '1', //意见类型
+          description: "", //意见建议详细
+          code: "", //验证码
+          spaceDataIds: [], //问题图片
+          contactName: '', //联系人姓名
+          contactPhone: '', //联系人电话
+          code: '',
+          sessionId: ''
+        },
+        fileList:[],//提交图片列表(未处理)
+        captchaImg: '', //验证码图片
+        canSubmit:false,//提交按钮的禁用状态
+        isUpload:true,//控制是否能继续上传  
+        rules: {
+          code: [{
+            required: true,
+            validator: validateCode,
+            trigger: 'blur'
+          }],
+          description: [{
+            required: true,
+            message: "请输入意见建议",
+            trigger: 'blur'
+          }],
+          contactName: [{
+            required: true,
+            validator: validateName,
+            trigger: 'blur'
+          }],
+          contactPhone: [{
+            required: true,
+            validator: validatePhone,
+            trigger: 'blur'
+          }]
+        }
+      }
+    },
+    methods: {
+      getCaptcha() { //获取图片验证码
+        var that = this
+        cms.ajax({
+          url: cms.url + '/common/kaptcha',
+          type: "get",
+        }, function (res) {
+          that.captchaImg = 'data:image/jpeg;base64,' + res.img
+          that.params.sessionId = res.sessionId
+        })
+      },
+      submitAdvice() { //提交意见建议   
+        var that = this
+        this.$refs['form'].validate(function (valid) {
+          if (valid) {
+            that.fileList.map(v=>{
+            that.params.spaceDataIds.push(v.resourceId)
+            })
+            cms.ajax({
+              url: cms.url + '/proposal/save',
+              type: "post",
+              data: JSON.stringify(that.params) 
+            }, function (res) {
+              if (res.code == 200) {
+                cms.alert(res.message,4)
+                window.location.href=' ${base}/member-account-index.htm'  
+              } else {
+                cms.alert(res.message,5)
+                that.getCaptcha()
+              }
+            })
+          } else {
+            return false
+          }
+        })
+      },
+      getImgs(data){
+        if(this.fileList.length<5){
+              this.fileList.push(data)
+            }
+      },
+      delImg(index){
+        this.fileList.splice(index,1);
+      }
+    },
+    watch: {
+        fileList:{
+          handler(){
+              if(this.params.spaceDataIds.length>=5){
+               this.isUpload=false
+              }else{
+                this.isUpload=true
+              }
+          },
+          deep:true
+        }
+    },
+    created() {
+      this.getCaptcha()
+
+    }
+  })
+</script>

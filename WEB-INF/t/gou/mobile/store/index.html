@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-店铺主页</title>
+  [#include "../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body class="bg-page">
+  <div id="store" v-cloak>
+    <div class="cms">
+      <div class="st-header">
+        <!-- 搜索框 -->
+        <div class="st-search st-fixed00">
+          <div class="pg-header-serchs">
+              <van-search  class="pg-search" 
+              shape="round"
+              :readonly="readonly"
+              v-model="searchParams.keyword" @search="getKeyword" ></van-search>
+          </div>
+          <div class="st-header-right">
+            <span @click="toClassify" class="st-classify"></span>
+            <van-icon  @click="toUnread" name="ellipsis" style="position:relative;top:1px;" ></van-icon>
+            <van-icon @click="back" style="padding:0 0 5px 5px" name="cross"  size="22px"/>
+          </div>
+        </div>
+    
+        <div class="shop__carts">
+          <van-card
+          class="card__bg"
+          :thumb="storeItem.storeLogoResource? baseUrl + storeItem.storeLogoResource.url:'#' ">
+          <div class="card__cont" slot="title">
+            <div  class="card__titles" >{{storeItem.storeName}}</div>
+            <div class="card-tag">
+              <van-tag v-if="storeItem.selfShop" round size="mini" type="danger">自营</van-tag>
+              <span class="card-fans">粉丝{{storeItem.collections}}人</span>
+            </div>
+            <van-button @click="upStore" class="st-store-up" size="mini" :disabled="disable" round type="danger">{{storeUp}}</van-button>
+          </div>
+          </van-card>
+        </div>
+        <div class="st-header-p container" :class="scrollTop?'st-fixed01':''">
+          <span @click="tabProduct(1)" class="st-header-text {{tabType===1?'t-color':''">商品</span>
+          <span @click="tabProduct(2)" class="card-fans st-header-text {{tabType===2?'t-color':''" >活动</span>
+        </div>
+      </div>
+      <div class="st-cont" >
+        <div v-if="tabType === 1" class="st-cont-product">
+          <div class="st-cont__header" :class="scrollTop?'st-fixed02':''">
+            <!-- 筛选tab -->
+            <van-row class="screen-navs"> 
+              <van-col class="screen-nav-xioal screen-col" span="4">
+                <span  @click="openSelect('def')"
+                  :class="navActiveIndex === 'def'?'screen-active':''">综合 </span>
+              </van-col>
+              <van-col class="screen-nav-xioal screen-col" span="4">
+                <span  @click="openSelect('price')"
+                  :class="navActiveIndex === 'price'?'screen-active':''">价格 <span class="t-12">{{searchParams.oderBy == 'priceDesc'?' ▼ ':'▲'}}</span></span>
+              </van-col>
+              <van-col class="screen-nav-xioal screen-col" span="3">
+                <span  @click="openSelect('sales')"
+                  :class="navActiveIndex === 'sales'?'screen-active':''">销量 </span>
+              </van-col>
+              <van-col class="screen-nav-xioal screen-col" span="3">
+                <span  @click="openSelect('shelfDay')"
+                  :class="navActiveIndex === 'shelfDay'?'screen-active':''">新品 </span>
+              </van-col>
+              <van-col class="screen-nav-xioal screen-col" span="3">
+                <span  @click="openSelect('popularity')"
+                  :class="navActiveIndex === 'popularity'?'screen-active':''">人气 </span>
+              </van-col>
+              <van-col class="screen-nav-xioal screen-col" span="3">
+                 <div class="t-label" style="text-align:right;" >|</div>
+              </van-col>
+             
+              <van-col class="screen-nav-xioal screen-col" span="4">
+                <van-icon v-if="listType===1" class="t-label list-icon" @click="toActivity" size="28px" name="apps-o" ></van-icon>
+                <van-icon v-else class="t-label list-icon" @click="toActivity" size="28px" name="bars" ></van-icon>
+              </van-col>
+            </van-row>
+          </div>
+          <div class="st-product-warp">
+            <!-- 商品列表 -->
+            <div  class="store-list" v-if="listType ===1">
+              <div class="nothing" v-if="productList.length == 0">暂无搜索结果</div>
+              <div v-for="(item,index) in productList" :key="index">
+                <div class="goods-wrapper" v-if="item" @click="toGoodsDetail(item)">
+                  <div class="goods-img">
+                    <img :src="baseUrl + item.imageUrl" />
+                  </div>
+                  <div class="goods-wrap">
+                    <div class="goods-title">
+                      {{item.name}}
+                    </div>
+                    <span class="pink price">￥{{$float(item.salePrice)}}</span>
+                    <div class="goods-detail">
+                      <span class="goods-num">月售 {{item.monthSales}} 笔</span>
+                      <span class="goods-tine">月评 {{item.monthComment}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="store-list " v-if="listType ===2">
+              <div class="nothing" v-if="productList.length == 0">暂无搜索结果</div>
+              <div class="st-flex" style="padding:10px;" v-else>
+                <div class="st-goods-wrap" v-for="(item,index) in productList" :key="index">
+                  <div class="st-goods" v-if="item" @click="toGoodsDetail(item)" >
+                    <div class="goods-img">
+                      <img class="image" :src="baseUrl + item.imageUrl" />
+                    </div>
+                    <div class="goods-wrap">
+                      <div class="goods-title">
+                        {{item.name}}
+                      </div>
+                      <span class="pink price">￥{{$float(item.salePrice)}}</span>
+                      <div class="goods-detail">
+                        <span class="goods-num">月售 {{item.monthSales}} 笔</span>
+                        <span class="goods-tine">月评 {{item.monthComment}}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div  v-show="!hidden">
+              <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+              <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="tabType === 2" class="st-cont-activity">
+          <div class="nothing" v-if="promotionList.length == 0">暂无搜索结果</div>
+          <div class="st-flex container" v-else>
+            <!-- 优惠券 -->
+              <div class="st-act-wrap" v-if="couponpromotionList.length>0">
+                <div class="st-act-title">优惠券</div>
+                  <div class="st-act-box st-act-box-pen" v-for="(item,index) in couponpromotionList" :key="index" >
+                  <div class="st-act-cont t-color">
+                    <div class="st-act__inner">
+                      <span class="coupon__price"><span class="rmb">¥</span>{{item.discountAmount}}</span>
+                    </div>  
+                    <div class="st-act__txt" >
+                      <div class="st-act__name cell-1">{{item.name}}</div>
+                      <div class="st-act__time">{{formatTime(item.useBeginTime)}} - {{formatTime(item.useEndTime)}}</div>
+                    </div>
+                    <div class="st-act__btn" @click.stop="getCoupon(item.id)">立即领取</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 单品折扣 -->
+              <div class="st-act-wrap" v-if="promotionList[0].length>0">
+                <div class="st-act-title">折扣</div>
+                <div class="st-coupon-flex" >
+                  <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[0]" :key="index" >
+                    <div class="st-coupon-icon st-icon03"></div>
+                    <div class="st-coupon-title">
+                      <span class="st-coupon-txt">{{item.name}}</span>
+                    </div>
+                    <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 一口价 -->
+              <div class="st-act-wrap" v-if="promotionList[1].length>0">
+                <div class="st-act-title">一口价</div>
+                <div class="st-coupon-flex" >
+                  <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[1]" :key="index" >
+                    <div class="st-coupon-icon st-icon03"></div>
+                     <div class="st-coupon-title">
+                      <span class="st-coupon-txt">{{item.name}}</span>
+                    </div>
+                    <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 满减 -->
+              <div class="st-act-wrap" v-if="promotionList[2].length>0">
+                <div class="st-act-title">满减</div>
+                <div class="st-coupon-flex" >
+                  <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[2]" :key="index" >
+                    <div class="st-coupon-icon st-icon01"></div>
+                    <div class="st-coupon-title">
+                      <span class="st-coupon-txt">{{item.name}}</span>
+                    </div>
+                    <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 满赠 -->
+              <div class="st-act-wrap" v-if="promotionList[4].length>0">
+                <div class="st-act-title">满赠</div>
+                <div class="st-coupon-flex" >
+                  <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[4]" :key="index" >
+                    <div class="st-coupon-icon st-icon02"></div>
+                    <div class="st-coupon-title">
+                      <span class="st-coupon-txt">{{item.name}}</span>
+                    </div>
+                    <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 包邮 -->
+              <div class="st-act-wrap" v-if="promotionList[5].length>0">
+                <div class="st-act-title">包邮</div>
+                <div class="st-coupon-flex" >
+                  <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[5]" :key="index" >
+                    <div class="st-coupon-icon st-icon04"></div>
+                    <div class="st-coupon-title">
+                      <span class="st-coupon-txt">{{item.name}}</span>
+                    </div>
+                    <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#store',
+    data () {
+      return {
+        hidden:true,//隐藏底部加载
+        info:'',//加载文字
+        baseUrl:'${base}',//当前路径
+        listType:1,//当前列表状态-默认列排，2-竖排
+        tabType:1,//当前展示列表-默认商品，2-活动
+        storeId:'${storeId!}',//店铺id
+        storeItem:{},//店铺信息
+        storeUp:'+ 关注',//关注店铺按钮信息
+        disable:false,//是否关注店铺
+        navActiveIndex: 'def',//筛选下标
+        scrollTop:false,//距离顶部
+        readonly:false,//是否只读
+        searchParams:{
+          "page":1,
+          "size":10,
+          "keyword":"",
+          "ctgId":"",//分类id
+          "hasStock":"",//是否有库存
+          "saleAttrCode":"",//sku属性
+          "oderBy":"def",//排序	综合排序 def 人气降序 popularity 销量降序 sales 价格升序 priceAsc 价格降序 priceDesc 新品降序 shelfDay
+          "storeId":"${storeId!}",//店铺id
+          "promoteId":"",//活动id
+          "storeCtgId":""//店铺类目id
+        },
+        totals:0,//总条数
+        pages:0,
+        productList:[],//店铺商品列表
+        promotionList:[],//优惠活动列表
+        couponpromotionList: [],// 店铺优惠券活动
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll', this.onPageScroll, true)
+    },
+    methods: {
+      onRefresh(){
+        this.searchParams.page = 1;
+        this.getList('loading')
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+      },
+      onReachBottom(event){//上拉加载处理
+        var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+        　　　if(this.searchParams.page < this.pages){
+                this.searchParams.page +=1
+                this.hidden = false
+                this.info = ''
+                this.getList()
+              }else{
+                this.hidden = false
+                this.info = '没有更多了'
+              }
+        　　}
+        },
+      back(){//返回上一页
+        window.history.go(-1)
+      },
+      toGoodsDetail(item){//查看商品详情
+        location.href='${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId
+      },
+      toActivity(){//切换列表样式
+        this.listType=this.listType === 1?2:1
+      },
+      getKeyword(e){//获取关键词
+        this.readonly = true
+        this.onRefresh()
+        setTimeout(() => {
+          this.readonly = false
+        }, 1);
+      },
+      getList(type){//检索
+        this.status=false
+        getProductSearch(this.searchParams).then((res) => {
+          if(res.content.length > 0){
+            var arr = res.content
+            if(type === 'loading'){
+              this.productList = []
+              this.productList=arr
+            }else{
+              this.productList=this.productList.concat(arr)
+            }
+            this.pages=res.totalPages
+            this.status=true
+          }
+        }).catch(()=>{})
+      },
+      openSelect(sort){// 切换头部导航
+        if(sort == 'price'){
+          this.searchParams.oderBy=(this.searchParams.oderBy == 'priceDesc'?'priceAsc':'priceDesc')
+        }else{
+          this.searchParams.oderBy=sort
+        }
+        this.navActiveIndex=sort
+        this.onRefresh()
+      },
+      upStore(){//关注店铺
+        if(this.disable){
+          return
+        }else{
+          followStoreSave({storeId:this.storeId}).then(res => {
+            if(res.code === 200){
+              this.storeUp='已关注',
+              this.disable=true
+              this.$toast('关注成功')
+            }else{
+              this.$toast(res.message)
+            }
+          }).catch(err => {})
+        }
+      },
+      toClassify(){//到店铺分类
+        location.href = '${base}/store-classify.htm?storeId='+this.storeId
+      },
+      getStoreItem(id){//获取店铺信息
+        storeHeadGet({storeId:id}).then(res => {
+          if(res.code === 200){
+            this.storeItem=res.data
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      tabProduct(num){//切换活动、商品列表
+        this.tabType=num
+        if(num === 2){
+          this.getActivity()
+        }
+      },
+      getCoupon(id){
+        getCoupon({couponId:id}).then(res => {
+          if(res.code === 200){
+            this.$toast('领取成功')
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      getActivity(){//获取店铺活动列表
+        storePromotionGet({storeId:this.storeId}).then(res => {
+          if(res.code === 200){
+            var arr = res.data
+            var arr2 = []
+            var couponArr = []
+            if(arr.length > 0){
+              arr2 = [[],[],[],[],[],[]]
+              arr.forEach(v=>{
+                if (v.promoteType == 4) {
+                  var coupons = v.coupons
+                  if (coupons.length > 0) {
+                    coupons.forEach(item => {
+                      item.title = v.name
+                      couponArr.push(item)
+                    })
+                  }
+                }
+                if(v.conType == 1){
+                  v.conType = '满'+v.conOrderAmount+'元可使用'
+                }else if(v.conType == 2){
+                  v.conType = '每满'+v.conOrderAmount+'可优惠'+v.discountAmount
+                }else{
+                  v.conType ='第'+v.conProductNum+'件商品可使用'
+                }
+                arr2[v.promoteType-1].push(v)
+              })
+            }
+            this.promotionList=arr2
+            this.couponpromotionList = couponArr
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      toUnread(){//查看未读消息
+        location.href = '${base}/member-message-message.htm'
+      },
+      onPageScroll(){//触顶变底色-搜索框
+        var scrollTop = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop
+        this.$throttle(this.onReachBottom(),30)
+        this.$throttle(this.wacthScroll(scrollTop),30)
+      },
+      wacthScroll(scrollTop){
+        if(scrollTop > 80){//当距离大于25发生变化否则还原
+          this.scrollTop=true
+        }else{
+          this.scrollTop=false
+        }
+      },
+    },
+    created () {
+      this.getStoreItem(this.storeId)
+      this.getList()
+    }
+  })
+</script>

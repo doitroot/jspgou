@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-账户安全</title>
+ [#include "../../includes/common.html"]
+</head>
+<body>
+ [#include "../../includes/topBar.html"]
+ [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="accountSecurity"]
+      [#include "../../includes/accountNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="personsave" v-cloak>
+            <h3 class="member-title index-title">账户安全</h3>
+            <div class="member-order__body person-order__body">
+                <div class="member-order__header person-order__header clearfix">
+                    <!-- 选项卡 -->
+                    <ul class="member-order__tabs fl person-order__tab">
+                        <li class="member-order__tab ">
+                            <span class="account-security-head">您当前的安全级别:
+                                <span class="account-security-head--b" v-cloak>{{perSave.safetyGrade}}</span>
+                                <span class="account-security-head--lb" v-if='perSave.safetyGrade!=="高"'>（建议您开启所有的安全设置，以提高账户及资金安全程度。）</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+                <!-- 个人中心主体 -->
+                <div class=" account-person">
+                    <div class="member-search__inner">
+                        <!-- 表格 -->
+                        <table class="account-personsecurity-table">
+
+                            <!-- 登录密码栏 -->
+                            <tr class="account-personsecurity-tr">
+                                <td class="account-personsecurity-td account-personsecurity-td--1" >
+                                    <i v-if="perSave.password" class="fa fa-check"></i>
+                                    <i v-else style="color:#FF9926" class="fa fa-exclamation-triangle"></i>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--2">
+                                    <span>登录密码</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--4">
+                                    <span>建议您定期更改密码以保护账户安全，已确保账户安全，密码由6-16位的字母和数字组成。</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--3">
+                                    <div class="">
+                                        <a href="/member-account-change-changePass.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini">更换密码</el-button>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- 邮箱绑定栏 -->
+                            <tr class="account-personsecurity-tr">
+                                <td class="account-personsecurity-td account-personsecurity-td--1">
+                                    <i v-if="perSave.email" class="fa fa-check"></i>
+                                    <i v-else style="color:#FF9926;" class="fa fa-exclamation-triangle"></i>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--2">
+                                    <span>邮箱绑定</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--4">
+                                    <span>邮箱可用于验证账户敏感信息，建议绑定常用邮箱</span><br>
+                                    <span v-show="perSave.email">您绑定的邮箱：<span v-cloak>{{perSave.emailData}}</span></span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--3">
+                                    <div class="">
+                                        <a href="/member-account-change-bindEmail.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-show="!perSave.email">
+                                                绑定邮箱
+                                            </el-button>
+                                        </a>
+                                        <a href="/member-account-change-changeEmail.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-show="perSave.email">更换邮箱</el-button>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- 手机绑定栏 -->
+                            <tr class="account-personsecurity-tr">
+                                <td class="account-personsecurity-td account-personsecurity-td--1">
+                                    <i class="fa fa-check" v-if="perSave.phone"></i>
+                                    <i style="color:#FF9926" class="fa fa-exclamation-triangle" v-else></i>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--2">
+                                    <span>手机绑定</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--4">
+                                    <span>手机号可用于验证账户敏感信息，建议绑定常用手机号</span><br>
+                                    <span v-show="perSave.phone">您绑定的手机号：<span v-cloak>{{perSave.phoneData}}</span></span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--3">
+                                    <div class="">
+                                        <a href="/member-account-change-bindPhone.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-show="!perSave.phone">绑定手机</el-button>
+                                        </a>
+                                        <a href="/member-account-change-changePhone.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-show="perSave.phone">更换手机</el-button>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- 支付密码 -->
+                            <tr class="account-personsecurity-tr account-personsecurity-tr--noborder">
+                                <td class="account-personsecurity-td account-personsecurity-td--noborder account-personsecurity-td--1">
+                                    <i v-if="perSave.payPassword" class="fa fa-check"></i>
+                                    <i v-else style="color:#FF9926;" class="fa fa-exclamation-triangle"></i>
+                                </td>
+
+                                <td class="account-personsecurity-td account-personsecurity-td--noborder account-personsecurity-td--2">
+                                    <span>支付密码</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--noborder account-personsecurity-td--4">
+                                    <span>支付密码可用于余额支付验证及账户余额提现等操作，确保您的账户资金安全，密码由6-16位字母和数字组成</span>
+                                </td>
+                                <td class="account-personsecurity-td account-personsecurity-td--noborder account-personsecurity-td--3">
+                                    <div class="">
+                                        <a href="/member-account-change-setPaypass.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-if="!perSave.payPassword">设置密码</el-button>
+                                        </a>
+                                        <a href="/member-account-change-changePaypass.htm" class="account-person-btn">
+                                            <el-button type="primary" size="mini" v-if="perSave.payPassword">更换密码</el-button>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  </div>
+  <!-- start -->
+ [#include "../../includes/footer.html"]
+</body>
+</html>
+<script>
+        var personinfo = new Vue({
+            el: '#personsave',
+            data() {
+                return {
+                    perSave: {
+                        email: true,
+                        emailData: "-",
+                        password: true,
+                        payPassword: true,
+                        phone: true,
+                        phoneData: "-",
+                        safetyGrade: "-"
+                    },
+                }
+            },
+            methods: {
+                getUserInfo() {
+                    var that = this
+                    cms.ajax({
+                        url: cms.url + '/member/memberuser/get'
+                    }, function (res) {
+                        if (res.code == 200) {
+                            that.perSave = res.data
+                        }
+    
+                    })
+                }
+            },
+            created() {
+                this.getUserInfo()
+            }
+        })
+    </script>

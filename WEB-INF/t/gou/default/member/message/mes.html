@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-系统公告</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+    [#include "../../includes/topBar.html"]
+    [#include "../../includes/vipNav.html"]
+  <div class="gray-container">
+    <div class="message-container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="messageMes"] 
+      [#include "./messageNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="message" v-cloak>
+          <div class="member-order__body message-body">
+           <div class="message-header clearfix">
+            <!-- 选项卡 -->
+            <ul class="member-order__tabs fl">
+              <li class="member-order__tab member-order__tab--active">
+                <a href="" class="member-order__link ">系统公告</a>
+              </li>
+            </ul>
+           </div>
+           <!-- 个人中心主体 -->
+        <div v-loading='loading'>
+            <div class="member-search account-person message-notice" v-for="(item,index) in messageList" id="personinfo">
+              <div class="member-search__inner">
+                 <div class="message-notice-dialog">
+                    <h3 class="message-notice-dialog__head">{{formatTime(item.createTime)}}</h3>
+                    <div class="message-notice-dialog__body">
+                        <p class="message-notice-dialog__text">
+                            {{item.content}}
+                        </p> 
+                        <span class="message-notice-dialog__read btnDColor" v-if="item.status==0" @click="readMessage(item)">未读</span>                     
+                        <i class="fa fa-close message-notice-dialog__close" @click="delMessage(item.messageId)"></i>
+                    </div>
+                 </div>
+              </div>
+            </div>
+        </div>
+  
+            <!-- 查看更多 -->
+            <div class="message-notice-control" v-if="!seemore&&total>5">
+              <a class="message-notice-control--info" @click="moremessage">
+                  查看更多
+                  <i class="fa fa-angle-double-down"></i>
+              </a>
+            </div>
+            <!-- 收起 -->
+            <div class="message-notice-control" v-if="seemore">
+              <a class="message-notice-control--info" @click="lessmessage">
+                  收起
+                  <i class="fa fa-angle-double-up" ></i>
+              </a>
+            </div>
+            <!-- 列表内容暂无时显示 -->
+           <div class="member__messsage_mesempty" v-if="messageList.length==0">
+             <img src=" ${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+           </div>
+          </div>
+        </div>
+    </div>
+
+  </div>
+
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+</html>
+<script>
+    var personinfo=new Vue({
+        el:'#message',
+        data(){
+          return{
+            seemore:false,
+            loading:false,
+            messageData:{
+              "page": 1,
+              "size": 5
+            },
+            messageList:[],
+          }    
+        },
+        methods:{
+          /* 时间规整 */
+          formatTime(timeStr){
+            return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+          },
+          /* 删除消息 */
+          delMessage(ids){
+            var that = this
+            cms.ajax({
+              url:cms.url + '/member/message/delete',
+              type:'post',
+              data: JSON.stringify({ids:[ids]})
+            },function(res){
+              if(res.code == 200){
+                cms.alert('删除成功',4)
+                // window.location.reload(true)
+                that.getMessageData()
+                
+              } else {
+                cms.alert('发生错误')
+              }
+            })
+          },
+          readMessage(item){//读取消息
+          var that=this
+            cms.ajax({
+              url:cms.url + '/member/message/get',
+              type:'get',
+              data: {messageId:item.messageId}
+            },function(res){
+              if(res.code == 200){
+                that.getMessageData()
+                that.$set(item,'status',1)
+                messageNav.getMesNavData()
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+          },
+          getMessageData(){
+            this.loading = true;
+            var that = this
+            cms.ajax({
+              url: cms.url+'/member/message/syspage',
+              type: 'get',
+              data: that.messageData
+            },function(res){
+              if(res.code == 200){
+                // if((that.messageList.length>=res.data.totalElements)){
+                //   that.seemore = true
+                // }else{
+                  that.messageList = res.data.content
+                // }
+                that.loading = false
+              } else {
+                cms.alert('消息获取失败',5)
+                that.loading = false
+              }
+            })
+          },
+          moremessage() {
+            this.messageData.size += 5;
+            if(this.messageData.size >= this.total){
+              this.seemore = true;
+            }
+            this.getMessageData();
+          },
+          lessmessage() {
+            this.seemore = false,
+            this.messageData.size = 5;
+            this.messageList = this.messageList.slice(0, 5);
+          }
+        },
+        created(){
+          this.getMessageData()
+        }
+    })
+  </script>

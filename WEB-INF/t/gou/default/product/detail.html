@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+[@product_page proId='${productId!}']
+[#if tag_bean??]
+<html lang="en">
+<head>
+	<title> ${(tag_bean.product.name)!}</title>
+	[#include "../includes/common.html"]
+	<script src="${res}/lib/moment.js"></script>
+	<link rel="stylesheet" href="${res}/lib/viewer.min.css">
+	<link rel="stylesheet" href="${res}/fonts/iconfont.css">
+	<link rel="stylesheet" href="${res}/css/ishare.css">
+	<script src="${res}/lib/viewer.min.js"></script>
+	<script src="${res}/lib/iShare.js"></script>
+	<script src="${res}/lib/qrcode.js"></script>
+</head>
+<body>
+	<div>
+	[#include "../includes/topBar.html"]
+	<div class="header">
+		<div class="container head-wrap">
+			<div class="fl"> [#include "../includes/logo.html"]</div>
+			[#assign search="product"/]
+			[#include "../includes/search.html"]
+		</div>
+	</div>
+	[#include "../includes/categoryMenu.html"]
+
+		<div id="productDetail" v-cloak v-if="status">
+			<!--商品分类导航-->
+			<div class="cms-crumbs">
+				<ul class="cms-crumb container">
+					[#if tag_bean.product.category??]
+					<li class="cms-crumb__item">
+						<a href="" class="cms-crumb__lk">
+							<i class="fa fa-home"></i>
+							${ tag_bean.product.category.cateName!}
+						</a>
+					</li>
+					[/#if]
+					<li class="cms-crumb__item">${tag_bean.product.name!}</li>
+				</ul>
+			</div>
+			<!--商品内容-->
+			<div class="container clearfix ">
+				<div class="product-intro mb20">
+					<!--商品图片展示-->
+					<div class="product-preview__wrap">
+						<!--大图-->
+						<div class="product-preview" v-if="productInfo.imgResources&&productInfo.imgResources.length>0">
+							<img :rel="imgUrl+productInfo.imgResources[0].imageResouce.url" :src="imgUrl+productInfo.imgResources[0].imageResouce.url"
+							class="jqzoom" id="productPreview" />
+							<span class="fa fa-play-circle preview-video__play" id="previewPlay" v-if="productInfo.videoResources&&productInfo.videoResources.length"></span>
+							<!--视频播放-->
+							<video
+							loop
+							controls="controls" 
+							class="preview-video" 
+							:src="'${base}'+productInfo.videoResources[0].videoResource.url"
+							v-if="productInfo.videoResources&&productInfo.videoResources.length"
+							id="previewVideo" 
+						>
+							</video>
+							<span class="fa fa-close preview-video__close" id="previewClose"></span>
+						</div>
+						<div class="product-preview" v-else></div>
+						
+						<ul class="preview-tabs">
+							<li class="preview-tab" v-for="(item,index) in productInfo.imgResources" v-if="item.imageResouce">
+								<img :src="imgUrl+item.imageResouce.url" />
+							</li>
+						</ul>
+						
+						<!-- 只要一个div的class是social-share即可，内容会自动初始化 -->
+						<div class="tm-action">
+							<i class="social-share"></i>
+							<a href="#" class="" class="fl" style="margin-left:20px" @click="followProduct(true)" v-if="!isFollow">
+								<i class="fa fa-heart-o"></i> &nbsp; 收藏商品 </a>
+							<a href="#" class="" class="fl" style="margin-left:20px" @click="followProduct(false)" v-else>
+								<i class="fa fa-heart"></i> &nbsp;取消收藏</a>
+							<a href="${base}/member-report-report.htm?productId=${productId!}" class="fr">举报</a>
+						</div>
+					</div>
+					
+					<!--商品sku-->
+					<div class="product-info">
+						<h2 class="sku-name">${tag_bean.product.name!}</h2>
+						[@product_page proId="${productId}"]
+						<p class="sku-desc" style="color: ${tag_bean.product.summaryColor!}" >${tag_bean.product.summary!}</p>
+						[/@product_page]
+						<div class="sku-summary">
+							<dl class="sku-summary__inner">
+								<dt class="sku-dt">价&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;格</dt>
+								<dd class="sku-dd">
+									<span class="sku-price sku-price--promo" style="text-decoration:line-through;color:#999;">
+									
+										¥{{$float(viewMarketPrice)}}
+									</span>
+								</dd>
+							</dl>
+							<dl class="sku-summary__inner">
+								<dt class="sku-dt">优&nbsp;惠&nbsp;价</dt>
+								<dd class="sku-dd">
+									<span class="sku-price sku-price">¥{{$float(viewPrice)}}</span>
+								</dd>
+							</dl>
+							<dl class="sku-summary__inner" v-if="productInfo.promotes.length > 0">
+								<dt class="sku-dt">促&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;销</dt>
+								<dd class="sku-dd overfow">
+									<div class="sku-coupon" v-for="promote in productInfo.promotes">{{promote.name}}</div>
+								</dd>
+							</dl>
+						</div>
+						<div v-if="productInfo.proStatus==1">
+						<dl class="sku-summary__inner mt-5">
+						</dl>
+						<!--商品组合-->
+						<dl class="sku-summary__inner mt-5" v-for="(item,index) in productInfo.skuAttrs">
+							<dt class="sku-dt">{{item.attrName}}</dt>
+							<dd class="sku-dd overfow">
+								<div class="sku-item" :class="attrs.isChecked ? 'sku-item--selected' : '' " v-for="(attrs,index2) in item.attrs"
+								@click="checkedAttrs(index,index2)">
+									<!-- 带图类型 -->
+									<img class="sku-item__cover" :src="imgUrl+attrs.resourceData.url" alt="" v-if="attrs.resourceData" />
+									<span class="sku-item__name" v-if="attrs.resourceData">{{attrs.attrValueName}}</span>
+									<!-- 不带图类型 -->
+									<span v-else>{{attrs.attrValueName}}</span>
+								</div>
+							</dd>
+						</dl>
+						<!--数量-->
+						<dl class="sku-summary__inner mt-5">
+							<dt class="sku-dt">数量</dt>
+							<!--有规格通过sku -->
+							<dd class="sku-dd overfow" v-if='checkedSku'>
+								<div class="choose-amount" v-if='checkedSku.inventory>0'>
+									<el-input-number v-model="number" size="mini" :min="1" :max="checkedSku.inventory"></el-input-number>
+								</div>
+								<span class="num-residue" v-if='checkedSku.inventory>0'>
+									{{productInfo.ext.unit}}&nbsp; &nbsp;&nbsp;&nbsp;库存{{checkedSku.inventory}}{{productInfo.ext.unit}}
+								</span>
+								<span v-else style="font-size:12px;color:red">库存不足</span>
+							</dd>
+							<!-- 单品 -->
+							<dd class="sku-dd overfow" v-else>
+								<div class="choose-amount" v-if='productInfo.product.inventory>0'>
+									<el-input-number v-model="number" size="mini" :min="1" :max="productInfo.product.inventory"></el-input-number>
+								</div>
+								<span class="num-residue" v-if='productInfo.product.inventory>0'>{{productInfo.ext.unit}}&nbsp;
+									&nbsp;&nbsp;&nbsp;库存{{productInfo.product.inventory}}{{productInfo.ext.unit}} </span>
+								<span v-else style="font-size:12px;color:red">库存不足</span>
+							</dd>
+						</dl>
+						<dl class="sku-summary__inner mt-5" >
+							<dt class="sku-dt"></dt>
+							<dd class="sku-dd overfow" >
+								<div  class="cms-btn--large cms-btn--buy"
+								:class="isSale?'':'cms-btn--disabled'"				
+								@click="createOrder">立即购买</div>
+								<div  class="cms-btn--large"
+								:class="isSale?'':'cms-btn--disabled'"
+								@click="saveCart">加入购物车</div>
+							</dd>
+						</dl>
+						<dl class="sku-summary__inner mt-5" v-if="productInfo.proConsumerServices.length >0">
+							<dt class="sku-dt">服务承诺</dt>
+							<dd class="sku-dd overfow" >
+								<span v-for="(item,index) in productInfo.proConsumerServices" :key="index">
+										<img  :src="item.resourcesUrl" />
+										<span class="t-12">{{item.serviceName}} &nbsp;&nbsp;</span>
+								</span>
+							</dd>
+						</dl>
+							<!-- 立即购买 -->
+							<form id="form" method="post" action="${base}/member-cart-settlement.htm">
+								<input type="hidden" name="${(csrfToken.parameterName)!}" value="${(csrfToken.token)!}">
+							</form>
+					</div>
+					<div v-else>
+						<span style="font-size:12px;color:red">商品已下架</span>
+					</div>				
+					</div>
+				</div>
+				<!--看了又看-->
+				<div class="ald">
+					<div class="ald-inner">
+						<div class="ald-hd ">
+							<s></s><span>看了又看</span>
+						</div>
+						<div class="swiper-container ald-bd">
+							<ul class="swiper-wrapper">
+								<li class="ald__items swiper-slide" v-for="item in storeRecommends">
+									<a :href="'${base}/product-detail.htm?productId='+item.product.id+'&storeId='+storeId">
+										<img :src="imgUrl+item.resources[0].imageResouce.url" v-if="item.resources[0].imageResouce" />
+										<span class="ald-price">¥{{$float(item.product.salePrice)}}</span>
+									</a>
+								</li>
+							</ul>
+						</div>
+						<div class="ald-switch">
+							<span class="fa fa-angle-up ald-switch__next"></span>
+							<span class="fa fa-angle-down ald-switch__prev"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!--商品组合-->
+			<!--其他信息-->
+			<div class="container clearfix attshop__paginantion " >
+				<div class="p-aside">
+					<!--店铺信息-->
+					<div class="shop-intro mb20">
+						<div class="aside__hd">
+							<img src="" alt="" />
+							<a href="">{{storeInfo.store.storeName}}</a>
+						</div>
+						<div class="p-shop__inner">
+							<div class="p-shop__info">
+								<div class="shopdsr-item">
+									<div class="shopdsr-name">描述</div>
+									<div class="shopdsr-score">{{$float(storeInfo.storeStatistics.matchV)}}</div>
+								</div>
+								<div class="shopdsr-item">
+									<div class="shopdsr-name">服务</div>
+									<div class="shopdsr-score">{{$float(storeInfo.storeStatistics.service)}}</div>
+								</div>
+								<div class="shopdsr-item">
+									<div class="shopdsr-name">物流</div>
+									<div class="shopdsr-score">{{$float(storeInfo.storeStatistics.express)}}</div>
+								</div>
+							</div>
+							<div class="btn-area">
+								<a :href="'${base}/store-index.htm?storeId='+storeInfo.store.id" class="enterShop">进店看看</a>
+								<a href="javascript:" class="favShop" v-if="!storeInfo.isAttStore" @click.prevent.stop="addAttStore(storeInfo)">收藏店铺</a>
+								<a href="javascript:;" class="favShop" v-show="storeInfo.isAttStore" style="color:#fb4c77;">已收藏
+									<i class="fa fa-heart-o" style="margin-left:2px;"></i>
+								</a>
+							</div>
+							<!--售后客服咨询-->
+							<div class="p-kf__box">
+								<div class="kf-item">
+									<span class="kf-tag">售前：</span>
+									<div class="kf-name__warper" v-if="storeInfo.customerService">
+										<a 	target="_blank"	:href="user.type==1?'tencent://message/?uin='+user.number
+										:'https://amos.im.alisoft.com/msg.aw?v=2&uid='+user.number+'&site=cntaobao&s=1&charset=UTF-8'"
+										class="kf-name" v-for="user in transferJSON(storeInfo.customerService.salePre)">{{user.name}}
+											<span :class="user.type==1?'k-qq':'k-ali'"></span>
+										</a>
+
+									</div>
+								</div>
+								<div class="kf-item">
+									<span class="kf-tag">售后：</span>
+									<div class="kf-name__warper" v-if="storeInfo.customerService">
+										<a target="_blank"	 :href="user.type==1?'tencent://message/?uin='+user.number
+										:'https://amos.im.alisoft.com/msg.aw?v=2&uid='+user.number+'&site=cntaobao&s=1&charset=UTF-8'" 
+										class="kf-name" v-for="user in transferJSON(storeInfo.customerService.saleAfter)">{{user.name}} <span
+											:class="user.type==1?'k-qq':'k-ali'"></span></a>
+									</div>
+								</div>
+								<div class="kf-item" v-if="storeInfo.customerService">
+									{{storeInfo.customerService.workRange}}
+								</div>
+							</div>
+						</div>
+					</div>
+					<!--店内搜索-->
+					<div class="s-search__intro mb20">
+						<div class="aside__hd">
+							店内搜索
+						</div>
+						<div class="s-search__inner">
+							<div class="s-search__group">
+								<label for="" class="s-search__label">关键字</label>
+								<div class="s-search__form">
+									<input v-model="keyword" type="text" class="s-search__input" />
+								</div>
+							</div>
+							<div class="s-search__group">
+								<label for="" class="s-search__label">价格</label>
+								<div class="s-search__form">
+									<input v-model="minPrice" type="text" class="s-search__input s-search__input--small" />
+									<span>-</span>
+									<input v-model="maxPrice" type="text" class="s-search__input s-search__input--small" />
+								</div>
+							</div>
+
+							<div class="s-search__group">
+								<a :href="'${base}/store-index.htm?storeId='+storeInfo.store.id+'&keyword='+keyword+'&minPrice='+minPrice+'&maxPrice='+maxPrice" 
+								class="enterShop">搜索</a>
+							</div>
+						</div>
+					</div>
+					<!--店铺分类-->
+					<div class="s-category__intro mb20">
+						<div class="aside__hd">
+							店铺分类
+						</div>
+						<div class="s-category__inner">
+							<ul class="s-category__items" v-if="storeCategoryInfo.length>0">
+								<li class="s-category__item" v-for="(item,cateIndex) in storeCategoryInfo">
+									<span class="fa " @click="hiddenCate(item)" 
+									:class="item.cates&&item.cates.length>0?'fa-plus-square-o':'fa-minus-square-o'"></span>
+									<a :href="'${base}/store-index.htm?storeId='+storeInfo.store.id+'&ctgId='+item.id">{{item.cateName}}</a>
+									<ul class="s-category__childs" v-if="item.childs&&item.childs.length>0">
+										<li class="s-category__item " v-for="child in item.childs" style="margin-left:6px">
+											<a :href="'${base}/store-index.htm?storeId='+storeInfo.store.id+'&ctgId='+child.id">{{child.cateName}}</a>
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+					</div>
+					<!--店铺推荐-->
+					<div class="s-rec__intro">
+						<div class="aside__hd">
+							店铺推荐
+						</div>
+						<ul class="s-rec__items" v-if="storeRecommends.length>0">
+							<li class="s-rec__item" v-for="item in storeRecommends">
+								<a :href="'/product-detail.htm?productId='+item.product.id+'&storeId='+storeId"
+								 style="display:block;width:180px;height: 180px;background:#f0f0f0">
+									<img :src="imgUrl+item.resources[0].imageResouce.url" width="180" height="180" v-if="item.resources[0].imageResouce" />
+								</a>
+								<a :href="'/product-detail.htm?productId='+item.product.id+'&storeId='+storeId" class="s-rec__title">
+									{{item.product.name}}
+								</a>
+								<div class="s-rec__prices clearfix">
+									<span class="fl s-rec__sale">¥{{$float(item.product.salePrice)}}</span>
+									<span class="fr s-rec__original">¥{{$float(item.product.marketPrice)}}</span>
+								</div>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<div class="p-detail">
+					<ul class="tab__items clearfix navbar-wrapper" id="">
+						<li class="tab__item tab__item--active" data-type="p-detail">
+							<span>
+								商品详情
+							</span>
+						</li>
+						<li class="tab__item " data-type="p-spec">
+							<span>
+								规格参数
+							</span>
+						</li>
+						<li class="tab__item " data-type="p-afteSale">
+							<span>
+								售后保障
+							</span>
+						</li>
+						<li class="tab__item " data-type="p-comments">
+							<span>
+								商品评价<em>({{commentInfo.commentTotalCount}})</em>
+							</span>
+						</li>
+					</ul>
+					<!--所有内容-->
+					<div class="p-detail__inner">
+						<!--富文本说明-->
+						<!-- 通用顶部说明 -->
+						<div v-if="productInfo.txt.topTpl"  v-html="productInfo.txt.topTpl.content"></div>
+						<div id="p-detail" v-html="productInfo.txt.pcTxt" v-if="productInfo.txt">
+							<!-- 通用底部说明 -->
+							<div v-if="productInfo.txt.topTpl"    v-html="productInfo.txt.bottomTpl.content"></div>
+						</div>
+						<!--参数规格-->
+						<div class="p-table" id="p-spec">
+							<div class="p-table__item" v-for="item in productAttrInfo">
+								<h3 class="p-table__body">{{item.attrGroupName}}</h3>
+								<div style="overflow:hidden">
+									<dl class="p-table__dl" v-for="attrs in item.attrs">
+										<dt class="p-table__dt">{{attrs.attrName}}</dt>
+										<dd class="p-table__dd">{{handlerAttrVc(attrs.attrVc)}}</dd>
+									</dl>
+								</div>
+							</div>
+						</div>
+						<!--售后保障-->
+						<div class="" id="p-afteSale">
+							<div class="aside__hd" style="margin: 15px 0;">
+								售后保障
+							</div>
+							<!--售后内容-->
+							<div class="font">
+									<div id="state">
+											<strong>权利声明：</strong><br>商城上的所有商品信息、客户评价、商品咨询、网友讨论等内容，是商城重要的经营资源，未经许可，禁止非法转载使用。
+											<p><b>注：</b>本站商品信息均来自于合作方，其真实性、准确性和合法性由信息拥有者（合作方）负责。本站不提供任何保证，并不承担任何法律责任。</p>																							<br>
+											<strong>价格说明：</strong><br>
+											<p><b>价格</b>价格为商品的销售价，是您最终决定是否购买商品的依据。</p>
+											<p><b>划线价：</b>商品展示的划横线价格为参考价，并非原价，该价格可能是品牌专柜标价、商品吊牌价或由品牌供应商提供的正品零售价（如厂商指导价、建议零售价等）或该商品在平台上曾经展示过的销售价；由于地区、时间的差异性和市场行情波动，品牌专柜标价、商品吊牌价等可能会与您购物时展示的不一致，该价格仅供您参考。</p>
+											<p><b>折扣：</b>如无特殊说明，折扣指销售商在原价、或划线价（如品牌专柜标价、商品吊牌价、厂商指导价、厂商建议零售价）等某一价格基础上计算出的优惠比例或优惠金额；如有疑问，您可在购买前联系销售商进行咨询。</p>
+											<p><b>异常问题：</b>商品促销信息以商品详情页“促销”栏中的信息为准；商品的具体售价以订单结算页价格为准；如您发现活动商品售价或促销信息有异常，建议购买前先联系销售商咨询。</p>
+									</div>
+							</div>
+						</div>
+						<!--商品评价-->
+						<div class="id" id="p-comments" >
+							[#include "./reviews.html"]
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- start -->
+	[#include "../includes/footer.html"]
+</body>
+</html>
+<!-- 商品开始 -->
+<script>
+		var $share = {
+			title:'${(tag_bean.product.name)!}',
+			description:'${(tag_bean.product.name)!}',
+			sites:[ 'qq', 'weibo','wechat','qzone'],
+			image:'',
+			// wechatQrcodeTitle: "微信扫一扫：分享", // 微信二维码提示文字
+			// wechatQrcodeHelper: '<p>微信里点“发现”，扫一下</p><p>二维码便可将本文分享至朋友圈。</p>',
+		};
+		socialShare('.social-share', $share);
+</script>
+<script>
+	var product = new Vue({
+				el: '#productDetail',
+				data: {
+					cateShow:[],
+					keyword:'',
+					minPrice:'',
+					maxPrice:'',
+					errormsg:'',
+					status:false,//页面渲染控制
+					productInfo: {}, //商品信息
+					storeInfo: { //店铺信息
+						"customerService": null,
+						"securityService": [],
+						"store": {
+							"id": "",
+							"storeName": ""
+						},
+						"storeStatistics": {
+							"express": 0,
+							"id": 0,
+							"matchV": 0,
+							"service": 0
+						}
+					}, //店铺信息
+					commentInfo: {
+						"evaluation": "{}",
+						"groupCommentMatchedCount": {},
+						"commentTotalCount": 0,
+						"matched": 0
+					}, //商品评论信息
+					commentParms:{		
+							"page": 1,
+							"size": 5,
+							"proId":'${productId!}',
+							"label": "",
+							"matched": "",
+							"sortType": "1",
+							"total":0,
+							"loading":true
+					},
+					commentList:[], //商品评论列表
+					storeCategoryInfo: {}, //店铺分类信息
+					storeRecommends: [], //店铺推荐
+					couponInfo: [], //优惠信息
+					productAttrInfo: [], //商品属性信息
+					number: 1,
+					checkedSkuCodes: {}, //选中的sku编码
+					skus: {},
+					checkedSku: null, //选中的sku信息
+					productId: '${productId!}',
+					isFollow: false,
+					storeId: '${storeId!}',
+					imgUrl:'${base}',
+					viewPrice: 0, //sku组合价格
+					viewMarketPrice:0,//sku市场价格
+					questionParams: {
+						total: 0,
+						page: 1,
+						size: 3
+					},
+					questionList: [], //咨询列表
+					visible: false, //显示咨询内容
+					form: {
+						productId: '${productId!}',
+						content: ''
+					},
+					isAttStore: false,
+				},
+				computed: {
+					isSale(){//控制是否能够加入购物车
+						if (this.productInfo.hasSkuAttr) { //判断是否有有规格
+							if (this.checkedSku && this.checkedSku.id !== '') {//判断规格
+								  if(this.checkedSku.inventory>0){
+										return true
+									}else{
+										return false
+									}						
+							} else {
+								return false
+							}
+							if (this.checkedSku.inventory <= 0) { //
+								return false //价格小于0
+							} else {
+								return true
+							}
+						} else {		
+							if (this.productInfo.product.inventory <= 0) { //todo库存判断
+								return false //价格小于0
+							} else {
+								return true //价格小于0
+							}
+						}
+					}
+				},
+				methods: {
+					hiddenCate(item,i){//分类展开收起
+						if(item.childs&&item.childs.length>0){
+							item.cates = []
+							item.cates = item.childs
+							item.childs = []
+							this.storeCategoryInfo[i] = item
+						}else{
+							item.childs = item.cates
+							item.cates = []
+						}
+					},
+					createOrder() { //立即购买test
+						let params = {
+							"isFromShopCart": false,
+							"products": [{
+								"productId": "",
+								"productSkuId": 702,
+								"count": 2
+							}]
+						}
+						if (this.productInfo.hasSkuAttr) { //判断是否有有规格
+							if (this.checkedSku && this.checkedSku.id !== '') {
+								params.products = [{
+									"productId": "",
+									"productSkuId": this.checkedSku.id,
+									"count": this.number
+								}]
+							} else {
+								cms.alert('必须选择一种规格') //这里可以做优化
+								return false
+							}
+							if (this.checkedSku.inventory <= 0) { //
+								return false //价格小于0
+							} else {
+								this.submitOrder(params)
+							}
+						} else {
+							params.products = [{
+								"productId": this.productInfo.product.id,
+								"productSkuId": "",
+								"count": this.number
+							}]
+							if (this.productInfo.product.inventory <= 0) { //todo库存判断
+								return false //价格小于0
+							} else {
+								this.submitOrder(params)
+							}
+						}
+					},
+					transferJSON(data){//转换客服的JSON
+            if(data){
+	          return JSON.parse(data)
+            }else{
+							return [{name:''}]
+						}
+					},
+					handlerAttrVc(str){//处理带json数组形式的AttrVc
+					if(str){
+						if(str.indexOf('[')===0){//匹配是否带有'[]'
+							return str.replace(/\[/g,'').replace(/\]/g,'')
+						}else{
+								return str
+						}
+					}else{
+						return ''
+					}          
+					},
+					saveCart() { //添加商品到购物车
+						let params = []
+						if (this.productInfo.hasSkuAttr) { //判断是否有有规格
+							if (this.checkedSku && this.checkedSku.id !== '') {
+								params = [{
+									"productId": "",
+									"productSkuId": this.checkedSku.id,
+									"num": this.number
+								}]
+							} else {
+								cms.alert('必须选择一种规格') //这里可以做优化
+								return false
+							}
+							if (this.checkedSku.inventory <= 0) { //
+								return false //价格小于0
+							} else {
+								this.submitCart(params)
+							}
+						} else {
+							params = [{
+								"productId": this.productInfo.product.id,
+								"productSkuId": "",
+								"num": this.number
+							}]
+							if (this.productInfo.product.inventory <= 0) { //todo库存判断
+								return false //价格小于0
+							} else {
+								this.submitCart(params)
+							}
+						}
+					},
+					submitCart(data) {
+						cms.ajax({
+							url: '${base}/member/cart/addProduct',
+							type: 'post',
+							data: JSON.stringify({
+								items: data
+							})
+						}, function res(res) {
+							if (res.code == 200) {
+								shopCart.getCartList()
+								cms.alert('添加至购物车成功',4)
+							} else {
+								cms.alert(res.message,5)
+							}
+						})
+					},
+					submitOrder(params) { //立即购买
+						cms.ajax({
+								url: '${base}/member/order/getPrePay',
+								type: 'post',
+								data: JSON.stringify(params)
+							},
+							res => {
+								if (res.code === 200) {
+									let input = $("<input type='hidden' name='params' />")
+									input.attr('value', JSON.stringify(res.data))
+									$('#form').append(input)
+									$('#form').submit() // 结算页
+								} else {
+									cms.alert(res.message,5)
+								}
+								this.loading = false
+							}
+						)
+					},
+					followProduct(status) { //关注取消商品
+						var self = this
+						if (status) {
+							cms.ajax({
+								url: '${base}/member/memberfollowproduct/save',
+								type: 'get',
+								data: {
+									id: self.productId
+								}
+							}, function res(res) {
+								if (res.code == 200) {
+									self.isFollow = true
+								} else {
+									cms.alert(res.message,5)
+								}
+							})
+						} else {
+							cms.ajax({
+								url: '${base}/member/memberfollowproduct/isFollowDelete',
+								type: 'get',
+								data: {
+									productId: self.productId
+								}
+							}, function res(res) {
+								if (res.code == 200) {
+									self.isFollow = false
+								} else {
+									cms.alert(res.message,5)
+								}
+							})
+						}
+					},
+					checkedAttrs(index, index2) { //sku选中
+						var self = this
+						var attrObject = this.productInfo.skuAttrs[index]
+						attrObject.attrs.forEach(function (v, i) {
+							self.$set(attrObject.attrs[i], 'isChecked', false)
+						});
+						self.$set(attrObject.attrs[index2], 'isChecked', true)
+						this.checkedSkuCodes[index] = attrObject.attrs[index2].attrValueCode
+						var arr = []
+						for (var key in this.checkedSkuCodes) {
+							arr.push(this.checkedSkuCodes[key])
+						}
+						var checkedCodesString = arr.sort(function (a, b) {
+							return a - b
+						}).join('-') // 从小到大排序
+						this.checkedSku = this.skus[checkedCodesString]
+						if (this.checkedSku) {
+							this.viewPrice = this.checkedSku.salesPrice
+							this.viewMarketPrice=this.checkedSku.marketPrice
+						}
+					},
+					getSkus(data) { //处理sku数组				
+						var self = this
+						data.forEach(function (v, i) {
+							self.skus[v.saleAttrCode] = v
+						})
+					},
+					getProductInfo(productId) { //获取商品信息
+						var self = this
+						$.get('${base}/product/get', {
+							id: productId
+						}, function (res) {
+							if (res.code == 200) {
+								self.getStoreInfo(res.data.product.storeId)
+								self.getStoreCategoryInfo(res.data.product.storeId)
+								self.getStoreRecommends(res.data.product.storeId)
+								self.getQuestionList()
+								self.getCommentsInfo(productId)
+								self.getCommentsList()
+								self.productInfo = res.data
+								self.viewPrice = res.data.product.salePrice
+								self.viewMarketPrice = res.data.product.marketPrice
+								self.getSkus(res.data.skus)
+							
+								self.status=true
+								//默认选中
+								if (res.data.hasSkuAttr) {
+									res.data.skuAttrs.forEach((v, i) => {
+										self.checkedAttrs(i, 0)
+									})
+								}
+							}else{
+								location.href="${base}/"
+							}
+						})
+					},
+					getStoreInfo(storeId) { //获取店铺信息
+						var self = this
+						$.get('${base}/store/get', {
+								storeId: storeId
+							},
+							function (res) {
+								if (res.code == 200) {
+									self.storeInfo.isAttStore = false //自定义的是否收藏属性
+									self.storeInfo = res.data
+								}
+							})
+					},
+					getStoreCategoryInfo(storeId) { //获取店铺分类
+						var self = this
+						$.get('${base}/storeProductCate/proCategorys', {
+								storeId: storeId
+							},
+							function (res) {
+								if (res.code == 200) {
+									self.storeCategoryInfo = res.data
+								}
+							})
+					},
+					getStoreRecommends(storeId) { //获取店铺推荐
+						var self = this
+						$.get('${base}/product/storeRecommends', {
+								storeId: storeId
+							},
+							function (res) {
+								if (res.code == 200) {
+									self.storeRecommends = res.data
+									self.$nextTick(()=>{
+										var swiper = new Swiper('.ald-bd', {
+												direction: 'vertical',
+												loop: false,
+												slidesPerView: 3,
+												spaceBetween: 10,
+												navigation: {
+													nextEl: '.ald-switch__next',
+													prevEl: '.ald-switch__prev',
+												},
+												observer: true,
+												observeParents: true
+											});
+									
+									})
+								}
+							})
+					},
+					addAttStore(storeInfo) { //收藏店铺
+						let that = this
+						cms.ajax({
+							url: cms.url + '/member/followStore/save',
+							type: 'get',
+							data: {
+								"storeId": storeInfo.store.id
+							}
+						}, function (res) {
+							if (res.code == 200) {
+								that.$set(that.storeInfo, 'isAttStore', true)
+							} else {
+								cms.alert(res.message,5)
+							}
+						})
+					},
+					setTracks() { //登录成功才会添加足迹
+						cms.ajax({
+								url: '${base}/member/myTracks/save',
+								type: 'post',
+								data: JSON.stringify({
+									productId: '${productId!}'
+								})
+							},
+							res => {}
+						)
+					},
+					getProductAttrInfo(productId) { //获取商品属性信息
+						var self = this
+						$.get('${base}/product/attrList', {
+							proId: productId
+						}, function (res) {
+							self.productAttrInfo = res.data || []
+						})
+					},
+					getCommentsInfo(productId) {
+						var self = this
+						cms.ajax({
+							url: '${base}/ordercommentdfront/basicInfo',
+							data: {
+								proId: productId
+							}
+						}, function (res) {
+							if (res.code == 200) {
+								self.commentInfo = res.data
+							}
+						})
+					},
+					getCommentsList(){//获取评论分页列表	
+						var self = this
+						self.commentParms.loading=true
+						cms.ajax({
+							url: '${base}/ordercommentdfront/page',
+							data: self.commentParms
+						}, function (res) {
+							self.commentParms.loading=false
+							if (res.code == 200) {
+								self.commentParms.total=res.data.totalElements
+								self.commentList = res.data.content
+								self.initViewer()//初始化预览
+							}else{
+								
+							}
+						})
+					},
+					getStoreServices(productId) {
+						$.get('${base}/store/consumerServices', {
+							proId: productId
+						}, function (res) {})
+					},
+					getQuestionList() {
+						var self = this
+						$.get('${base}/productconsultation/pageQuestion', {
+							page: self.questionParams.page,
+							size: self.questionParams.size,
+							proId: '${productId}',
+							questionId: ''
+						}, function (res) {
+							if (res.code == 200) {
+								self.questionParams.total = res.data.totalElements
+								self.questionList = res.data.content
+							}
+
+						})
+					},
+					changeQuestionList(data) { //咨询分页
+						this.questionParams.page = data
+						this.getQuestionList()
+					},
+					addQuestion() {
+						var self = this
+						if(self.form.content != ''){
+							cms.ajax({
+								url: '${base}/member/productconsultation/questions',
+								type: 'post',
+								data: JSON.stringify(this.form)
+							}, function (res) {
+								if (res.code == 200) {
+									self.visible = false
+									self.form.content = ''
+									self.getQuestionList()
+								} else {
+									self.visible = false
+									self.form.content = ''
+									cms.alert('咨询失败',5)
+								}
+							})
+						}else{
+							self.errormsg = '咨询不能为空'
+						}					
+					},
+					formatTime(timeStr) { //调整时间的方法
+						return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+					},
+					changeCommentList(page,size){//分页查看评论
+						this.commentParms.page=page
+						this.getCommentsList()		
+					},
+					changeCommentLabel(label){
+							if(this.commentParms.label==label){
+								this.commentParms.label=''
+							}else{
+								this.commentParms.label=label
+							}
+							this.commentParms.page=1
+							this.getCommentsList()	
+					},
+					changeCommentType(type){
+						this.commentParms.sortType=type
+						this.commentParms.page=1
+							this.getCommentsList()	
+					},
+					changeCommentMatch(value){
+						this.commentParms.matched=value
+						this.commentParms.page=1
+						this.getCommentsList()	
+					},
+					initViewer(){
+						this.$nextTick(()=>{ 
+							for (let i = 0; i < this.commentList.length; i++) {
+								$('#views_'+i).viewer({
+									transition:false
+								});
+							}
+						 })
+					},
+					getCtgId(id){
+						location.href="${base}/store-index.htm?storeId="+storeInfo.store.id+"&ctgId="+id
+					},
+					toggleArrow(id){   //切换列表的显示隐藏
+						var i = this.cateShow.indexOf(id)
+						if(i > -1){
+							this.cateShow.splice(i,1)
+						}else{
+							this.cateShow.push(id)
+						}
+						this.getCtgId(id)
+					},
+					initImagezoom(){
+								//图片放大镜
+								$('.jqzoom').imagezoom();
+							//商品图切换
+							$('.preview-tab').hover(function () {
+								$('.preview-tab').removeClass('preview-tab--active')
+								$(this).addClass('preview-tab--active')
+								var img = $(this).find('img').attr('src')
+								$('#productPreview').attr('src', img).attr('rel', img)
+							}, function () {
+								return false
+							})
+						
+							$('#previewClose').click(function () {
+								$(this).hide()
+								$('#previewVideo').hide()
+							})
+							$('#previewPlay').click(function () {
+								$('#previewClose').show()
+								$('#previewVideo').show()
+							})
+							$('#previewPlay').click(function () {
+								$('#previewClose').show()
+								$('#previewVideo').show()
+							})
+						
+					}
+				},
+				created() {
+					this.getProductInfo(this.productId)
+					this.getStoreServices(this.productId)
+					this.getProductAttrInfo(this.productId)
+				},
+				mounted() {
+					var self=this
+					[#if user??]
+					this.setTracks()
+					[/#if]
+					this.$nextTick(()=>{
+						//dom加载的时机这个时间不能确定
+						setTimeout(() => {
+							this.initImagezoom()
+						}, 500);
+						setTimeout(() => {
+								$('.navbar-wrapper').fixtop({
+								marginTop: 0
+							})
+							$('.navbar-wrapper').on('click', '.tab__item', function () {
+								var data = $(this).attr('data-type')
+								$(this).addClass('tab__item--active')
+								$(this).siblings().removeClass('tab__item--active')
+								$('#' + data).show()
+								$('#' + data).nextAll().show()
+								$('#' + data).prevAll().hide()
+								location.href = '#' + data
+								var top = $(document).scrollTop()
+								$(document).scrollTop(parseInt(top - 38))
+							})
+						}, 500);			
+					})
+					}
+				
+				})
+</script>
+[#else]
+  [#include "./error.html"]
+[/#if]
+[/@product_page]

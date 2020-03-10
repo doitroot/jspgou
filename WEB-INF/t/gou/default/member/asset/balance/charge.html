@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-充值中心</title>
+  [#include "../../../includes/common.html"]
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+
+<body>
+  [#include "../../../includes/topBar.html"]
+  [#include "../../../includes/vipNav.html"]
+
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="assetIndex"]
+      [#include "../../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body " id="personinfo" v-cloak>
+        <div class="member-order__body  bace-main ">
+          <!-- 个人中心主体 -->
+          <div class="bace-main-head charge-head">
+            <h3 class="att-head-title charge-title">
+              填写充值金额
+            </h3>
+            <div class="att-sch-group bacem-sch-group charge-group">
+              <div class="charge-box charge-boxl charge-boxl--active">
+                <!-- charge-boxl--active -->
+                ① 输入充值金额
+                <span class="charge-arrow"></span>
+              </div>
+              <div class="charge-box charge-boxm">
+                <!-- charge-boxm--active -->
+                ② 在线支付
+              </div>
+              <div class="charge-box charge-boxr">
+                <!-- charge-boxr--active -->
+                ③ 充值完成
+              </div>
+            </div>
+          </div>
+          <div class="charge-container" style="overflow:hidden">
+            <h3 class="bacem-info charge-info">
+              温馨提示：<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;充值成功后，余额到账速度可能会受支付方式的不同产生1~30分钟的延时，请耐心等待，如长时间未到账，请联系网站客服<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;充值金额必须在1~100,000元以内
+            </h3>
+            <el-form :rules="rules" :model="reData"  ref="form"
+              label-position="right" label-width="90px"
+              @submit.native.prevent
+              >
+              <el-form-item label="充值账户:" style="margin:0">
+                <span >${user.username!}</span>
+              </el-form-item>
+              <el-form-item   label="充值金额:" prop="amount">
+                <el-input style="width:200px;" size="mini" placeholder="输入金额" v-model="reData.amount"
+                @keyup.enter.native="orderNum"
+                >
+                  <template slot="append">元</template>
+                </el-input>
+              </el-form-item>
+              <el-form-item class="add__name">
+                <el-button type="primary" size="mini" @click="orderNum">提交</el-button>
+              </el-form-item>
+            </el-form>          
+          </div>
+         
+        </div>
+      </div>
+    </div>
+  </div>
+  [#include "../../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var personinfo = new Vue({
+    el: '#personinfo',
+    data() {
+      var validateAmount = function (rule, value, callback) {
+        var patrnAmount =/^[0-9]+$/
+        if (value == '') {
+          callback(new Error('请输入充值金额'));
+        } else {
+          if (value < 1||value>100000) {
+            callback(new Error('充值金额必须在1~100,000元以内'))
+          } else {
+            if (!patrnAmount.test(value)) {
+              callback(new Error('金额必须为合法的正整数'))
+            } else {
+              callback()
+            }
+          }
+        }
+      };
+      return {
+        reData: {
+          'amount': '',
+        },
+        rules: {
+          amount: [{
+            required: true,
+            validator: validateAmount,
+            trigger: 'blur'
+          }]
+        }
+      }
+    },
+    methods: {
+      orderNum() { //生成充值订单
+        var that = this
+        this.$refs['form'].validate(function (valid) {
+          if (valid) {
+            cms.ajax({
+              url: '${base}/member/memberrecharge/generateBusinessNo',
+              type: "get",
+              data: {
+                amount: that.reData.amount
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.goPay(res.data.businessNo, res.data.money)
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+          } else {
+            return false
+          }
+        })
+      },
+      goPay(orderNo, amount) { 
+        let title = "会员充值:" + amount ;
+        let params = Qs.stringify({'orderNo':orderNo,'description':title,'subject':title,'payScene':'memberRecharge','amount':amount})
+        location.href="${base!}/member/tradePage.htm?"+params
+      }
+    }
+  })
+</script>

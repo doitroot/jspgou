@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>我的红包</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="我的红包"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms red-env nav-top" id="myRedBag">
+    <div class="red__envbg">
+      <image class="red__envimg" src="${mobileRes}/img/redEnvelope_01.png" />
+    </div>
+    <div class="env__wrap">
+      <div class="env__condition">单笔订单满${globalConfig.userRhMinAmount!}可用</div>
+      <div class="env__price">{{envelope}}</div>
+      <div class="env__used">
+        <a href="${base}/index.htm">去使用</a>
+      </div>
+      <div class="env__show" @click="toDetail">查看明细</div>
+    </div>
+    <div class="env__attention">
+      <div class="env__title">红包使用说明：</div>
+      <div class="env__txt">1、红包可抵用现金，不可提现，不可转赠；</div>
+      <div class="env__txt">2、需满足使用条件才可使用红包；</div>
+    </div>
+  </div>
+</body>
+
+</html>
+<script>
+  new Vue({
+    el: '#myRedBag',
+    data() {
+      return {
+        envelope: '${envelope!}'
+      }
+    },
+    methods: {
+      toDetail(e) {
+        window.location.href = '${base}/member-asset-redBag-detail.htm'
+      },
+    },
+    created() { }
+  })
+
+</script>

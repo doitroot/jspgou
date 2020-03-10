@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-关注的商品</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="attentionGoods"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body clearfix" id="attGoods" v-loading="loading" v-cloak>
+        <div class="member-title index-title att-goods-title">
+          <!-- 主体头部 -->
+          <h3 class="att-head-title">关注的商品</h3>
+          <!-- 右侧搜索框 -->
+          <div class="att-sch-group">
+            <input type="text" class="att-input" placeholder="请输入商品名称" 
+             v-model="queryParams.name"
+             @keyup.enter="searchGoods">
+            <a href="#" class="att-sch-btn" @click.prevent="searchGoods">搜索</a>
+          </div>
+        </div>
+        <div class="member-order__body index-body-last clearfix">
+          <!-- 商品分类 -->
+          <div class="att-container att__goodscon clearfix">
+            <span class="att-goods-fixedli" @click="toggleMenu('')"
+            v-if="navList.length>0"
+             :class="{'att-clsify':allCateActive}">全部分类
+            </span>
+            <ul class="att-goods-clsify att-goodstrack-clsify clearfix">
+              <li v-for="(item, index) in navList" :key="index" class="att-goods-clsifyli"
+                :class="[queryParams.pid==item.id?'att-clsify':'']"
+                @click="toggleMenu(item.id)">
+                <a  class="att-goods-name" href="javascript:;">{{item.cateName}}</a>
+              </li>
+            </ul>
+            <a class="att-more" v-show="navList.length>11">查看更多 <i class="fa fa-angle-down"></i></a>
+          </div>
+
+            <ul class="prodSearch-intro-ul att-intro-ul att-goods-list clearfix">
+              <!-- 循环 -->
+                <li class="att-intro-li attr-ul-li" v-for="(item, index) in goodList" :key="index">
+                 <div class="prodSearch-intro-box attr-intro-top">
+                    <div class="att-shop-top">
+                      <span v-show="item.isTop"> 
+                       <i class="fa fa-long-arrow-up"></i> 
+                        已置顶
+                      </span> 
+                    </div>
+                   <a :href="'${base}/product-detail.htm?productId='+item.product.id" class="atgoos-box">
+                    <!-- 商品图片 -->
+                    <img :src="baseUrl+item.product.coverImage" class="atgoos-img">
+                   </a>
+                  <p class="prodSearch-intro-box__descript att-intro-desc att__goods-alldecs">
+                    <!-- 商品描述 -->
+                    <a :href="'${base}/product-detail.htm?productId='+item.product.id" class="prodSearch-intro-box__line1 att-intro-desc__link">
+                     {{item.product.name}} 
+                    </a>
+                  </p>
+                  <!-- 商品价格 -->
+                  <h3 class="att-intro-price"><a href="#">￥{{$float(item.product.salePrice)}}</a></h3>
+                 </div>
+                 <div class="attr-intro-middle">
+                   <!-- 评价数量 -->
+                    <a :href="'${base}/product-detail.htm?productId='+item.product.id" class="attr-mid-desc">
+                      <i class="fa fa-commenting-o att-fa"></i> {{item.product.statistic.totalComment}}</a>
+                 </div>
+                 <div class="attr-intro-foot">
+                    <table class="attr-table">
+                      <tr class="attr-tr">
+                        <td class="attr-td">
+                          <!-- 店铺 -->
+                           
+                               
+                         <a :href="'${base}/store-index.htm?storeId='+item.storeId" class="attr-td__link">店铺</a>
+                        </td>
+                        <td class="attr-td">
+                          <!-- 置顶 -->
+                         <a href="#" class="attr-td__link" @click.prevent="isTop(item.id)" v-show="!item.isTop">置顶</a>
+                         <a href="#" class="attr-td__link" @click.prevent="cancelTop(item.id)" v-show="item.isTop">取消置顶</a>
+                        </td>
+                        <td class="attr-td">
+                          <!-- 取消关注 -->
+                         <a href="#" class="attr-td__link" @click.prevent=cancelFollow(item.id)>取消关注</a>
+                        </td>
+                      </tr>
+                    </table>
+                 </div>
+                </li>
+                <div v-if="goodList.length==0&&!loading" class="list__empty-wrap" style="margin-top:160px;">
+                  <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+                </div>
+            </ul>
+          <!-- 分页按钮 -->
+          <div class="overflow score-pagging attshop__paginantion" v-if="goodList.length!==0" style="padding-top:5px;">
+            <el-pagination class="fr" background layout="prev, pager, next" :total="total" :page-sizes="[100, 200, 300, 400]"
+              :page-size='queryParams.size' @size-change="handleSizeChange" @current-change="handleCurrentChange"
+              :current-page="queryParams.page">
+            </el-pagination>
+          </div>
+          <!-- 关注的商品暂无时显示 -->
+         
+        </div>
+      </div>
+    </div>
+  </div>
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  let defaultData = {
+    "name": "",
+    "pid": "",
+    "page": 1,
+    "size": 8
+  }
+  let attGoods = new Vue({
+    el: '#attGoods',
+    data() {
+      return {
+        queryParams: Object.assign({}, defaultData),
+        goodList: [], //关注的商品列表 
+        navList: [],   //导航栏列表
+        allCateActive:true, //导航栏全部分类的选中状态
+        total: '',
+        loading: false, 
+        baseUrl: cms.imgUrl,
+      }
+    },
+    methods: {
+      getGoodsList() {   //获取关注的商品列表
+        let that = this 
+        that.loading = true;
+        cms.ajax({
+          url: cms.url + '/member/memberfollowproduct/page',
+          type: 'get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.goodList = res.data.content
+            that.total = res.data.totalElements
+            console.log(res.data)
+          } else {
+            that.loading = false
+          }
+        })
+      },
+      getGoodsCategory(){ //获取关注商品的类别
+        let that=this
+        cms.ajax({
+          url: cms.url + '/member/memberfollowproduct/getCategory',
+          type: 'get'
+        }, function (res) {
+          if (res.code == 200) {
+            console.log(res.data)
+            that.navList=res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      handleSizeChange(val) {//分页
+        this.queryParams.size = val
+        this.getGoodsList()
+      },
+      handleCurrentChange(val) {
+        this.queryParams.page = val
+        this.getGoodsList()
+      },
+      cancelFollow(id) {//取消关注
+        let that = this
+          cms.ajax({
+            url: cms.url + '/member/memberfollowproduct/delete',
+            type: 'get',
+            data: { 'id': id }
+          }, function (res) {
+            if (res.code == 200) {
+              that.getGoodsList()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+      },
+      cancelTop(id) {//取消置顶
+        let that = this
+          cms.ajax({
+            url: cms.url + '/member/memberfollowproduct/top',
+            type: 'get',
+            data: { 'id': id, 'isTop': false }
+          }, function (res) {
+            if (res.code == 200) {
+              that.getGoodsList()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+      },
+      isTop(id) {//置顶
+        let that = this
+          cms.ajax({
+            url: cms.url + '/member/memberfollowproduct/top',
+            type: 'get',
+            data: { 'id': id, 'isTop': true }
+          }, function (res) {
+            if (res.code == 200) {
+              that.getGoodsList()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+      },
+      searchGoods() {    //关注的商品搜索
+        this.queryParams.page = 1
+        this.getGoodsList()
+      },
+      toggleMenu(id) {
+        if(id==''){
+          this.allCateActive=true
+        }else{
+          this.allCateActive=false
+        }
+        this.queryParams.pid=id
+        this.getGoodsList()
+      }
+    },
+    created() {
+      this.getGoodsList()
+      this.getGoodsCategory()
+    }
+  })
+</script>

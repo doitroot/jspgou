@@ -1,0 +1,84 @@
+<!-- 个人中心左侧导航菜单 -->
+<div class="vipln-nav">
+  <div class="member-nav  vln-bortm">
+    <dl class="member-nav__items">
+      <dt class="member-nav__header vln-head">订单中心</dt>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-order-index.htm" class="member-nav__link
+        [#if activeName=='list'] member-nav__link--active[/#if]">我的订单</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-order-recycle.htm" class="member-nav__link 
+        [#if activeName=='recycle'] member-nav__link--active[/#if]">回收站
+        </a>
+      </dd>
+      <!-- <dd class="member-nav__item vipln-item">
+        <a href="" class="member-nav__link
+        [#if activeName=='comment'] member-nav__link--active[/#if]">评价管理</a>
+      </dd> -->
+    </dl>
+  </div>
+  <div class="member-nav  vln-bortm">
+    <dl class="member-nav__items ">
+      <dt class="member-nav__header vln-head">关注中心</dt>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-attention-goods.htm" class="member-nav__link
+        [#if activeName=='attentionGoods'] member-nav__link--active[/#if]">关注的商品</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-attention-store.htm" class="member-nav__link
+        [#if activeName=='attentionStore'] member-nav__link--active[/#if]
+        ">关注的店铺</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-attention-tracks.htm" class="member-nav__link  
+        [#if activeName=='attentionTracks'] member-nav__link--active[/#if]">我的足迹</a>
+      </dd>
+    </dl>
+  </div>
+  <div class="member-nav vln-bortm">
+    <dl class="member-nav__items ">
+      <dt class="member-nav__header vln-head">资产中心</dt>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-asset-balance-index.htm" class="member-nav__link
+        [#if activeName=='assetIndex'] member-nav__link--active[/#if]">账户余额</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-asset-score.htm" class="member-nav__link
+        [#if activeName=='assetScore'] member-nav__link--active[/#if]">我的积分</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-asset-redbag.htm" class="member-nav__link
+        [#if activeName=='redBag'] member-nav__link--active[/#if]">我的红包</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-asset-coupon.htm" class="member-nav__link
+        [#if activeName=='coupon'] member-nav__link--active[/#if]">优惠券</a>
+      </dd>
+    </dl>
+  </div>
+
+  <div class="member-nav vln-bortm">
+    <dl class="member-nav__items">
+      <dt class="member-nav__header vln-head">客户服务</dt>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-customer-returns-index.htm" class="member-nav__link
+        [#if activeName=='returns'] member-nav__link--active[/#if]">退换货</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+
+        <a href="${base}/member-customer-buyConsult.htm" class="member-nav__link
+        [#if activeName=='buyConsult'] member-nav__link--active[/#if]">购买咨询</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-customer-advice.htm" class="member-nav__link
+        [#if activeName=='advice'] member-nav__link--active[/#if]">意见建议</a>
+      </dd>
+      <dd class="member-nav__item vipln-item">
+        <a href="${base}/member-customer-complaint.htm" class="member-nav__link
+        [#if activeName=='complaint'] member-nav__link--active[/#if]">举报/投诉</a>
+      </dd>
+    </dl>
+  </div>
+
+</div>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-我的咨询</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="我的咨询"/]
+  [#include "../../includes/topbar.html"]
+  <div class="tab-bg cms myques nav-top" id="consult" v-cloak>
+    <van-tabs v-model="active" @change="changeTab(active)" :line-width="60">
+      <van-tab title="全部"></van-tab>
+      <van-tab title="已回复"></van-tab>
+      <van-tab title="未回复"></van-tab>
+    </van-tabs>
+    <div v-if="consultHidden">
+        <div class="nothing">当前暂无咨询</div>
+    </div>
+    <div v-else>
+      <div class="consult-ques" v-if="consultList.length>0" >
+        <!-- 商品信息 -->
+        <div class="consult-cell" @click.stop="toDetail(item.id)" v-for="(item,index) in consultList" :key="index">
+          <div class="consult-cell__image">
+            <img class="consult-cell__img" :src="baseUrl+item.product.coverImage" />
+          </div>
+          <div class="consult-cell__cont t-12">
+            <div class="consult-cell__product cell-2">{{item.product.name}}</div>
+            <div class="t-12 " :class="item.status?'t-label':'th-color'">{{item.status == 0 ?'已回复':'暂无回答'}}</div>
+          </div>
+          <div class="consult-cell__icon">
+            <van-icon  name="arrow" size="18px" />
+          </div>
+        </div>
+        <!-- <div class="my-quiz">
+          <div class="t-label"><div class="t-text-right"></div></div>
+        </div> -->
+      </div>
+    </div>
+    <div :hidden="hidden">
+    <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+    <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+new Vue({
+    el: '#consult',
+    data() {
+      return {
+        total:0,
+        hidden:true,
+        consultHidden:null,
+        consultShow:false,
+        active:0,
+        info:'',
+        baseUrl:cms.url,
+        pages:0,
+        params:{
+          page:1,
+          size:10,
+          status:'',
+          answerContentSize:2
+        },
+        consultList:[]
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    },
+    methods: {
+      onReachBottom(event){//上拉加载处理
+        var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+        　　　if(this.params.page <this.pages){
+                this.params.page +=1
+                this.hidden = false
+                this.info = ''
+                this.getPage()
+              }else{
+                this.hidden = false
+                this.info = '没有更多了'
+                return
+              }
+        　　}
+        },
+      toDetail(id){
+        window.location.href='${base}/member-consult-consultdetail.htm?id='+id
+      },
+      changeTab(active){//切换tab
+        switch(parseInt(active)){
+          case 0: this.params.status = ''
+          break
+          case 1: this.params.status = 1
+          break
+          case 2: this.params.status = 0
+          break
+        }
+        this.onRefresh()
+      },
+      onRefresh(){
+        this.params.page = 1;
+        this.consultList = []
+        this.getPage()
+      },
+      getPage(){//获取列表数据
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        productconsultation(this.params).then( res => {
+          if(res.code == 200){
+            this.consultList = this.consultList.concat(res.data.content)
+              if(this.consultList.length < 0){
+              this.consultHidden = true
+            }else{
+              this.consultHidden = false
+            }
+            this.total = res.data.totalElements
+            this.pages = res.data.totalPages
+            this.hidden = true
+            this.$toast.clear();
+          } else {
+            this.$toast(res.message)
+            this.$toast.clear();
+          }
+        }).catch(err => {})
+      }
+    },
+    created() {
+      this.getPage()
+    }
+  })
+</script>

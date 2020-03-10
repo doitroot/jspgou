@@ -1,0 +1,79 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<!-- 引入样式 -->
+
+<link rel="stylesheet" href="${mobileRes}/css/vant.css">
+<link href="${mobileRes}/css/common.css" rel="stylesheet">
+<link href="${mobileRes}/css/index.css" rel="stylesheet">
+<!-- 引入组件 -->
+<script src="${mobileRes}/js/lib-flexible.js"></script>
+<script src="${mobileRes}/lib/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/axios/0.18.0/axios.min.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.6.3/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vant@1.6/lib/vant.min.js"></script>
+<script src="${mobileRes}/js/cms.js"></script>
+<script src="${mobileRes}/js/api.js"></script>
+
+<script>
+  cms.url='${base}'
+  cms.imgUrl='${mobileRes}'
+
+  $(function () {
+  //广告版位跳转
+  $('body').on('click','.JsLink',function (e) {
+      e.preventDefault()
+    var type= parseInt($(this).attr('data-type'))
+    var target=$(this).attr('data-target')
+    var productId=$(this).attr('data-productid')
+    var storeId=$(this).attr('data-storeid')
+    var articleId=$(this).attr('data-articleid')
+    var productCateId=$(this).attr('data-productcateid')
+    var linkUrl=$(this).attr('data-linkurl')
+    //链接类型 1-商品  2-店铺  3- 文章  4-商品分类  5-固定url
+
+    switch (type) {
+      case 1:
+          if(target==1){
+              location.href="${base}/product-detail.htm?productId="+productId
+          } else{
+            window.open("${base}/product-detail.htm?productId="+productId)
+          }  
+        break;
+        case 2:
+        if(target==1){
+              location.href="${base}/store-index.htm?storeId="+storeId
+          } else{
+            window.open("${base}/store-index.htm?storeId="+storeId)
+          }  
+        break;
+        case 3:
+        return false
+        break;
+        case 4:
+        if(target==1){
+              location.href="${base}/product-category.htm?ctgId="+productCateId
+          } else{
+            window.open("${base}/product-category.htm?ctgId="+productCateId)
+          }  
+        break;
+        case 5:
+        if(target==1){
+              location.href=linkUrl
+          } else{
+            window.open(linkUrl)
+          }  
+        break;
+      default:
+        return false
+        break;
+    }
+  });
+});
+</script>
+
+<style>
+[v-cloak] {
+  display: none !important;
+}
+</style>

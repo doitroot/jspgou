@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-${name!}</title>
+  [#include "../../../includes/common.html"]
+  <script src="${mobileRes}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${mobileRes}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${mobileRes}/js/login.js"></script>
+</head>
+<body>
+  [#assign topName=name /]
+  [#include "../../../includes/topbar.html"]
+  <div id="changePass" v-cloak>
+    <div  class="cms nav-top">
+      <div>
+        <van-cell-group class="t-coll">
+          <van-field v-model="pwd.newPwd" type="password"  class="cell-title" @blur="valitedPwd"
+          placeholder='请输入新密码' clearable label="新登录密码" center  />
+        </van-cell-group>
+        <van-cell-group class="t-coll">
+          <van-field v-model="pwd.newPwd2"  class="cell-title" @blur="valitedPwd2" type="password"
+          placeholder='请再次确认密码' clearable label="确认密码" center />
+        </van-cell-group>
+        <van-cell-group class="t-coll">
+          <van-field  use-button-slot
+          v-model="captcha" placeholder='图形验证码'  title-width='90rpx' >
+            <van-button slot="button" @click='captchas' >
+              <image :src="captchaImg" style="width:90px; height:35px"/>
+            </van-button>
+          </van-field >
+        </van-cell-group>
+        <div class="login__submit container">
+            <van-button @click="savePwd" type='primary' size="large" :disabled="captcha==''||pwd.newPwd2==''" >保存</van-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#changePass',
+    data () {
+      return {
+        pwd:{
+          newPwd:'',//新密码
+          newPwd2:''
+        },
+        captcha:'',//图形验证码
+        captchaImg:'',//获取的图形验证码
+        sessionId:'',//获取的sessionid
+        token:'${token!}',//用户token
+      }
+    },
+    methods: {
+      valitedPwd(){//验证密码是否一致
+        var reg = /^\w+$/
+        var len = /^\d{6,16}$/
+        if(reg.test(this.pwd.newPwd)&&len.test(this.pwd.newPwd)){
+          return true
+        }else{
+          this.$toast('请输入6-16位数密码')
+          return false
+        }
+      },
+      valitedPwd2(){//验证密码是否一致
+        if(this.pwd.newPwd === this.pwd.newPwd2){
+          return true
+        } else {
+          this.$toast('两次输入密码不一致！')
+          return false
+        }
+      },
+      captchas(){
+        getCaptcha().then(res => {
+          this.captchaImg = 'data:image/jpeg;base64,'+res.img
+          this.sessionId = res.sessionId
+        })
+      },
+      savePwd(){//提交保存密码
+        if(this.valitedPwd()&&this.valitedPwd2()){
+          let params = {
+            pStr:encrypt(this.pwd.newPwd),
+            code:this.captcha,
+            token:this.token,
+            sessionId:this.sessionId,
+          }
+          updatePwd(params).then(res => {
+            if(res.code == 200){
+              this.$toast('修改成功！')
+              setTimeout(() => {
+                localStorage.setItem('token','')
+                location.href = '${base}/login.htm'
+              }, 1000);
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {
+            this.$toast('服务异常')
+          })
+        }
+      },
+    },
+    created () {
+      this.captchas()
+    }
+  })
+</script>

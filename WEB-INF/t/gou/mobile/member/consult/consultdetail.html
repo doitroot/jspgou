@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-咨询详情</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/lib/moment.js"></script>
+</head>
+<body>
+  [#assign topName="咨询详情"/]
+  [#include "../../includes/topbar.html"]
+<div class="cms nav-top" id="consultdetail">
+  <div class="consult-ques">
+    <!-- 商品信息 -->
+    <div class="consult-cell" @click="toProduct">
+      <div class="consult-cell__image">
+        <img v-if="consultDetail.product" class="consult-cell__img" :src="baseUrl+consultDetail.product.coverImage" />
+      </div>
+      <div class="consult-cell__cont t-12">
+        <div v-if="consultDetail.product" class="consult-cell__product">{{consultDetail.product.name}}</div>
+        <div class="th-color">{{consultDetail.status == 0 ?'已回复':'未回复'}}</div>
+      </div>
+      <div class="consult-cell__icon">
+        <van-icon  name="arrow"/>
+      </div>
+    </div>
+    <div class="my-quiz t-12">
+      <div class="t-label">我提问<span class="t-block my-quiz-time">{{consultDetail.createTime}}</span></div>
+      <div class="my-quiz-span "><span class="q-icon t-block">Q</span> {{consultDetail.content}}</div>
+    </div>
+  </div>
+  <div class="t-space"></div>
+  <div v-if="consultDetail.status" class="nothing t-bgColor">商家可能正在赶来的路上，请耐心等待...</div>
+  <div v-if="!consultDetail.status" class="t-bgColor container">
+    <div class="my-ans t-12" :class="index !=consultDetail.assocatedAnswer.length-1?'t-bottom':''" v-for="(item,index) in consultDetail.assocatedAnswer" :key="index">
+      <div class="t-label">{{item.type?'商家回复：':'我回复：'}}<span class="t-block my-quiz-time">{{item.createTime}}</span></div>
+      <div class="my-quiz-span "><span class="a-icon t-block">A</span> {{item.content}}</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+<script>
+new Vue({
+    el: '#consultdetail',
+    data() {
+      return {
+        id:'${id}',
+        baseUrl:cms.url,
+        consultDetail:{}
+      }
+    },
+    methods: {
+      toProduct(){
+        location.href = '${base}/product-detail.htm?productId='+this.consultDetail.product.id
+      },
+      getConsultDetail(id){//获取咨询详情
+        if(id != ''){
+          getMobile({id:this.id}).then(res => {
+            res.data.createTime = moment(parseInt(res.data.createTime)).format('YYYY-MM-DD')
+            res.data.assocatedAnswer.forEach(v => {
+              v.createTime = moment(parseInt(v.createTime)).format('YYYY-MM-DD')
+            });
+            this.consultDetail = res.data
+          }).catch(err => {})
+        }
+      }
+    },          
+    created() {
+      this.getConsultDetail(this.id)
+    }
+  })
+</script>

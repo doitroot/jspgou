@@ -1,0 +1,24 @@
+  <!-- 为你推荐 -->
+  <div class="forYou">
+      <img src="${res}/images/recom.png" alt="">
+    </div>
+    <ul class="forYou-lists clearfix">
+        [@proRecommend_page resultSize='15']
+          [#list tag_list as recommends]
+            <li class="hotSel-nav__item">
+              <a class="hotSel__block" href="${base}/product-detail.htm?productId=${recommends.id}">
+                <div class="hotSel-nav__pro">
+                  <img src="${base}${recommends.coverImage!}" alt="" class="bannerImg">
+                </div>
+                <div class="hotSel-nav__text">
+                  ${recommends.name!}
+                </div>
+                <div class="hotSel-nav__price">
+                    ￥${recommends.salePrice?string('0.00')}
+                </div>
+              </a>
+            </li>
+            [/#list]
+      [/@proRecommend_page]
+    </ul>
+   

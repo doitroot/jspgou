@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="full-page">
+<head>
+  <title>${globalConfig.mallName!}-分类</title>
+  [#include "./includes/common.html"]
+</head>
+<body class="full-page">
+    <div class="cms" id="classify" v-cloak>
+      <div class="classify-warpper">
+           <div class="mbv-headers">
+             <div class="mbv-search" @click="hasFocus" >
+              <van-icon class="t-icon" name="search"/>
+              {{hotWords}}
+            </div>
+           </div>
+           <div class="mbv-content">
+               <div class="mbv-select-nav mbv-height" >
+                 <div class="classify-sel-nav" v-for="(item,index) in items" :key="index"
+                  :class="activeIndex == index?'select-active':''"
+                  @click="selectNav(item.id,index)">{{item.cateName}}</div>
+               </div>
+               <div class="mbv-select-cont mbv-height" >
+                 <div class="mbv-select__item" v-for="(item,index) in products" :key="index"  >
+                    <span class="classify-hot" >{{item.cateName}}</span>
+                    <div class="select-cont_list " v-if="item.childs">
+                      <div  class="cont-list_cont" @click="toSearchList(info)"
+                      v-for="(info,infoIndex) in item.childs" :key="infoIndex" >
+                        <div class="classify-img-box">
+                            <img  v-if="info.resourcesSpace" class="classify-img" :src="'${base}'+info.resourcesSpace.url" />
+                            <div v-else class="gray"></div>
+                        </div>    
+                        <span class="classify-txt t-12">{{info.cateName}}</span>
+                      </div>
+                    </div>
+                 </div>
+             </div>
+           </div> 
+          </div>
+      </div>
+      [#assign active="1"/]
+      [#include "./includes/tabBar.html"]
+</body>
+</html>
+<script>
+  new Vue({
+    el:'#classify',
+    data () {
+      return {
+        hotWords:'${globalConfig.hotWords}',
+        items: [],
+        products:[],
+        activeIndex: 0,
+        showIndex: 0,
+        locationData:{},
+        params:{
+          parentId:0
+        }
+      }
+    },
+    methods: {
+      hasFocus(e){//点击搜索框
+        location.href='${base}/product-search.htm'
+      },
+      selectNav(id,index) {//切换当前分类
+        this.activeIndex=index
+        this.showIndex=this.activeIndex
+         this.getList(id)
+      },
+      getNavList(){
+        productcategory(this.params).then(res => {
+              this.items=res.data
+              this.params.parentId=res.data[0].id   
+              this.getList(res.data[0].id)
+          }).catch(err => {})
+      },
+      getList(parentId){//获取分类列表信息
+         if(this.locationData[parentId]){
+          this.products=Object.assign([],this.locationData[parentId])
+         }else{
+          productcategory({parentId:parentId}).then(res => {
+            if(res.data[0].childs&&res.data[0].childs.length>0){
+              this.products=res.data[0].childs
+            }
+              this.locationData[parentId]=res.data
+          }).catch(err => {})
+         }  
+      },
+      toSearchList(info){//点击商品去搜索
+        location.href='${base}/product-category.htm?ctgId='+info.id+'&val='+info.cateName
+      },
+    },
+    created () {
+      this.getNavList()
+    }
+  })
+</script>

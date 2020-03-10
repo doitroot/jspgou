@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-收银台</title>
+  [#include "../includes/common.html"]
+  <script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${res}/js/login.js"></script>
+</head>
+
+<body>
+  <div id="payHtmlContent"></div>
+  [#include "../includes/topBar.html"]
+  <div class="header">
+    <div class="container head-wrap">
+      [#assign name="收银台"]
+      [#include "../includes/logo.html"]
+      <!-- 支付页面流程 -->
+      <div class="shopCart__process">
+        <div class="shopCart__processitem clearfix">
+          <div class="shopCart__processlogo"><img src="${res}/images/cartlogo.png" alt="1"></div>
+          <div class="shopCart__processlinewrap"><img src="${res}/images/check.png" alt="1" class="checklogo"><span
+              class="shopCart__processline-left"></span></div>
+          <p class="shopCart__processinfo">我的购物车</p>
+        </div>
+        <div class="shopCart__processitem clearfix">
+          <div class="shopCart__processlogo"><img src="${res}/images/order.png" alt="1"></div>
+          <div class="shopCart__processlinewrap">
+            <span class="shopCart__processline-leftm"></span>
+            <img src="${res}/images/check.png" alt="1" class="checklogo"><span class="shopCart__processline-left"></span></div>
+          <p class="shopCart__processinfo">订单结算</p>
+        </div>
+        <div class="shopCart__processitem clearfix">
+          <div class="shopCart__processlogo"><img src="${res}/images/donepay.png" alt="1"></div>
+          <div class="shopCart__processlinewrap"><img src="${res}/images/checkdark.png" alt="1" class="checklogo"><span
+              class="shopCart__processline-right"></span></div>
+          <p class="shopCart__processinfo shopCart__processinfo-gray">完成支付</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gray-container gray-container--bg">
+    <div class="container" id="app">
+      <div class="clearfix">
+        <div class="payfor__info">
+          <div class="payfor__text">
+            订单提交成功，请尽快付款！
+          </div>
+          <div class="payfor__mem">
+            订单号:${orderNo!}
+          </div>
+          <div class="payfor__mem">
+            商品名称:${subject!}
+          </div>
+        </div>
+        <div class="payfor__money">
+          应付金额 <span class="payfor__money--b">￥${(amount?number)?string(',###0.00')}</span>
+        </div>
+      </div>
+      <div class="paysty" v-loading='loading' element-loading-text="正在支付...">
+        <ul>
+        [#if balance ?? ]
+          [#if payScene!='memberRecharge']
+          <li class="paysty__item">
+            <div class="paysty__bal">
+              余额支付<div class="paysty__bal--pos"></div>
+            </div>
+          </li>
+          <li class="paysty__item">
+            <div class="paysty__checkbox">
+              <el-checkbox  [#if user.balance lt amount?number] :disabled="true" [/#if] v-model="pay.payType" :true-label='4' :false-label="1">余额支付</el-checkbox>&nbsp;&nbsp;
+              [#if user??]
+              [#if user.balance gte amount?number]
+              （当前账户余额为：<span class="paysty__size">￥${user.balance?string(',###.00')}</span>）
+              [#else]
+              （余额不足，当前账户余额为：<span class="paysty__size">￥${user.balance?string(',###0.00')}</span>,
+              请前往<a href="${base}/member-asset-balance-charge.htm">充值</a>）
+              [/#if]
+              [/#if]
+            </div>
+          </li>
+          [/#if]
+        [/#if]
+        [#if alipay?? || wechat??  || unionpay?? ]
+          <li class="paysty__item">
+            <div class="paysty__bal">
+              在线支付<div class="paysty__bal--pos"></div>
+            </div>
+          </li>
+          <li class="paysty__item paysty__mar80">
+            [#if alipay?? ]
+            <a href="javascript:;" @click="selectPayType(1)" class="paysty__away" :class="pay.payType==1?'paysty__sty--active':''">
+              <img src="${res}/images/sty1.jpg" class="paysty__img"> </a>
+            [/#if]
+            [#if wechat?? ]
+            <a href="javascript:;" @click="selectPayType(2)" class="paysty__away " :class="pay.payType==2?'paysty__sty--active':''">
+              <img src="${res}/images/sty2.gif" class="paysty__img"></a>
+            [/#if]
+            <!-- [#if unionpay?? ]
+            <a href="javascript:;" @click="selectPayType(3)" :class="pay.payType==3?'paysty__sty--active':''" class="paysty__away">
+              <img src="${res}/images/sty3.jpg" class="paysty__img"></a>
+            [/#if] -->
+          </li>
+        [/#if]
+          <li class="paysty__item paysty__mar80">
+            <el-form @submit.native.prevent ref="form" :model="form" label-width="100px" style="width:320px">
+              <el-form-item label="支付密码:" required prop="password" :rules="[
+              { required: true, message: '请输入支付密码', trigger: 'blur' },
+              { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' }]"  v-if="pay.payType==4">
+            
+                <el-input v-model="form.password" autocomplete="off" @keyup.enter.native="submitPay" type="password" size="small"></el-input>
+               [#if user.isSetPayPassword == 2]
+               <span class="paysty__tip">你当前未设置支付密码，点击
+                <a href="${base}/member-account-security.htm">设置</a>
+               </span>
+               [/#if]
+              </el-form-item>
+            </el-form>
+          </li>
+          <li class="paysty__item paysty__mar80">
+            <el-button type="primary" @click.stop="submitPay" style="min-width:90px" :disable="payButtonFlag">支付</el-button>
+          </li>
+        </ul>
+        <!-- 微信支付 -->
+        <div class="pay-cover wx-cover " v-if="wxStatus">
+          <div class="pay-img">
+            <div class="pay-img__inner" v-loading="wxLoading">
+              <img :src="wxPayUrl" alt="">
+            </div>
+
+            <div class="pw-box-ft">
+              <p>请使用微信扫一扫</p>
+              <p>扫描二维码支付</p>
+            </div>
+            <div class="other-pay" @click="otherPay"> <span class="el-icon-arrow-left"></span> 选择其他支付方式</div>
+          </div>
+          <div class="p-w-sidebar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- start -->
+  [#include "../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var app = new Vue({
+        el: '#app',
+        data() {
+          return {
+            checked: false,
+            form: {
+              password: ''
+            },
+            payButtonFlag: false,
+            loading: false,
+            pay: {
+              orderNo: '${orderNo!}',
+              subject: '${subject!}',
+              description: '${description!}',
+              payScene: '${payScene!}',
+              bizContent: '',
+              payType: 1,
+              paySource: 1,
+              payPassword: ''
+            },
+            wxPayUrl: '',
+            wxStatus: false,
+            wxLoading: true
+          }
+        },
+        methods: {
+          /**
+           *选择支付方式触发事件
+           * @param type 支付类型  1:支付宝   2:微信  3:银联 4:余额
+           */
+          selectPayType(type) {
+            this.pay.payType = type;
+            this.payButtonFlag = true;
+          },
+          /**支付按钮触发事件*/
+          submitPay() {
+            var that = this;
+            this.$refs.form.validate((valid) => {
+              if (valid) {
+                this.loading = true
+                this.wxLoading = false
+                
+                if (this.pay.payType == 4) {
+                  this.pay.payPassword = encrypt(this.form.password)
+                  this.pay.orderNum = '${orderNo!}'
+                }
+                if (this.pay.payType == 2) {
+                  var obj = {
+                    websocketSessionId: '${orderNo!}'
+                  }
+                  this.pay.bizContent = JSON.stringify(obj)
+                  this.startSocket(obj.websocketSessionId)
+                }
+                cms.ajax({          
+                  url: '${base}/member/pay',
+                  type: 'post',
+                  data: JSON.stringify(that.pay),
+                }, function (res) {
+                  if (res.code == 200) {
+                    if (that.pay.payType == 1 || that.pay.payType == 3) {
+                      $('#payHtmlContent').append(res.data.payBody);            
+                    } else if (that.pay.payType == 2) {
+                      that.loading = false
+                      that.wxStatus = true
+                      that.wxPayUrl = "${base}/common/qrcode/700?val=" + res.data.payBody
+                      that.wxLoading = false
+                    } else if (that.pay.payType == 4) {
+                      if (res.data.payBody == 'success') {
+                        location.href = '${base}/member-paysuccess.htm?orderCode=${orderNo!}&amount=${amount!}'
+                      }
+                    }
+                  } else {
+                    that.loading = false
+                    that.form.password = ''
+                    that.$confirm(res.message, '系统提示', {
+                      confirmButtonText: '确定',
+                      showCancelButton: false,
+                      type: 'warning'
+                    });
+                  }
+                })
+              }
+            })
+          },
+          otherPay() {
+            this.wxStatus = false
+          },
+          startSocket(sessionId) {
+              console.log('Socket init')
+            var baseUrl = window.location.protocol + '//' + window.location.host + '${base}'
+            baseUrl = baseUrl.replace('https://', 'wss://').replace('http://', 'ws://')
+            var socket = new WebSocket(
+              baseUrl + '/websocket/' + sessionId
+            )
+            // 打开事件
+            socket.onopen = () => {
+              console.log('Socket 已打开')
+            }
+            // 获得消息事件
+            socket.onmessage = msg => {
+              if (msg.data == 'success') {
+                location.href = '${base}/member-paysuccess.htm?orderCode=${orderNo!}&amount=${amount!}'
+              }
+            }
+            // 关闭事件
+            socket.onclose = () => {
+              console.log('Socket已关闭')
+            }
+            // 发生了错误事件
+            socket.onerror = () => {
+              console.log('Socket发生了错误')
+            }
+            this.socket = socket
+            // return socket;
+          },
+          random() {
+            // 0-9的随机数
+            var arr = []; //容器
+            for (var i = 0; i < 3; i++) { //循环六次
+              var num = Math.random() * 9; //Math.random();每次生成(0-1)之间的数;
+              num = parseInt(num, 10);
+              arr.push(num);
+            }
+            return arr.toString()
+          }
+        },
+        created() {
+          [#if !authPay??||'true'!= authPay]
+          this.$confirm('无效的请求地址，请检查链接是否正确', '系统提示', {
+            confirmButtonText: '确定',
+            showClose: false,
+            showCancelButton: false,
+            closeOnClickModal: false,
+            type: 'warning'
+          }).then(() => {
+            location.href = "${base}"
+          });
+          [/#if]  		 
+          }
+        })
+</script>

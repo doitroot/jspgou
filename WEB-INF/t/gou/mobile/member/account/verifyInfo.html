@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-身份验证</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="身份验证"/]
+  [#include "../../includes/topbar.html"]
+  <div id="verifyInfo" v-cloak>
+    <div class="cms nav-top">
+      <div v-if="vilitedUser.phone && vilitedUser.email">
+        <div class="login-tab">
+          <div class="login-content" :class="isActive == 1?'login-note':''" 
+            @click="tabsTap(1)" >手机验证</div>
+            <div class="login-content" :class="isActive == 2?'login-note':''"
+            @click="tabsTap(2)" >邮箱验证</div>
+        </div>
+        <div class="account-login container" v-if="isActive == 1">
+          <div class="t-88 t-label t-12 t-center">点击获取验证码，系统将验证码发送至{{tel}}号码中</div>
+          <div class="identity-code">
+            <van-cell-group>
+              <van-field 
+              placeholder="请输入验证码"
+              label="验证码" title-width='120rpx'
+              v-model="theCode"
+              maxlength="6"
+              use-button-slot
+              >
+                <van-button
+                type="primary"
+                slot="button" size="small"
+                v-if="sendAuthCode"
+                @click="getPhoneCode">获取验证码</van-button>
+                <van-button v-if="!sendAuthCode" disabled  type="primary" slot="button" size="small"> 
+                <span class="auth_text_blue"></span>重新发送({{auth_time}}s)</van-button>
+              </van-field>
+            </van-cell-group>
+          </div>
+          <div class="login__submit">
+            <van-button @click="nextToPhone"   type='primary' size="large" :disabled="theCode==''" >下一步</van-button>
+          </div>
+        </div>
+        <div class="account-login container" v-if="isActive == 2">
+          <div class="t-88 t-label t-12 t-center">点击获取验证码，系统将验证码发送至{{email}}邮箱中</div>
+          <div class="identity-code">
+            <van-cell-group>
+              <van-field 
+              placeholder="请输入验证码"
+              label="验证码" title-width='120rpx'
+              v-model="theCode"
+              maxlength="6"
+              use-button-slot
+              clearable>
+                <van-button
+                type="primary"
+                slot="button" size="small"
+                v-if="sendAuthCode2"
+                @click="getEmailCode">获取验证码</van-button>
+                <van-button v-if="!sendAuthCode2"  type="primary" disabled  slot="button" size="small"> 
+                <span class="auth_text_blue"></span>重新发送({{auth_time2}}s)</van-button>
+              </van-field>
+            </van-cell-group>
+          </div>
+          <div class="login__submit">
+            <van-button @click="nextToEmail" type='primary' size="large" :disabled="theCode==''" >下一步</van-button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="container">
+        <div v-if="vilitedUser.phone" class="t-88 t-label t-12 t-center">点击获取验证码，系统将验证码发送至{{tel}}号码中</div>
+        <div v-if="vilitedUser.email" class="t-88 t-label t-12 t-center">点击获取验证码，系统将验证码发送至{{email}}邮箱中</div>
+        <div class="identity-code">
+          <van-cell-group>
+            <van-field 
+            placeholder="请输入验证码"
+            label="验证码" title-width='120rpx'
+            v-model="theCode"
+            maxlength="6"
+            use-button-slot
+            clearable>
+              <van-button
+              type="primary"
+              slot="button" size="small"
+              v-if="sendAuthCode && vilitedUser.phone"
+              @click="getPhoneCode">获取验证码</van-button>
+              <van-button
+              type="primary"
+              slot="button" size="small"
+              v-if="sendAuthCode2 && vilitedUser.email"
+              @click="getEmailCode">获取验证码</van-button>
+              <van-button v-if="!sendAuthCode2&&vilitedUser.email" disabled  type="primary" slot="button" size="small"> 
+              <span class="auth_text_blue"></span>重新发送({{auth_time2}}s)</van-button>
+              <van-button v-if="!sendAuthCode&&vilitedUser.phone" disabled  type="primary" slot="button" size="small"> 
+                <span class="auth_text_blue"></span>重新发送({{auth_time}}s)</van-button>
+            </van-field>
+          </van-cell-group>
+        </div>
+        <div class="login__submit">
+          <van-button v-if="vilitedUser.phone" @click="nextToPhone" round   type='primary' size="large" :disabled="theCode==''" >下一步</van-button>
+          <van-button v-else @click="nextToEmail" type='primary' size="large" :disabled="theCode==''" >下一步</van-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var verifyInfo = new Vue({
+    el:'#verifyInfo',
+    data () {
+      return {
+        label:'',
+        name:'${name!}',
+        tel:'',
+        email:'',
+        isActive:1,
+        sendAuthCode:true,
+        sendAuthCode2:true,
+        auth_time:120,//时间
+        auth_time2:120,//时间
+        auth_timetimer:'', //定时器
+        auth_timetimer2:'', //定时器
+        vilitedUser:{//定义一个作为承载判断数据的对象
+          phone:false,
+          email:false,
+          password:false,
+          payPassword:false
+        },
+        theCode:'',
+        sign:1
+      }
+    },
+    methods: {
+      getPhoneCode(){//获取手机验证码
+        this.sendAuthCode=false
+        sendPhone({sign:this.sign}).then(res => {
+          if(res.code == 200){
+            this.$toast('发送成功');
+          }else{
+            this.$toast(res.message);
+            this.sendAuthCode=true
+              this.auth_time=120
+            clearInterval(this.auth_timetimer)
+          }
+        }).catch(error => {})
+        let num = this.auth_time //定义时间
+        this.auth_timetimer = setInterval(() => {
+          num--
+          this.auth_time=num
+          if (num <= 0) {
+            this.sendAuthCode=true
+              this.auth_time=120
+            clearInterval(this.auth_timetimer)
+          }
+        }, 1000)
+      },
+      getEmailCode(){//获取邮箱验证码
+        this.sendAuthCode2=false
+        sendEmail({sign:this.sign}).then(res => {
+          if(res.code == 200){
+            this.$toast('发送成功');
+          }else{
+            this.$toast(res.message);
+            this.sendAuthCode2=true
+              this.auth_time2=120
+            clearInterval(this.auth_timetimer2)
+          }
+        }).catch(error => {})
+        let num = this.auth_time2 //定义时间
+        this.auth_timetimer2 = setInterval(() => {
+          num--
+          this.auth_time2=num
+          if (num <= 0) {
+            this.sendAuthCode2=true
+              this.auth_time2=120
+            clearInterval(this.auth_timetimer2)
+          }
+        }, 1000)
+      },
+      nextToPhone(){//手机号验证
+        verificationPhoneMsg({code:this.theCode,sign:this.sign}).then(res => {
+          if(res.code == 200){
+            this.theNaxtTo(res.data)
+          } else {
+            this.$toast(res.message);
+          }
+        }).catch(err => {})
+      },
+      nextToEmail(){//邮箱验证
+        verificationEmailMsg({code:this.theCode,sign:this.sign}).then(res => {
+          if(res.code == 200){
+            this.theNaxtTo(res.data)
+          } else {
+            this.$toast(res.message);
+          }
+        }).catch(err => {})
+      },
+      theNaxtTo(token){
+        switch(this.name){
+          case 'phone':
+          var name = '绑定新手机号码'
+          if(this.vilitedUser.phone){
+            name = '修改绑定手机号码'
+          }
+          location.href = '${base}/member-account-change-changePhone.htm?token='+token+'&name='+name
+          break
+          case 'email':
+          var name = '绑定新邮箱'
+          if(this.vilitedUser.email){
+            name = '修改绑定邮箱'
+          }
+          location.href = '${base}/member-account-change-changeEmail.htm?token='+token+'&name='+name
+          break
+          case 'pwd':
+          var name = '修改登录密码'
+          location.href = '${base}/member-account-change-changePass.htm?token='+token+'&name='+name
+          break
+          case 'payPwd':
+          var name = '设置支付密码'
+          if(this.vilitedUser.payPassword){
+            name = '更换支付密码'
+          }
+          location.href = '${base}/member-account-change-changePaypass.htm?token='+token+'&name='+name
+          break
+        }
+      },
+      tabsTap(val){//切换tab
+        this.isActive=val
+      },
+      getUserInfo(){
+        getInformation().then(res => {
+          if(res.code == 200){
+            this.tel=res.data.phoneData?res.data.phoneData:''
+            this.email=res.data.emailData?res.data.emailData:''
+          }
+        }).catch(err => {})
+      },
+    },
+    created () {
+      this.getUserInfo()
+      this.vilitedUser = {
+        'phone':localStorage.getItem('phone')=='true'?true:false,
+        'email':localStorage.getItem('email')=='true'?true:false,
+        'password':localStorage.getItem('password')=='true'?true:false,
+        'payPassword':localStorage.getItem('payPassword')=='true'?true:false
+      }
+      if(this.name && this.name!= undefined){
+      switch(this.name){
+        case 'phone':
+        this.label='绑定手机号'
+        this.sign = 3
+        break
+        case 'email':
+        this.label='绑定邮箱'
+        this.sign = 2
+        break
+        case 'pwd':
+        this.label='登录密码'
+        this.sign = 1
+        break
+        case 'payPwd':
+        this.label='支付密码'
+        this.sign = 4
+        break
+      }
+    }
+    }
+  })
+</script>

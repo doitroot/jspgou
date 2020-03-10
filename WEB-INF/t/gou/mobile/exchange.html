@@ -1,0 +1,410 @@
+[#if isBinded == "true"]
+  <html>
+    <head>
+      <title>跳转中...</title>
+    </head>
+  </html>
+  <script>
+    localStorage.setItem('token','${authToken!}')
+    location.href='${backUrl!}'
+  </script>
+[#else]
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <title>${globalConfig.mallName!}-账号信息补全 </title>
+	[#include "./includes/common.html"]
+  <script src="${mobileRes}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${mobileRes}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${mobileRes}/js/login.js"></script>
+</head>
+  <body>
+      [#assign topName="账号信息补全"/]
+      [#assign backBtn="2"/]
+      [#include "./includes/topbar.html"]
+        <div class="cms nav-top t-14" id="exchange" v-cloak>
+          <template>
+              <div class="t-12 t-label ex-box t-page">
+                  <div>您正在是用的移动端快捷登录方式，请补全账号信息或登录已有账号，我们将保障您的账户信息安全！</div>
+                </div>
+              <div class="login-tab" style="margin:20px auto;">
+                  <div class="login-content" :class="isActive == 1?'login-note':''" @click="tabsTap(1)">补全账号信息</div>
+                  <div class="login-content" :class="isActive == 2?'login-note':''" @click="tabsTap(2)">已有账号</div>
+                </div>
+                <div class="account-login" v-if="isActive == 2">
+                  <div class="t-12 t-label ex-box t-page">
+                    <div>您输入你要登录的账号，登录后将关联你的当前账号，可使用当前账户登录商城！</div>
+                  </div>
+                  <div class="container">
+                      <van-cell-group class="t-coll">
+                          <van-field v-model="formData.username" maxlength="50"
+                           clearable placeholder='请输入用户名' label="用户名" title-width='90px' />
+                        </van-cell-group>
+                        <van-cell-group>
+                          <van-field custom-class="cell-input" maxlength="16" 
+                          v-model="formData.password" placeholder='请输入密码' clearable type="password"
+                            label="密码" title-width='90px' />
+                        </van-cell-group>
+                        <div class="errorMsg t-12 t-center">{{errorMsg}}</div>
+                        <div class="login__submit">
+                            <van-button type='primary' size="large" 
+                            :disabled="formData.userName === '' || formData.password === ''" 
+                            @click="login" >{{!isLogin?'立即绑定':'绑定中…'}}</van-button >
+                        </div>
+                  </div>
+                </div>
+                <div class="phone-login" v-if="isActive == 1">
+                    <div class="t-12 t-label ex-box t-page">
+                      <div>您填写的手机号或邮箱将用于补全信息，之后可以用作于登录商城PC网站或其他终端！</div>
+                    </div>
+                    <div class="setAccount container" v-cloak>
+                        <van-cell-group class="t-coll">
+                          <van-field required placeholder="您的账户名和登陆名" maxlength="12" 
+                          label="登陆账号" title-width='150px' @blur="valitedUsernames" v-model="regData.username"
+                            clearable />
+                        </van-cell-group>
+                        <van-cell-group class="t-coll">
+                          <van-field required placeholder="6-16位数字、字母组合的密码" maxlength="16"
+                           label="设置密码" title-width='150px' maxlength="16" type="password"
+                            @blur="valitedPwd" v-model="regData.password" clearable />
+                        </van-cell-group>
+                        <van-cell-group>
+                          <van-field required placeholder="请再次输入密码" maxlength="16" label="重复密码"
+                           title-width='150px' type="password" @blur="valitedPwd2"
+                            v-model="regData.checkpass" clearable />
+                        </van-cell-group>
+                        <div v-if="status==2">
+                          <van-cell-group class="t-coll">
+                            <van-field required placeholder="建议使用常用邮箱" maxlength="50" label="电子邮箱"
+                             title-width='150px' @blur="valitedEmails" v-model="regData.email"
+                              clearable />
+                          </van-cell-group>
+                          <van-cell-group>
+                            <van-field required placeholder="请输入邮箱验证码" maxlength="6" label="验证码"
+                             center title-width='120px' v-model="regData.validateCode"
+                              clearable>
+                              <van-button slot="button" size="small" v-if="sendAuthCode" @click="getAuthCode">获取验证码</van-button>
+                              <van-button v-if="!sendAuthCode" disabled slot="button" size="small">
+                                <span class="auth_text_blue"></span>重新发送({{auth_time}} s)</van-button>
+                            </van-field>
+                          </van-cell-group>
+                        </div>
+                        <div v-if="status==1">
+                          <van-cell-group class="t-coll">
+                            <van-field required placeholder="请输入手机号码" maxlength="11" label="手机号"
+                             title-width='120px' @blur="valitedPhones" v-model="regData.phone"
+                              clearable />
+                          </van-cell-group>
+                          <van-cell-group>
+                            <van-field required placeholder="请输入短信验证码" maxlength="6" label="验证码"
+                             title-width='120px' v-model="regData.validateCode"
+                              use-button-slot clearable>
+                              <van-button type="primary" slot="button" size="small"
+                               v-if="sendAuthCode" @click="getCodes">获取验证码</van-button>
+                              <van-button v-if="!sendAuthCode" disabled type="primary" slot="button" size="small">
+                                <span class="auth_text_blue"></span>重新发送({{auth_time}} s)</van-button>
+                            </van-field>
+                          </van-cell-group>
+                        </div>
+                        <van-checkbox v-model="checked" class="check-box">
+                          <span class="check-box__txt t-12"> 已阅读并同意 <a class="t-color"
+                             href="${base}/protocol.htm">《用户注册协议》</a></span>
+                        </van-checkbox>
+                        <div class="login__submit">
+                          <van-button @click="register" type='primary' size="large"
+                           :disabled="!regData.username||!checked||!regData.checkpass">立即注册</van-button>
+                        </div>
+                      </div>
+                </div>
+          </template>
+        </div>
+  </body>
+</html>
+
+<script>
+   'use strict';
+    var exchange=new Vue({
+      el:'#exchange',
+      data() {
+        return {
+          formData: {
+            username: '',
+            password: '',
+          },
+          getCode: {
+            type: 1,
+            targetNumber: ""
+          },
+          isActive: 1,
+          errorStatus: false,
+          errorMsg: '',
+          isLogin: false,
+          isBinded:'${isBinded!}',
+          valitedPhone:false,//手机号是否过验证
+          valitedEmail:false,//邮箱号是否过验证
+          regData: {
+            "username": "",
+            "password": "",
+            "checkpass": "",
+            "email": "",
+            "phone": "",
+            "validateCode": "",
+            "openId":'${openId!}',//微信-必填
+            "typeCode":"${typeCode!}",//绑定方式-isBinded
+            "nickName":"${thirdUsername!}",//绑定第三方名
+            "headImgUrl":"${headImgUrl!}",//绑定头像
+            "backUrl":"${backUrl!}",//返回路径
+            "thirdId":"${thirdId!}",//第三方id
+            "appId":"${appId!}"//
+          },
+          dialogReg:false,
+          status: "${globalConfig.isOpenSMS?string('1','2')}",
+          checked: false,
+          sendAuthCode: true, //邮件发送禁用状态
+          auth_time: 120, //定时时间
+          timer: null, //倒计时定时器
+          sendStr: '发送验证码',
+        };
+      },
+  methods: {
+    tabsTap(e) {//切换tab
+        this.isActive = e
+      },
+      valitedUsernames() {//验证用户名是否存在
+        if (this.regData.username != '') {
+          checkUsername({
+            username: this.regData.username
+          }).then(res => {
+            if (res.code == 200) {
+              this.valitedUsername = res.data
+              if (!res.data) {
+                this.$toast('用户名已存在！')
+              }
+            }else{
+              this.$toast(res.message)
+            }
+          })
+        } else {
+          this.$toast('请填写用户名')
+        }
+
+      },
+      valitedPwd() {//验证密码长度
+        if (this.regData.password.length < 6) {
+          this.regData.password = ''
+          this.$toast('请输入6-16位数密码')
+        }
+      },
+      valitedPwd2() {//验证密码是否一致
+        if (this.regData.password != this.regData.checkpass) {
+          this.regData.checkpass = ''
+          this.$toast('两次密码不一致')
+        }
+      },
+      //验证邮箱是否绑定会员
+      valitedEmails() {
+        let s = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        if (s.test(this.regData.email)) {
+          checkEmail({
+            email: this.regData.email
+          }).then(res => {
+            if (res.code == 200) {
+              this.valitedEmail = res.data
+              if (!res.data) {
+                this.$toast('邮箱不可用，已绑定会员')
+              }
+            }else{
+              this.$toast(res.message)
+            }
+          })
+        } else {
+          this.$toast('请输入正确合法的邮箱号')
+        }
+      },
+      //验证手机号是否绑定会员
+      valitedPhones() {
+        let s = /^(13[0-9]|14[5|7]|15[0|1|2|3|5|6|7|8|9]|18[0|1|2|3|5|6|7|8|9])\d{8}$/
+        if (s.test(this.regData.phone)) {
+          checkPhone({
+            phone: this.regData.phone
+          }).then(res => {
+            if (res.code == 200) {
+              this.valitedPhone = res.data
+              if (!res.data) {
+                this.$toast('手机号不可用，已绑定会员')
+              }
+              return res.data
+            }else{
+              this.$toast(res.message)
+            }
+          })
+        } else {
+          this.$toast('请输入正确合法的手机号码')
+        }
+
+      },
+
+
+    login(){
+      if (!this.isLogin) {
+        this.errorStatus = false
+        this.errorMsg = ''
+        if (this.formData.username === '') {
+          this.errorStatus = true
+          this.errorMsg = '请输入用户名'
+          return false
+        }
+        if (this.formData.password === '') {
+          this.errorStatus = true
+          this.errorMsg = '请输入密码'
+          return false
+        }
+        this.isLogin = true
+       var params = {
+          username: this.formData.username,
+          pStr:encrypt(this.formData.password),
+          openId:'${openId!}',
+          typeCode:"${typeCode!}",
+          headImgUrl:"${headImgUrl!}",
+          nickName:"${thirdUsername!}",
+          thirdId:"${thirdId!}",
+          appId:"${appId!}"
+        }  
+        bindMember(params).then(res => {
+          this.isLogin = false
+          if(res.code==200){ 
+            localStorage.setItem('token',res.data.authToken)
+            location.href='${backUrl!}'
+          } else{
+            this.$toast(res.message)
+          }
+        }).catch(err=>{})
+      }
+    },
+    regClose(done) {//关闭弹窗
+      done();
+    },
+    //发送短信验证
+    getCodes() {
+        if (this.valitedPhone) {
+          this.getCode.targetNumber = this.regData.phone
+          sendPhoneMsg(this.getCode).then(res => {
+            if (res.code == 200) {
+              this.$toast('发送成功');
+            } else {
+              this.$toast(res.message);
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }).catch(error => {})
+          this.sendAuthCode = false
+          let num = this.auth_time //定义时间
+          this.auth_timetimer = setInterval(() => {
+            num--
+            this.auth_time = num
+            if (num <= 0) {
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }, 1000)
+          this.auth_time = 120
+        }else{
+          this.valitedPhones()
+        }
+      },
+      getAuthCode() { //发送邮箱验证
+        if (this.valitedEmail)  {
+          this.getCode.targetNumber = this.regData.email
+          sendEmailMsg(this.getCode).then(res => {
+            if (res.code == 200) {
+              this.$toast('发送成功');
+            } else {
+              this.$toast(res.message);
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }).catch(error => {})
+          this.sendAuthCode = false
+          let num = this.auth_time //定义时间
+          this.auth_timetimer = setInterval(() => {
+            num--
+            this.auth_time = num
+            if (num <= 0) {
+              this.sendAuthCode = true
+              this.auth_time = 120
+              clearInterval(this.auth_timetimer)
+            }
+          }, 1000)
+          this.auth_time = 120
+        }else{
+          this.valitedEmails()
+        }
+      },
+    register: function register() {
+      var item;
+      var isReg = true
+      if(this.status == 2){
+        delete this.regData.phone
+      }else{
+        delete this.regData.email
+      }
+      if(this.regData.openId==''){
+        delete this.regData.openId
+      }
+      for(item in this.regData){
+        if(this.regData[item] == ''){
+          this.$toast('请填写所有必填项信息')
+          isReg = false
+          return false
+        }else{      
+        }
+      }
+      if(!this.regData.openId){
+        this.regData.openId = ''
+      }
+      if(isReg){
+        var formData = JSON.parse(JSON.stringify(this.regData));
+        formData.pStr = encrypt(formData.password);
+        if ( this.checked) {
+          delete formData.checkpass
+          delete formData.password
+          if (this.status == 2) {
+            emailBindMember(formData).then(res => {
+              if (res.code == 200) {
+                localStorage.setItem('token',res.data.authToken)
+                location.href='${backUrl!}'
+              } else {
+                this.$toast(res.message);
+              }
+            }).catch(err => {})
+          }
+          if (this.status == 1) {
+            phoneBindMember(formData).then(res => {
+              if (res.code == 200) {
+                localStorage.setItem('token',res.data.authToken)
+                location.href='${backUrl!}'
+              } else {
+                this.$toast(res.message);
+              }
+            }).catch(err => {})
+          }
+        } else {
+          this.$toast('请勾选阅读注册协议')
+          return false;
+        }
+      }
+    }
+  },
+  created(){
+    if('${isBinded!}' == 'true'){
+      localStorage.setItem('token','${authToken!}')
+      location.href='${backUrl!}'
+    }
+  }
+
+});
+</script>
+[/#if]

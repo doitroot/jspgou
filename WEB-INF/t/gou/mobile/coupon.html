@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>消息</title>
+  [#include "./includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body class="t-page">
+  [#assign topName="领劵中心"/]
+  [#include "./includes/topbar.html"]
+  <div class="container coupon__warpper nav-top" id="coupon" v-cloak>
+    <!-- 优惠券 -->
+    <div class="coupon__items" v-for="(item,index) in couponItems" :key="index">
+      <div class="coupon__info">
+        <div class="coupon__inner">
+          <span class="coupon__price">
+            <span class="rmb">¥</span>{{item.discountAmount}}</span>
+          <span class="coupon__limt">满{{item.conOrderAmount}}元可使用</span>
+        </div>
+        <div class="coupon__inner coupon__inner--left">
+          <span class="coupon__name">{{item.name}}</span>
+          <span class="coupon__time">有效期:{{formatTime(item.useBeginTime)}} - {{formatTime(item.useEndTime)}}</span>
+        </div>
+      </div>
+      <div class='coupon__footer'>
+        <div class="coupon__save" @click="getCoupon(item.id)">立即领取</div>
+      </div>
+    </div>
+    <div v-if="couponItems.length===0" class="nothing t-14 t-label">暂无优惠券</div>
+  </div>
+  <van-toast id="van-toast" />
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#coupon',
+    data() {
+      return {
+        totals: 0,//总条数
+        couponItems: [],
+        params: {
+          page: 1,
+          size: 10
+        }
+      }
+    },
+    methods: {
+      getCoupon(id) {//领取优惠券
+        getCoupon({ couponId: id }).then(res => {
+          if (res.code == 200) {
+            this.$toast.success('领取成功！')
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { this.$toast('服务异常') })
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+      },
+      getList() {//获取活动优惠券列表
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        couponPage(this.params).then(res => {
+          this.couponItems = res.data.content
+          this.totals = res.data.totalElements
+          this.$toast.clear()
+        }).catch(err => { })
+      },
+    },
+    created() {
+      this.getList()
+    }
+  })
+</script>

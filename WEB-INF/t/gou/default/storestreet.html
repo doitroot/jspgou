@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-店铺街</title>
+  [#include "./includes/common.html"]
+</head>
+<body>
+  [#include "./includes/topBar.html"]
+  <div class="header index-search">
+    <div class="container head-wrap">
+      [#include "./includes/logo.html"]
+      [#include "./includes/search.html"]
+    </div>
+  </div>
+  [#assign status="store"/]
+  [#include "./includes/categoryMenu.html"]
+  <div id="app" v-loading="loading" v-cloak>
+    <div class="brands">
+      <div class="brands-nav">
+        <span class="brands-nav__icon"><i class="fa fa-home"></i></span>
+        <a href="${base}/">首页</a>&nbsp;>&nbsp;<a href="">全部店铺</a>
+      </div>
+      <!-- 全部分类 -->
+      <ul class="allbrand clearfix">
+        <li class="allbrand__item" :class="{'allbrand__item--active':allCateAtive}" @click="cate('')">
+          <a href="javascript:;">全部分类</a>
+        </li>
+        <ul class="clearfix allbrand__items">
+          <li class="allbrand__item" :class='[stostrData.saleCateId==list.id?"allbrand__item--active":""]' v-for="(list,index) in listData"
+            :key="index" @click="cate(list.id)"><a href="javascript:;">{{list.cateName}}</a>
+          </li>
+        </ul>
+        <a class="allbrand__lookMore" v-if="listData.length>13" href="javascript:;">查看更多<i class="fa fa-angle-down"></i></a>
+      </ul>
+      <ul class="stostr clearfix">
+        <li class="stostr__item stostr__item--nobor">排序</li>
+        <li class="stostr__item" :class='[stostrData.selfShop==""?"stostr__item":"stostr__item--active"]' @click="isSelfShop()">自营</li>
+      </ul>
+      <!-- 所有店铺名称 -->
+      <ul class="stoname clearfix stostr-box">
+        <!-- 循环 -->
+        <li class="stoname__item" v-for="(item, index) in stostrList" :key="index">
+          <!-- 是否收藏 -->
+          <span class="stoname__heart"><i class="fa" :class="item.isLike?'fa-heart':'fa-heart-o'" @click="likeChange(item.id,index)"></i></span>
+          <!-- 店铺Logo -->
+          <div class="stoname__imgs">
+            <a href="">
+              <img v-if="item.storeLogoResource" :src="item.storeLogoResource.url" alt="" class="stoname__img">
+              <img v-else src="${res}/images/store.png" alt="" class="stoname__img">
+            </a>
+          </div>
+
+          <!-- 店铺名称 -->
+          <p class="stoname__store" :title="item.storeName" @click="enterStore(item.id)">{{item.storeName}}</p>
+          <!-- 主营类目 -->
+          <p class="stoname__style">主营类目：
+            <span v-if="item.productCategory"> {{item.productCategory.cateName}}</span>
+          </p>
+          <!-- 店铺等级 -->
+          <p class="stoname__style"> 店铺等级：<img :src="'${base}'+item.storeLevel.resourcesSpaceData.url"
+              alt="" class="stoname__state"></p>
+        </li>
+      </ul>
+
+      <div class="shop__empty" v-if="stostrList.length==0&&!loading">
+        <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+      </div>
+      <!-- 分页按钮 -->
+      <div class="overflow score-pagging"  v-if="stostrList.length>0">
+        <el-pagination class="fr" background layout="prev, pager, next" :total="total" :page-size='stostrData.size'
+          @current-change="sizeChange" :current-page="stostrData.page">
+        </el-pagination>
+      </div>
+    </div>
+  </div>
+  [#include "./includes/footer.html"]
+</body>
+</html>
+<script>
+  var app = new Vue({
+    el: '#app',
+    data() {
+      return {
+        stostrData: {
+          'page': 1,
+          'size': 12,
+          'saleCateId': "",
+          'selfShop': ""
+        },
+        stostrList: [],
+        total: 0,
+        parentId: 192,
+        listData: [],
+        loading: false,
+        allCateAtive:true,//全部分类的样式控制
+      }
+    },
+    methods: {
+      likeChange(id, index) { //喜欢收藏
+        var that = this
+        if (!that.stostrList[index].isLike) {
+            cms.ajax({
+              url: cms.url + '/member/followStore/save',
+              type: 'get',
+              data: {
+                "storeId": id
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.$set(that.stostrList[index], 'isLike', true)
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+        } else if (that.stostrList[index].isLike) { //取消收藏
+            cms.ajax({
+              url: cms.url + '/member/followStore/delete',
+              type: 'get',
+              data: {
+                "storeId": id
+              }
+            }, function (res) {
+              if (res.code == 200) {
+                that.$set(that.stostrList[index], 'isLike', false)
+
+              } else {
+                cms.alert(res.message,5)
+              }
+            })
+        }
+      },
+
+      sizeChange(value) { //分页
+        this.stostrData.page = value
+        this.getStostrData()
+      },
+      cate(id) { //分类
+        if(id==''){
+          this.allCateAtive=true
+        }else{
+          this.allCateAtive=false
+        }
+        this.stostrData.saleCateId = id
+        this.getStostrData()
+        this.stostrData.saleCateId = id
+      },
+      isSelfShop() { //判断店铺是否自营
+        if (this.stostrData.selfShop == "") {
+          this.stostrData.selfShop = true
+          this.getStostrData()
+          this.stostrData.selfShop = true
+        } else if (this.stostrData.selfShop == true) {
+          this.stostrData.selfShop = ""
+          this.getStostrData()
+          this.stostrData.selfShop = ""
+        }
+      },
+      getStostrData() { //获取数据
+        this.loading = true;
+        var that = this
+        $.get(cms.url + '/storestreet', that.stostrData, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.stostrList = res.data.content //返回的内容详情
+            that.total = res.data.totalElements //返回总共的记录条数
+            that.stostrData.size = res.data.size //每页显示的条数
+          } else {
+            cms.alert('获取信息出错')
+            that.loading = false
+          }
+        })
+      },
+      getCateList() { //获取分类商品信息列表
+        var that = this
+        $.get(cms.url + '/productcategory/list', function (res) {
+          if (res.code == 200) {
+            that.listData = res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      enterStore(id){//进入店铺
+        window.location.href="${base}/store-index.htm?storeId="+id
+      }
+    },
+    mounted() {
+      this.getStostrData()
+      this.getCateList()
+    }
+  })
+</script>

@@ -1,0 +1,211 @@
+<div class="topbar" id="topBar" v-cloak>
+    <div class="container">
+        <ul class="topbar__left">
+            <li class="topbar__box topbar-left__box">
+                <a href="${base}/" class="topbar__link"><i class="fa fa-home topbar-fa-style" aria-hidden="true"></i>&nbsp;首页</a>
+            </li>
+           
+        </ul>
+        <ul class="topbar__right">
+            [#if user??]
+            <li class="topbar__box">
+                <!-- 已经登录 -->
+                <ul class="topbar-login topbar-login__true">
+                    <li class="topbar__box">
+                        <span class="topbar__link topbar-username-box">
+                            <a class="topbar-classifica topbar-username" href="${base}/member-account-index.htm"
+                                @mouseenter="getUserInfo">
+                                [#if user.nickname?? && user.nickname!='' ]
+                                    ${user.nickname!}
+                                [#else]
+                                    ${user.username!}
+                                [/#if]
+                                <img class="topbar__arrow" src="${res}/images/arrow-up.png">
+                            </a>
+                            <div class="topbar-user-drop">
+                                <div class="user-drop-above clearfix">
+                                    <div class="user-drop-above-left">
+                                        <a href="${base}/member-account-info.htm">
+                                            <img src="${user.headImgUrl!}" alt="" class="above-left-img" >
+                                        </a>
+
+                                    </div>
+                                    <div class="user-drop-above-right">
+                                        <p class="above-right-text">
+                                           
+                                            <a href="" style="width: 18px;
+                                            vertical-align: bottom;">
+                                                    <img src="${base}${user.levelImageUrl!}" style="width:18px;vertical-align: bottom;">
+                                                </a>
+                                                <a href="#" class="user-viplevel">${user.levelName!}</a>
+                                            <a href="#" class="user-login-out"
+                                                onclick="logout()">退出</a>
+                                            <br>
+                    
+                                            <a href="${base}/member-growSys.htm" class="upgrand-level">如何提升等级 ></a>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="user-drop-under" v-loading="loading">
+                                    <div class="user-under user-under-top">
+                                        <a href="${base}/member-order-index.htm?active=0" class="user-methods user-waite">
+                                            待处理订单
+                                            <span class="user-badge">
+                                                <span class="user-bage-num">{{userInfo.untreatedNum |num}}</span>
+                                            </span>
+                                        </a>
+                                        <a href="${base}/member-message-mes.htm" class="user-methods user-message">
+                                            消息
+                                            <span class="user-badge">
+                                                <span class="user-bage-num">{{userInfo.unreadNum |num}}</span>
+                                            </span>
+                                        </a>
+                                    </div>
+                                    <div class="user-under user-under-down">
+                                        <a href="${base}/member-customer-returns-index.htm" class="user-methods user-method">
+                                            退换货处理
+                                            <span class="user-badge">
+                                                <span class="user-bage-num">{{userInfo.exchangeProNum |num}}</span>
+                                            </span>
+                                        </a>
+                                        <a href="${base}/member-customer-buyConsult.htm" class="user-methods user-question">
+                                            我的问答
+                                            <span class="user-badge">
+                                                <span class="user-bage-num user-bage-num--special">{{userInfo.questionNum |num}}</span>
+                                            </span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </span>
+                    </li>
+                </ul>
+            </li>
+            <span class="topbar-line"></span>
+            <li class="topbar__box">
+                <span class="topbar__link">
+                    <a href="${base}/member-order-index.htm" class="topbar__link">
+                        我的订单
+                    </a>
+                </span>
+            </li>
+            <span class="topbar-line topbar-line-o"></span>
+            <li class="topbar__box">
+                <span class="topbar__link">
+                    <a href="${base}/member-attention-goods.htm" class="topbar__link">
+                        收藏夹
+                    </a>
+                </span>
+            </li>
+            [#else]
+            <!-- 未登录 -->
+            <ul class="topbar-login topbar-login__false">
+                <li class="topbar__box">
+                    <a class="topbar__link topbar-go-login" href="${base}/login.htm">你好，请登录</a>
+                </li>
+                <li class="topbar__box">
+                    <a class="topbar__return" href="${base}/register.htm">免费注册</a>
+                </li>
+            </ul>
+            [/#if]
+            <!-- 分割线 -->
+            <span class="topbar-line topbar-line-o topbar-line-drop"></span>
+            <li class="topbar__box topbar-sellersever-box topbar-nomargin">
+                <span class="topbar__link">
+                    <a href="#" class="topbar__link topbar-sellersever">
+                        商家服务
+                        <img class="topbar__arrow" src="${res}/images/arrow-up.png">
+                    </a>
+                    <!-- 商家服务下拉 -->
+                    <div class="topbar-sellersever-drop">
+                        <a href="${base}/member-storeRegister-store_center.htm">商家中心</a><br>
+                        <a href="${base}/member-storeRegister-store_select.htm">商家入驻</a><br>
+                        <a href="${base}/helpCenter.htm">帮助中心</a>
+                    </div>
+                </span>
+            </li>
+            <!-- 分割线 -->
+            <span class="topbar-line topbar-line-o topbar-line-drop "></span>
+            <li class="topbar__box topbar-mobile-box">
+                <span class="topbar__link">
+                    <a href="#" class="topbar__link topbar-mobile">
+                        手机购物
+                        <img class="topbar__arrow" src="${res}/images/arrow-up.png">
+                    </a>
+                    <!-- 手机购物下拉 -->
+                    <div class="topbar-mobile-drop">
+                        <div class="mobile-drop-top">
+                            <img  alt="" class="mobile-drop-top__img"   src="${base}${globalConfig.wechatQRcodeUrl!}"><br>
+                            移动商城
+                        </div>
+                        <div class="mobile-drop-down">
+                            <img  alt="" class="mobile-drop-down__img" src="${base}${globalConfig.miniprogramQRcodeUrl!}"><br>
+                            小程序
+                        </div>
+                    </div>
+                </span>
+            </li>
+        </ul>
+    </div>
+</div>
+<script>
+    function logout(params) {
+        $.post('${base}/logout', {
+            token: cms.token
+        }, function (res) {
+            if (res.code == 200) {
+                localStorage.clear()
+                location.href = '${base}/'
+            }
+        })
+    }
+</script>
+<script>
+    var topBar = new Vue({
+        el:"#topBar",
+        data() {
+            return {
+                isLoad: false,
+                loading:true,
+                userInfo: {
+                    exchangeProNum: 0,
+                    questionNum: 0,
+                    unreadNum: 0,
+                    untreatedNum: 0
+                },
+                areaName:'${globalConfig.areaName!}',
+            }
+        },
+        filters: {
+                num(val){                
+                    if(val>99){
+                    return '99+'
+                    }else{
+                        return val 
+                    }
+                    
+                }
+        },
+        methods: {
+            getUserInfo() {
+                var self=this
+                if (!this.isLoad) { //只有第一次加载才会出来    
+                    cms.ajax({
+                        url: '${base}/member/message/messageInfo',
+                        type: 'get'
+                    }, function (res) {
+                        if (res.code == 200) {
+                            self.userInfo = res.data
+                            self.isLoad=true
+                            self.loading=false
+                        }
+                    })
+                }
+            },
+            setArea(code,name){
+                this.areaName = name
+            },
+        }
+        
+    })
+</script>

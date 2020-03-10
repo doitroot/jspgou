@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-店铺搜索</title>
+  [#include "../includes/common.html"]
+</head>
+<body>
+  [#include "../includes/topBar.html"]
+  <div class="header">
+    <div class="container head-wrap">
+      [#include "../includes/logo.html"]
+      [#assign search="store"/]
+      [#include "../includes/search.html"]
+    </div>
+  </div>
+  
+  <div class="gray-container gray-container--nobg" id="app">
+    <div class="container " v-loading='loading'>
+      <!-- 订单导航 -->
+      <div class="container__nav">
+        <span class="container__report">找到相关店铺 <span class="container__report--color">{{total}}</span> 家</span>
+      </div>
+      <div class="store__title">
+        <div class="store__filter clearfix">
+          <div class="store__sorts">
+            <a href="javascript:;" class="store__item" 
+            :class="{'store__item--active':(queryParams.collections == ''&&queryParams.saleOrderCount == '')}" @click="query('')">
+              <span class="store__text">综合排序</span>
+              <em class="store__down">
+                <i class="fa fa-long-arrow-down"></i>
+              </em>
+            </a>
+            <a v-if="queryParams.saleOrderCount == '' || queryParams.saleOrderCount!='1'"
+            :class="{'store__item--active':queryParams.saleOrderCount == '0'}"
+             href="javascript:;" class="store__item" @click="query('4')">
+              <span class="store__text">成交量</span>
+              <em class="store__down">
+                <i class="fa fa-long-arrow-down"></i>
+              </em>
+            </a>
+            <a v-else
+            :class="{'store__item--active':queryParams.saleOrderCount == '1'}"
+             href="javascript:;" class="store__item" @click="query('3')">
+              <span class="store__text">成交量</span>
+              <em class="store__down">
+                <i class="fa fa-long-arrow-up"></i>
+              </em>
+            </a>
+            <a v-if="queryParams.collections == '' || queryParams.collections!='1'"
+            :class="{'store__item--active':queryParams.collections == '0'}"
+             class="store__item" @click="query('1')">
+              <span class="store__text">收藏量</span>
+              <em class="store__down">
+                <i class="fa fa-long-arrow-down"></i>
+              </em>
+            </a>
+            <a v-else class="store__item"
+            :class="{'store__item--active':queryParams.collections == '1'}"
+             @click="query('0')">
+              <span class="store__text">收藏量</span>
+              <em class="store__down">
+                <i class="fa fa-long-arrow-up"></i>
+              </em>
+            </a>
+          </div>
+          <div class="store__pages">
+            <div class="store__add fl">所在地
+              <span class="store__derdown">
+                <i class="fa fa-angle-down"></i>
+              </span>
+              <!-- 地区下拉 -->
+
+              <div class="topbar-section-drop topbar-section-drop--pos">
+                <div class="store__nowadd">
+                  当前位置：{{areaName}}
+                </div>
+                    <ul class=" clearfix topbar-section-drop-ul">
+                        [#list globalConfig.area as bean]
+                            <li class="section-box">
+                                <a href="javscript:;" @click="setArea(${bean.areaCode},'${bean.areaName}')" 
+                                class="section-box__link section-link">${bean.areaName}</a>
+                            </li>
+                       [/#list]
+                        </ul>
+              </div>
+
+            </div>
+            <div class="store__type fl">
+              店铺类型
+              <span class="store__derdown">
+                <i class="fa fa-angle-down"></i>
+              </span>
+              <!-- 商家服务下拉 -->
+              <div class="topbar-sellersever-drop topbar-sellersever-drop--pos">
+                <a @click="changeSelfShop('')" class="clearfix"
+                :class='[queryParams.selfShop===""?"store--active":""]'>全部</a>
+                <a @click="changeSelfShop(true)" class="clearfix"
+                :class='[queryParams.selfShop==true?"store--active":""]'
+                >平台自营</a>
+                <a @click="changeSelfShop(false)" class="clearfix"
+                :class='[queryParams.selfShop===false?"store--active":""]'
+                >第三方店铺</a>
+              </div>
+            </div>
+            <div class="store__page fl"  v-cloak>
+              <span class="store__dir" @click="pagePrev"><a  class="fa fa-angle-left store__dir--pr"></a></span>
+              <span class="store__dir--color">{{queryParams.page}}</span> / {{pages}}
+              <span class="store__dir"  @click="pageNext">
+                <a class="fa fa-angle-right store__dir--pl"></a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 循环项目 -->
+      <div  v-if="storeList.length > 0" class="store__goods clearfix" v-for="(item,index) in storeList">
+        <div class="store__shopinfo">
+          <div class="store__intop clearfix">
+            <div class="store__media">
+                    <img v-if="item.storeLogoResource" :src="item.storeLogoResource.url" alt="" class="member-product__img">
+                    <img v-else src="${res}/images/store.png" alt=""  class="member-product__img">
+            </div>
+            <div class="store__message">
+              <div class="store__metype" v-if="item.selfShop">
+                自营
+              </div>
+              <span class="store__meinfo"  v-cloak>{{item.storeName}}</span>
+              <br>
+              <div class="store__metype store__metype--nos">
+                卖家：
+              </div>
+              <span class="store__meinfo store__meinfo--nos"  v-cloak>{{item.storeUsername}}</span>
+              <span class="store__meadd"  v-cloak>{{item.provinceName}}</span>
+              <br>
+              <div class="store__metype store__metype--nos">
+                主营：
+              </div>
+              <span v-if="item.productCategory" class="store__meinfo store__meinfo--nos"  v-cloak>{{item.productCategory.cateName}}</span>
+            </div>
+          </div>
+          <div class="store__inbot">
+            <div class="store__mount clearfix">
+              <div class="store__media store__media--font">
+                销量：<span class="store__media--color"  v-cloak>{{item.productSalesNumber}}</span>
+              </div>
+              <div class="store__message">
+                <div class="store__metype store__metype--nos">
+                  共<span class="store__media--color"  v-cloak>{{item.productNumber}}</span>件商品
+                </div>
+              </div>
+            </div>
+            <div class="store__mount clearfix">
+              <div v-if="item.storeStatistic" class="store__media store__media--font">
+                服务态度：<span class="store__media--color"  v-cloak>{{item.storeStatistic.service}}</span>
+              </div>
+              <div class="store__message">
+                <div v-if="item.storeStatistic" class="store__metype store__metype--nos">
+                  商品描述：<span class="store__media--color"  v-cloak>
+                    {{item.storeStatistic.service}}
+                  </span>
+                  <span class="store__dir--pl">发货速度</span>：
+                  <span class="store__media--color"  v-cloak>
+                    {{item.storeStatistic.express}}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="store__shopbtn">
+          <a :href="'${base}/store-index.htm?storeId='+item.id" class="store__buy">进店逛逛</a>
+
+        <!-- 店铺收藏 -->
+        <span  v-if="!item.isSave">
+          <a href="" @click.prevent="followShop(item.id,index)"  class="store__collect">收藏店铺</a>
+        </span>
+        <!-- 取消收藏 -->
+        <span v-else>
+          <a href="" @click.prevent="cancelFollowShop(item.id,index)"  class="store__collect" >取消收藏</a>
+        </span>
+
+        </div>
+        <ul class="store__shopimg">
+          <li class="store__shopitem" v-for='(product,index) in item.products'>
+            <a :href="'${base}/product-detail.htm?productId='+product.id">
+              <div class="store__photo" >
+                <img :src="baseUrl+product.resources[0].imageResouce.url" class="member-product__img"
+                  alt=""
+                  v-if='product.resources[0].imageResouce'>
+              </div>
+              <p class="store__oversize">{{product.name}}</p>
+              <p class="store__price">￥{{$float(product.salePrice)}}</p>
+            </a>
+          </li>
+          <div v-if="item.products.length==0&&!loading" style="margin:30px 280px;text-align:center;">
+            <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+        </div>
+        </ul>
+      </div>
+
+      <p class="store__cates" v-if="storeList.length > 0"> 
+        <el-pagination background layout="prev, pager, next" :total="total" :page-size='10' @current-change="sizeChange"
+         :current-page="queryParams.page"
+        >
+        </el-pagination>
+      </p>
+      <div v-if="storeList.length == 0" class="container">
+        <div style="padding:20px 60px;">
+          <i class="fa fa-warning" style="color:#ffcc00;font-size:24px;position: relative;
+          top: 4px;"></i>
+          <span style="font-size: 14px;
+          font-weight: 700;
+          color: #f60;">
+              抱歉，没有找到与“<em style="color:#333;top:4px;" class="prod-search-head-b">${keyword!?html}</em>”相关的店铺
+          </span>
+        </div>
+    </div>
+   </div>
+  </div>
+  <!-- start -->
+  [#include "../includes/footer.html"]
+</body>
+</html>
+<script>
+  var app = new Vue({
+    el:'#app',
+    data:{
+      loading:false,
+      queryParams:{
+        "storeName": "${keyword!}",
+        "selfShop": "",
+        "provinceCode": "",
+        "collections":"",
+        "saleOrderCount":"",
+        "page": 1,
+        "size": 10
+      },
+      areaName:'${globalConfig.areaName!}',
+      baseUrl:cms.imgUrl,
+      storeList:[],
+      total:0,
+      page:0,
+    },
+    computed:{
+      pages(){
+        var num = this.total%this.queryParams.size
+        var pages = parseInt((this.total-num)/this.queryParams.size)
+        if(num > 0){
+          this.page = pages+1
+          return pages+1
+        }else if(pages > 0){
+          this.page = pages
+          return pages
+        }else{
+          this.page = 1
+          return 1
+        }
+      }
+    },
+    methods:{
+      setArea(code,name){
+        this.queryParams.page = 1
+        this.areaName = name
+        this.queryParams.provinceCode = code
+        this.getStoreList()
+      },
+      followShop(id,index){//关注店铺
+        var that = this
+          cms.ajax({
+            url: cms.url + '/member/followStore/save',
+            type: 'get',
+            data: {"storeId":id}
+          },function(res){
+          if(res.code == 200){
+            that.$set(that.storeList[index],'isSave',true)
+            console.log(that.storeList[index].isSave)
+            cms.alert('收藏成功',4)
+          } else {
+            cms.alert('发生错误',5)
+          }
+        })
+      },
+
+      cancelFollowShop(id,index){//取消关注店铺
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/followStore/delete',
+          type: 'get',
+          data: { "storeId" : id }
+        },function(res){
+          if(res.code == 200){
+            that.$set(that.storeList[index],'isSave',false)
+            console.log(that.storeList[index].isSave)
+            cms.alert('取消收藏成功',4)
+          } else {
+            cms.alert('发生错误',5)
+          }
+        })
+      },
+
+      getStoreList(){//获取店铺列表接口信息
+        this.loading = true;
+        var that = this
+        cms.ajax({
+          url:cms.url+'/searchstore',
+          type:'get',
+          data:that.queryParams,
+        }, (res)=> {
+          if(res.code===200){
+            that.loading = false;
+            that.total = res.data.totalElements
+            that.storeList = res.data.content;
+          }else{
+            cms.alert("内容加载失败",5)
+            that.loading = false;
+          }
+        })
+      },
+      sizeChange(value){//分页改变
+        this.queryParams.page = value
+        this.getStoreList()
+      },
+      pagePrev(){
+        this.queryParams.page-=1
+        if(this.queryParams.page<1){
+          this.queryParams.page=1
+          return false
+        }else{
+          this.getStoreList()
+        }
+      },
+      pageNext(){
+        if(this.queryParams.page>=this.page){
+          return false
+        }else{
+          this.queryParams.page+=1
+          this.getStoreList()
+        }
+      },
+      changeSelfShop(status){
+        this.queryParams.page = 1
+        this.queryParams.selfShop=status
+        this.getStoreList()
+      },
+      query(val){
+        this.queryParams.page = 1
+        if(val == ''){
+          this.queryParams.saleOrderCount = ''
+          this.queryParams.collections = ''
+          this.getStoreList()
+        } else{
+          val < 2?(this.queryParams.collections = val,
+          this.queryParams.saleOrderCount = ''):(this.queryParams.saleOrderCount =String( parseInt(val)-3),
+          this.queryParams.collections = '')
+          this.getStoreList()
+        }
+      }
+    },
+    created(){
+      this.getStoreList()
+    }
+  })
+</script>

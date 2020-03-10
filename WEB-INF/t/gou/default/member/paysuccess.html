@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>${globalConfig.mallName!}-支付成功提示页</title>
+  [#include "../includes/common.html"]
+</head>
+<body>
+    [#include "../includes/topBar.html"]
+    <div class="header">
+      <div class="container head-wrap">
+        [#include "../includes/logo.html"]
+        [#assign search="product"/]
+        [#include "../includes/search.html"]
+      </div>
+    </div>
+    [#include "../includes/categoryMenu.html"]
+    <div class="shopCart-succes">
+        <div class="container shopCart-succes__wrap">
+          <div class="shopCart-succes__order">
+            <div class="shopCart-succes__images">
+              <img class="shopCart-succes__img" src="${res}/images/order-sucess.png" >
+            </div>
+            <div class="shopCart-succes__txt">
+              <div class="shopCart-succes__price">恭喜您已成功支付 <span class="t-color t-wide"> ￥${(amount?number)?string(',###0.00')}</span> 元</div>
+              <div class="shopCart-succes__ordernum">订单号 : ${orderCode!}</div>
+            </div>
+          </div>
+          <div class="shopCart-succes__btns">
+              <a class="shopCart-succes__back" href="${base}/" > 继续购物</a>
+              <a class="shopCart-succes__show" href="${base}/member-order-index.htm" > 查看订单</a>
+           </div>
+        </div>
+        <div class="shopcart-tips">
+          <span class="fa fa-exclamation-circle shopcart-tips__icon"></span>
+          安全提醒：本商城不会以系统维护，订单异常等理由，要求您点击垃圾或其他方式进行退款操作，或以各种理由索取您的隐私信息（如个人身份信息、会员账户、银行卡号、密码及手机验证码等）
+        </div>
+        <div class="container">
+            [#include "../includes/recommend.html"]
+        </div>      
+      </div>
+      [#include "../includes/footer.html"]
+</body>
+</html>

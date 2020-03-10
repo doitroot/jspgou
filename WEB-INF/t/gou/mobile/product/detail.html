@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <title>${globalConfig.mallName!}-商品详情</title>
+  [#include "../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+
+<body>
+  [#assign topName="商品详情"/]
+  [#include "../includes/topbar.html"]
+  <div class="nav-top" id="goodsDetail" v-cloak>
+    <div class="cms t-detail" v-if="!loading">
+      <van-swipe :autoplay="5000" class="gs-swiper" indicator-color="white">
+        <van-swipe-item class="gs-banner" v-for="(item,index) in goodItem.imgResources" :key="index">
+          <img class="gs-banner-img slide-image" :src="item.imageResouce?baseUrl+item.imageResouce.url:'#'" />
+        </van-swipe-item>
+      </van-swipe>
+      <div class="gs-box">
+        <div class="gs-box-title">{{goodItem.product.name}}</div>
+        <div class="gs-box-explain">{{goodItem.product.summary}}</div>
+        <div v-if="goodItem.proStatus==1">
+          <div class="gs-box-price">
+            <span class="gs-price-new t-color"><span class="coupon__limt">￥</span>{{$float(goodItem.product.salePrice)}}</span>
+            <span class="gs-price-old t-label">¥{{$float(goodItem.product.marketPrice)}}</span>
+          </div>
+          <div class="gs-box-foot t-label">
+            <div class="gs-box-left">销量：{{goodItem.proStatistic.totalSales}}件</div>
+            <div class="gs-box-center">评论：{{goodItem.proStatistic.totalComment}}条</div>
+            <div class="gs-box-right">人气：{{goodItem.proStatistic.totalCollections}}</div>
+          </div>
+        </div>
+        <div v-else class="gs-box-explain">
+          <span>商品已下架</span>
+        </div>
+      </div>
+      <div class="t-space" v-if="goodItem.promotes.length > 0"></div>
+      <div class="gs-cell" v-if="goodItem.promotes.length > 0" @click="showDiscount = true">
+        <div class="gs-box-left t-label">优惠</div>
+        <div class="gs-cell-item">
+          <van-tag class="gs-tag" v-for="(item,index) in goodItem.promotes" :key="index" 
+          v-if="item.promoteType == 4" plain type="primary">{{item.name}}</van-tag>
+        </div>
+        <div class="gs-box-right t-label">••• </div>
+        <!-- 优惠券列表 -->
+        <van-popup class="t-page" v-model="showDiscount" position="bottom" :close-on-click-overlay="false">
+          <div style="overflow:hidden;height:400px;margin-bottom:40px">
+            <div class="t-popup__wrap" style="height:100%;overflow: auto;padding: 10px;">
+              <!-- 优惠券 -->
+                <div class="st-act-wrap" v-if="couponpromotionList.length>0">
+                  <div class="st-act-title">优惠券</div>
+                    <div class="st-act-box st-act-box-pen" v-for="(item,index) in couponpromotionList" :key="index" >
+                    <div class="st-act-cont t-color">
+                      <div class="st-act__inner">
+                        <span class="coupon__price"><span class="rmb">¥</span>{{item.discountAmount}}</span>
+                      </div>  
+                      <div class="st-act__txt" >
+                        <div class="st-act__name cell-1">{{item.name}}</div>
+                        <div class="st-act__time">{{formatTime(item.useBeginTime)}} - {{formatTime(item.useEndTime)}}</div>
+                      </div>
+                      <div class="st-act__btn" @click.stop="getCoupon(item.id)">立即领取</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 单品折扣 -->
+                <div class="st-act-wrap" v-if="promotionList[0].length>0">
+                  <div class="st-act-title">折扣</div>
+                  <div class="st-coupon-flex" >
+                    <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[0]" :key="index" >
+                      <div class="st-coupon-icon st-icon03"></div>
+                      <div class="st-coupon-title">
+                        <span class="st-coupon-txt">{{item.name}}</span>
+                      </div>
+                      <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 一口价 -->
+                <div class="st-act-wrap" v-if="promotionList[1].length>0">
+                  <div class="st-act-title">一口价</div>
+                  <div class="st-coupon-flex" >
+                    <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[1]" :key="index" >
+                      <div class="st-coupon-icon st-icon03"></div>
+                       <div class="st-coupon-title">
+                        <span class="st-coupon-txt">{{item.name}}</span>
+                      </div>
+                      <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 满减 -->
+                <div class="st-act-wrap" v-if="promotionList[2].length>0">
+                  <div class="st-act-title">满减</div>
+                  <div class="st-coupon-flex" >
+                    <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[2]" :key="index" >
+                      <div class="st-coupon-icon st-icon01"></div>
+                      <div class="st-coupon-title">
+                        <span class="st-coupon-txt">{{item.name}}</span>
+                      </div>
+                      <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 满赠 -->
+                <div class="st-act-wrap" v-if="promotionList[4].length>0">
+                  <div class="st-act-title">满赠</div>
+                  <div class="st-coupon-flex" >
+                    <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[4]" :key="index" >
+                      <div class="st-coupon-icon st-icon02"></div>
+                      <div class="st-coupon-title">
+                        <span class="st-coupon-txt">{{item.name}}</span>
+                      </div>
+                      <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 包邮 -->
+                <div class="st-act-wrap" v-if="promotionList[5].length>0">
+                  <div class="st-act-title">包邮</div>
+                  <div class="st-coupon-flex" >
+                    <div class="st-coupon-box t-color" v-for="(item,index) in promotionList[5]" :key="index" >
+                      <div class="st-coupon-icon st-icon04"></div>
+                      <div class="st-coupon-title">
+                        <span class="st-coupon-txt">{{item.name}}</span>
+                      </div>
+                      <div class="st-coupon-time">{{formatTime(item.promoteBeginTime)}} - {{formatTime(item.promoteEndTime)}}</div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+          <div class="foot-sub foot-box t-foot" @click.stop="showDiscount=false">关闭</div>
+        </van-popup>
+      </div>
+      <div v-if="goodItem.hasSkuAttr" class="t-space"></div>
+      <div v-if="goodItem.hasSkuAttr" class="gs-cell" @click="selecSku">
+        <div class="gs-box-left t-label">选择</div>
+        <div class="gs-cell-item gs-bottom">
+          <span v-if="skuSure != ''" class="cell-1">已选择{{skuSure}}</span>
+          <span v-else-if="goodItem.skuAttrs.length > 1">请选择{{goodItem.skuAttrs[0].attrName}}、{{goodItem.skuAttrs[1].attrName}} </span>
+          <span v-else>请选择{{goodItem.skuAttrs[0].attrName}}</span>
+        </div>
+        <div class="gs-box-right t-label gs-bottom">
+          <van-icon name="arrow" />
+        </div>
+      </div>
+      <div class="t-space"></div>
+      <div class="gs-cell gs-bottom">
+        <div class="gs-box-left t-label">商品评价 <span class="gs-tag gs-left">好评度 {{evaBranch}} % </span></div>
+        <div class="gs-box-right t-label " @click="toevaList">
+          <span>查看全部 {{basicInfo.commentTotalCount}} 条 </span>
+          <van-icon name="arrow" />
+        </div>
+      </div>
+      <div class="gs-cell gs-bottom" v-if="basicInfo.commentTotalCount > 0">
+        <div class="gs-tall" :class="active===0?'active-q':''" @click="searchList(0)">有图 {{basicInfo.groupCommentMatchedCount.matchStrHasResouces}}</div>
+        <div class="gs-tall" :class="active===3?'active-q':''" @click="searchList(3)">好评 {{basicInfo.groupCommentMatchedCount.matchStrGood}}</div>
+        <div class="gs-tall" :class="active===2?'active-q':''" @click="searchList(2)">中评 {{basicInfo.groupCommentMatchedCount.matchStrMiddle}}</div>
+        <div class="gs-tall gs-bad" :class="active===1?'active-q':''" @click="searchList(1)">差评 {{basicInfo.groupCommentMatchedCount.matchStrFall}}</div>
+      </div>
+      <div class="gs-panels">
+        <div v-if="basicInfo.commentTotalCount >0" class="gs-panel gs-bottom" v-for="(item,index) in basicInfoList" :key="index">
+          <div class="gs-panel-title">
+            <div class="gs-box-left">
+              <img class="gs-panel-portrait" :src="baseUrl+item.headImageUrl" />
+              <span class="t-label">{{item.confusingName}}</span>
+            </div>
+            <div class="gs-box-right t-label">{{item.commentCreateTime}}</div>
+          </div>
+          <div class="gs-panel-cont">
+            <span>{{item.commentContent}}</span>
+          </div>
+          <div class="gs-panel-foot t-label">
+            <span>{{item.productSkuName}}</span>
+          </div>
+          <div class="gs-panel__img" v-if="item.commentResources.length >0">
+            <img class="gs-panel__image" v-for="(img,imgIndex) in item.commentResources" :key="imgIndex" :src="img?baseUrl+img.url:'#'" />
+          </div>
+        </div>
+        <div v-if="basicInfo.commentTotalCount < 1" class="nothing t-14 t-label">暂无评论</div>
+      </div>
+      <div class="t-space"></div>
+      <div class="gs-cards" v-if="storeInfo">
+        <div class="gs-card">
+          <img class="gs-shop-img" :src="storeInfo.securityService.resourcesSpaceData?baseUrl+storeInfo.securityService.resourcesSpaceData.url:'#'" />
+          <div class="gs-card-title gs-left">
+            <span>{{storeInfo.store.storeName}} </span>
+          </div>
+        </div>
+        <div class="gs-panel-title gs-card-btns">
+          <div v-if="!isStoreUp" class="gs-box-center gs-card-btn" @click="storeUp">收藏店铺</div>
+          <div v-else class="gs-box-center gs-card-btn">已收藏</div>
+          <div @click="toStore(storeInfo.store.id)" class="gs-box-center gs-card-btn">进入店铺</div>
+        </div>
+      </div>
+      <!-- 看了又看 -->
+      <div class="t-space"></div>
+      <div class="gs-eyes" v-if="recommends.length >0">
+        <div class="gs-panel-title">
+          <div class="gs-box-left gs-eyes-margin" v-for="(item,index) in recommends" :key="index" @click="toGoodsDetail(item.product.id)">
+            <img class="gs-eyes-img" :src="item.resources[0].imageResouce?baseUrl+item.resources[0].imageResouce.url:'#'" />
+            <div class="gs-panel-cont gs-eyes-txt">{{item.product.name}}</div>
+            <div class="t-color"><span class="t-rmb">￥</span>{{$float(item.product.salePrice)}}</div>
+          </div>
+        </div>
+      </div>
+      <div class="t-space"></div>
+      <div class="gs-cell">
+        <div class="gs-title">商品详情</div>
+      </div>
+       <!-- 头部版式 -->
+      <div class="pcTxt"   v-if="goodItem.txt.topTpl" v-html="goodItem.txt.topTpl.content"></div>
+      <div>
+        <div class="pcTxt" v-if="goodItem.txt" v-html="goodItem.txt.pcTxt"></div>
+      </div>
+      <!-- 底部版式 -->
+      <div  class="pcTxt" v-if="goodItem.txt.bottomTpl" v-html="goodItem.txt.bottomTpl.content"></div>
+      <van-goods-action style="background:#fff;">
+        <van-goods-action-mini-btn @click.stop="toCart" icon="cart" text="购物车" info=""></van-goods-action-mini-btn>
+        <van-goods-action-mini-btn @click.stop="toStore(storeInfo.store.id)" icon="shop" text="店铺"></van-goods-action-mini-btn>
+        <van-goods-action-big-btn @click.stop="saveCart" text="加入购物车" type="warning" :disabled="disabled"></van-goods-action-big-btn>
+        <van-goods-action-big-btn primary @click.stop="createOrder" text="立即购买" :disabled="disabled"></van-goods-action-big-btn>
+      </van-goods-action>
+
+      <van-popup v-model="skuShow" position="bottom" :overlay="true" @close="onClose">
+        <div class="sku-box t-12">
+          <div class="sku-bg"></div>
+          <div class="sku-header t-bottom" catchtouchmove="true">
+            <div class="sku-imgs">
+              <img class="sku-img" :src="goodItem.imgResources[0]?baseUrl+goodItem.imgResources[0].imageResouce.url:'#'" />
+            </div>
+            <div class="sku-name">
+              <div class="sku-name__title cell-2">{{goodItem.product.name}}</div>
+              <div class="t-color ">￥ {{$float(viewPrice)}}</div>
+              <div v-if="selSku!=''" style="font-size:11px;color:#999;" class="cell-1 ">已选：{{selSku}}</div>
+            </div>
+            <div class="sku-del"></div>
+          </div>
+          <div class="sku-cont container">
+            <div class="shaixuan-item" v-for="(item,index) in goodItem.skuAttrs" :key="index">
+              <div class="option-title">
+                <div class="option-title__item">{{item.attrName}}</div>
+              </div>
+              <div class="option-box">
+                <div class="option-box__item cell-1" :class="info.isChecked?'option-ok':''" v-for="(info,idx) in item.attrs" :key="idx" @click="checkedAttrs(index,idx,info.attrValueCode)">{{info.attrValueName}}</div>
+              </div>
+            </div>
+            <div class="sku-num" catchtouchmove="true">
+              <div class="sku-num__title">数量</div>
+              <div class="sku-num__title t-right">
+                <van-stepper value="number" @change="changeNum" />
+              </div>
+            </div>
+            <div class="sku-foot" catchtouchmove="true">
+              <van-button type="primary" size="large" @click="selecSures">确定</van-button>
+            </div>
+          </div>
+        </div>
+      </van-popup>
+    </div>
+  </div>
+  <div v-else class="van-list__finished-text">加载中....</div>
+</body>
+
+</html>
+
+<script>
+  var goodsDetail = new Vue({
+    el: '#goodsDetail',
+    data() {
+      return {
+        loading: true,
+        active:-1,
+        baseUrl: '${base}', //当前路径
+        id: '${productId!}', //商品id
+        storeId: '${storeId!}', //店铺id
+        goodItem: {}, //商品信息
+        basicInfo: {}, //当前评论信息
+        recommends: [], //店主推荐
+        basicInfoList: [],
+        storeInfo: null, //店铺信息
+        isStoreUp: false, //是否收藏
+        skuShow: false, //规格弹窗
+        viewPrice: 0, //当前价格
+        checkedSkuCodes: {},
+        skus: {}, //当前规格
+        checkedSku: null, //选中的sku信息
+        productId: '',
+        number: 1, //当前选择数量
+        selecSure: false, //当前未选择
+        subOrder: null, //是否点击立即购买
+        skuSure: '',
+        selSku: '',
+        skuSures: [],
+        evaBranch: '',
+        showDiscount: false, //优惠券列表
+        promotionList:[],//优惠活动列表
+        couponpromotionList: [],// 店铺优惠券活动
+        token: localStorage.getItem('token') ? true : false, //是否登陆
+      }
+    },
+    computed: {
+      disabled() {
+        if (this.goodItem.proStatus == 1) {
+          return this.goodItem.inventory <= 0
+        } else {
+          return true
+        }
+      }
+    },
+    methods: {
+      searchList(num){//筛选评论
+        this.active = parseInt(num)
+        this.getBasicInfoList(parseInt(num))
+      },
+      getCoupon(id) { //领取优惠券
+        getCoupon({
+          couponId: id
+        }).then(res => {
+          if (res.code == 200) {
+            this.$toast.success('领取成功！')
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {
+          this.$toast('服务异常')
+        })
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+      },
+      toevaList() { //评价页面
+        location.href = '${base}/product-evaluate.htm?id=' + this.id
+      },
+      selecSures() { //确认当前选项
+        this.onClose()
+        if (!this.selecSure) {
+          this.selecSure = true
+        }
+        this.skuSure = this.skuSures.join('、')
+        if (this.subOrder === 'sub') {
+          this.createOrder()
+        }else if(this.subOrder === 'cart'){
+          this.saveCart()
+        }
+      },
+      changeNum(e) { //当前数量
+        this.number = e.detail
+      },
+      onClose() { //关闭规格弹窗
+        this.skuShow = false
+      },
+      selecSku(type) { //开启规格弹窗
+        if (type) { //未选中规格点击购买
+          this.subOrder = type
+        }
+        if (this.checkedSku == null) {
+          this.isAttrs()
+        }
+        this.skuShow = true
+      },
+      getGoodItem() {
+        //获取商品相关信息
+        productGet({
+          id: this.id
+        }).then(res => {
+          if (res.code == 200) {
+            let obj = res.data
+            if(obj.proStatus > 1||obj.product.inventory <= 0){
+              this.disabled=true
+            }
+            var arr = obj.promotes
+            var arr2 = []
+            var couponArr = []
+            if(arr.length > 0){
+              arr2 = [[],[],[],[],[],[]]
+              arr.forEach(v=>{
+                if (v.promoteType == 4) {
+                  var coupons = v.coupons
+                  if (coupons.length > 0) {
+                    coupons.forEach(item => {
+                      item.title = v.name
+                      couponArr.push(item)
+                    })
+                  }
+                }
+                if(v.conType == 1){
+                  v.conType = '满'+v.conOrderAmount+'元可使用'
+                }else if(v.conType == 2){
+                  v.conType = '每满'+v.conOrderAmount+'可优惠'+v.discountAmount
+                }else{
+                  v.conType ='第'+v.conProductNum+'件商品可使用'
+                }
+                arr2[v.promoteType-1].push(v)
+              })
+            }
+            this.promotionList=arr2
+            this.couponpromotionList = couponArr
+            this.getTheStoreItem(res.data.product.storeId)
+            this.goodItem = res.data
+            this.storeId = res.data.product.storeId
+            this.viewPrice = res.data.product.salePrice
+            this.loading = false
+            this.getSkus(res.data.skus)
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+        //保存足迹
+        [#if user??]
+					this.setTracks()
+					[/#if]
+        //获取评论基本信息
+        ordercommentdfrontBasicInfo({
+          proId: this.id
+        }).then(res => {
+          if (res.code == 200) {
+            var obj = res.data
+            this.evaBranch = this.$float((obj.groupCommentMatchedCount.matchStrGood / obj.commentTotalCount) * 100)
+            this.basicInfo = obj
+            if (res.data.commentTotalCount > 0) { //如果有评论则加载评论列表
+              this.getBasicInfoList('')
+            }
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+
+      },
+      getTheStoreItem(id) {
+        //店主推荐
+        productStoreRecommends({
+          storeId: id
+        }).then(res => {
+          if (res.code == 200) {
+            this.recommends = res.data
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+        //获取店铺信息
+        storeGet({
+          storeId: id
+        }).then(res => {
+          if (res.code == 200) {
+            this.storeInfo = res.data
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      storeUp() { //收藏店铺
+        followStoreSave({
+          storeId: this.storeId
+        }).then(res => {
+          if (res.code == 200) {
+            this.$toast('收藏成功！')
+            this.isStoreUp = true
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      setTracks() { //登录成功才会添加足迹
+        myTracksSave({productId:this.id}).then(res => {})
+      },
+      getBasicInfoList(matched) { //评论分页
+        let params = {
+          'page': 1,
+          'size': 2,
+          'proId': this.id,
+          "matched": matched,
+        }
+        ordercommentdfrontPage(params).then(res => {
+          if (res.code == 200) {
+            let arr = res.data.content
+            arr.forEach(v => {
+              let time = moment(v.commentCreateTime).format('YYYY-MM-DD')
+              v.commentCreateTime = time
+            })
+            this.basicInfoList = arr
+          } else {
+            // this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      checkedAttrs(index, index2, checkedSkuCodes) { //sku选中
+        let skuSures = this.skuSures
+        let skuAttrs = this.goodItem.skuAttrs
+        var attrObject = skuAttrs[index]
+        attrObject.attrs.forEach((v, i) => {
+          attrObject.attrs[i].isChecked = false
+        });
+        attrObject.attrs[index2].isChecked = true
+        checkedSkuCodes[index] = attrObject.attrs[index2].attrValueCode
+        skuSures[index] = attrObject.attrs[index2].attrValueName
+        var arr = []
+        for (var key in checkedSkuCodes) {
+          arr.push(checkedSkuCodes[key])
+        }
+        this.checkedSkuCodes = checkedSkuCodes
+        this.goodItem.skuAttrs = skuAttrs
+        this.skuSures = skuSures
+        var checkedCodesString = arr.sort((a, b) => {
+          return a - b
+        }).join('-') // 从小到大排序
+        if (this.skus[checkedCodesString]) {
+          this.checkedSku = this.skus[checkedCodesString]
+          if (this.checkedSku.salesPrice) {
+            this.viewPrice = this.checkedSku.salesPrice
+          }
+        }
+        this.selSku = skuSures.join('、')
+      },
+      isAttrs() { //默认选择
+        let checkedSkuCodes = this.checkedSkuCodes
+        let skuSures = this.skuSures
+        var skuAttrs = this.goodItem.skuAttrs
+        for (let i = 0; i < skuAttrs.length; i++) {
+          skuAttrs[i].attrs.forEach((v, j) => {
+            skuAttrs[i].attrs[j].isChecked = false
+          });
+          skuAttrs[i].attrs[0].isChecked = true
+          checkedSkuCodes[i] = skuAttrs[i].attrs[0].attrValueCode
+          skuSures[i] = skuAttrs[i].attrs[0].attrValueName
+        }
+        var arr = []
+        for (var key in checkedSkuCodes) {
+          arr.push(checkedSkuCodes[key])
+        }
+        this.checkedSkuCodes = checkedSkuCodes
+        this.goodItem.skuAttrs = skuAttrs
+        this.skuSures = skuSures
+        var checkedCodesFrist = arr.sort((a, b) => {
+          return a - b
+        }).join('-') // 从小到大排序
+        if (this.skus[checkedCodesFrist]) {
+          this.checkedSku = this.skus[checkedCodesFrist]
+          if (this.checkedSku.salesPrice) {
+            this.viewPrice = this.checkedSku.salesPrice
+          }
+        }
+      },
+      getSkus(data) { //处理sku数组
+        let obj = {}
+        data.forEach((v, i) => {
+          obj[v.saleAttrCode] = v
+        })
+        this.skus = obj
+      },
+      saveCart() { //添加商品到购物车
+        let params = []
+        if (this.goodItem.skus.length > 0) {
+          if (this.selecSure) {
+            params = [{
+              "productId": "",
+              "productSkuId": this.checkedSku.id,
+              "num": this.number
+            }]
+          } else {
+            this.selecSku('cart')
+            return
+          }
+        } else {
+          params = [{
+            "productId": this.goodItem.product.id,
+            "productSkuId": "",
+            "num": this.number
+          }]
+        }
+        cartAddProduct({
+          items: params
+        }).then(res => {
+          if (res.code == 200) {
+            this.$toast.success('添加至购物车成功')
+            this.subOrder = ''
+          } else {
+            this.$toast(res.message)
+            this.subOrder = ''
+          }
+        }).catch(err => {})
+      },
+      createOrder() { //立即购买test
+        this.subOrder = ''
+        if (!this.token) {
+          this.$toast.loading({
+            duration: 1000, // 持续展示 toast
+            forbidClick: true, // 禁用背景点击
+            loadingType: 'spinner',
+            message: '跳转中...'
+          });
+          setTimeout(() => {
+            location.href = '${base}/login.htm?url=' + location.href
+          }, 1000);
+          return
+        }
+        let params = {
+          "isFromShopCart": false,
+          "products": [{
+            "productId": "",
+            "productSkuId": 702,
+            "count": 2
+          }]
+        }
+        if (this.goodItem.hasSkuAttr || this.skuSure != '') { //判断是否有有规格
+          if (this.checkedSku && this.checkedSku.id !== '') {
+            params.products = [{
+              "productId": "",
+              "productSkuId": this.checkedSku.id,
+              "count": this.number
+            }]
+          } else {
+            this.selecSku('sub')
+            return false
+          }
+          if (this.checkedSku.inventory <= 0) { //
+            this.$toast('该规格商品库存不足')
+            return false //价格小于0
+          } else {
+            this.submitOrder(params)
+          }
+        } else {
+          params.products = [{
+            "productId": this.goodItem.product.id,
+            "productSkuId": "",
+            "count": this.number
+          }]
+          if (this.goodItem.product.inventory <= 0) { //todo库存判断
+            return false //价格小于0
+          } else {
+            this.submitOrder(params)
+          }
+        }
+      },
+      submitOrder(data) { //提交订单
+        memberOrderPrePay(data).then(res => {
+          if (res.code == 200) {
+            localStorage.setItem('submit', JSON.stringify(res.data))
+            location.href = '${base}/member-cart-settlement.htm'
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {
+          this.$toast(err.message)
+        })
+      },
+      toGoodsDetail(id) { //查看商品详情
+        location.href = "${base}/product-detail.htm?productId=" + id
+      },
+      toCart() { //去购物车
+        location.href = '${base}/member-cart-index.htm'
+      },
+      toStore(id) { //查看店铺
+        location.href = '${base}/store-index.htm?storeId=' + id
+      },
+    },
+    created() {
+      if (this.id && this.id != '') {
+        this.getGoodItem()
+      } else {
+        this.$toast('数据加载失败')
+        setTimeout(() => {
+          window.history.back()
+        }, 2000);
+      }
+    }
+  })
+
+</script>

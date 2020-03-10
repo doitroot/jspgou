@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    [#include "../../includes/common.html"]
+  <title>${globalConfig.mallName!}-${refundName!}</title>
+  
+</head>
+<body class="t-page">
+  [#assign topName=refundName /]
+  [#include "../../includes/topbar.html"]
+  <div id="refund" v-cloak>
+    <div class="cms nav-top" v-if="productDesc">
+      <div class="order-rwarp" style="padding-bottom:50px;">
+        <div class="order_goods">
+          <div class="order__goodsImages"><img class="order__goodsImg"
+             :src="productDesc.orderItem.product?baseUrl+productDesc.orderItem.product.coverImage:'#'" /></div>
+          <div class="order__goodstxt">
+            <div class="order__goodstitle cell-2">{{productDesc.orderItem.product.name}}</div>
+            <div class="order__price">
+              <span class="t-label">单价：</span>
+              <span class="order-weight" style="margin-right:10rpx;">￥{{$float(productDesc.orderItem.realPrice)}}</span>
+              <span class="t-label">购买数量：</span>
+              <span class="order-weight" style="margin-right:10rpx;">{{productDesc.orderItem.productCount-productDesc.orderItem.returnCount}}</span>
+              <span v-if="status == 1" class="t-label">申请数量：</span>
+              <span v-if="status == 1" class="order-weight">{{productDesc.orderItem.productCount-productDesc.orderItem.returnCount}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="t-space"></div>
+        <van-cell-group>
+          <van-cell @click="toLog" v-if="status == 1" title="货物状态" is-link :value="proStatus" ></van-cell>
+          <van-cell v-if="status != 1" title="申请数量" >
+            <div slot="right-icon">
+              <van-stepper v-model="refundCount" min="1"
+              :max="productDesc.orderItem.productCount-productDesc.orderItem.returnCount"
+              @change="changeCount(refundCount)" />
+            </div>
+          </van-cell>
+          <van-cell @click="showSelReason" title="申请原因" is-link v-model="reason" ></van-cell>
+          <van-field
+            v-model="customerTxt"
+            clearable
+            label="问题描述"
+            type="textarea"
+            autosize
+            maxlength="150"
+            placeholder="请输入问题描述"
+          ></van-field>
+        </van-cell-group>
+        <div class="t-space"></div>
+        <div class="t-cell" v-if="status!=3">
+          <div class="t-cell-lefts">退款金额：<span class="coupon__limt order-weight"> ￥{{$float(refundPrice)}}</span></div>
+        </div>
+        <div class="t-cell" v-if="status!=3" style="background-color:#f7f7f7;">
+          <div class="t-cell-lefts t-label">最多只能退：￥{{$float(allAmount)}}</div>
+        </div>
+        <div class="t-cell">
+          <div class="upload-wrap">
+              <div v-if="files.length >0"  class="upload-wrap">
+                <div  class="up-upload" v-for="(item,index) in files" :key="index">
+                  <img class="up-img" :src="baseUrl+item.fileUrl" />
+                  <span @click.stop="deleteImg(index)" class="del-img" >删除</span>
+                </div>
+              </div>
+              <van-uploader v-show="files.length<5" class="up-upload up-dashed" 
+              style="position:relative"
+              :after-read="selectFile" accept="image/gif, image/jpeg,image/jpg,image/png" multiple>
+              <span style="position:absolute;top:27%;left:32%;display: inline-block;height: 25px;width: 25px;">+</span>
+              </van-uploader>
+            </div>
+        </div>
+        <div class="t-space"></div>
+        <div class="t-cell" v-if="status === 3">
+          <div class="t-address" @click="selAddress(userAddr)">
+            <div class="t-address-icon">
+              <van-icon name="location-o" size="16px" />
+            </div>
+            <div  v-if="disAddr" class="t-address-cont">
+              <span class="t-14" style="line-height:55px">去新增收货地址</span>
+            </div>
+            <div v-else class="t-address-cont">
+              <div class="t-address-consignee" style="position:relative">
+                <span class="t-label">收货人： </span>
+                <span class="addr-name" style="max-width:95px;" >{{userAddr.customerName}}</span>
+                <span class="addr-name" style="position:absolute;right:20px">{{userAddr.tel}}</span>
+              </div>
+              <div class="t-address-consignee cell-1">
+                <span class="t-label">收货地址： </span>
+                <span >{{userAddr.provinceName + userAddr.cityName + userAddr.areaName + userAddr.address}} </span>
+              </div>
+            </div>
+            <div class="t-label" style="padding-top:20px;position: relative;left: 10px">
+                <van-icon name="arrow" size="20px" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="t-foot">
+          <van-button @click="subApply"  type='primary' size="large">提交</van-button>
+       </div>
+      <van-popup position="bottom" v-model="show" @close="close">
+        <van-picker :columns="columns" show-toolbar 
+         @confirm="changeReason" @cancel="close" :loading="!show" ></van-picker>
+      </van-popup>
+      <van-popup position="bottom" v-model="showLog" @close="close">
+        <van-picker :columns="columnsLog" show-toolbar
+         @cancel="close"  @confirm="changeLog" ></van-picker>
+      </van-popup>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var refund = new Vue({
+    el:'#refund',
+    data () {
+      return {
+        refundId:'${refundId}',
+        productStatus:'',//是否收到货
+        baseUrl: '${base}',//当前路径
+        orderId: '',//当前订单id
+        productDesc: null,//商品信息
+        orderItem:null,//订单信息
+        status: 0,//售后类型1,2,3（退款，退货退款，换货）
+        refundPrice: 0,//退款金额
+        allAmount: 0,//能退金额
+        isSub:true,
+        proStatus:'未收到货',
+        columns:[{
+          values: [],
+          defaultIndex:0
+        }],
+        columnes:[
+          [],
+          ['不喜欢/不想要', '空包裹', '长时间未发货', '物流/快递未送到', '货物损坏已拒签'],//退款原因
+          ['不喜欢/不想要','缺件', '发错货', '质量问题', '商品与页面描述不符', '商品损坏'],//退款退货原因
+          ['缺件', '发错货', '质量问题', '商品与页面描述不符', '商品损坏', '其他'],//换货原因
+        ],
+        columnsLog:[{
+          values: ['未收到货','已收到货'],
+          defaultIndex:0
+        }],
+        reason:'',//选择的原因
+        refundCount:0,//申请退-数量
+        disabled:false,//是否禁用
+        customerTxt:'',//用户描述
+        files:[],//选中图片
+        params: {
+          "orderRefund": {
+            "customerTel": "",
+            "customerName": "",
+            "customerAddress": "",
+            "refundReason": "",
+            "customerTxt": "",
+            "refundType": "",
+            "productStatus": "",
+            "refundAmount": "",
+            "productRefundCount": ""
+          }, 
+          "pics": []
+        },
+        orderItemId:'',
+        show:false,
+        showLog:false,//货物状态
+        userAddr:{//用户收货地址
+          "tel": "",
+          "name": "",
+          "address": "",
+        },
+        disAddr:true,//没有默认地址
+        addressId:'${addressId!}',//地址id
+      }
+    },
+    methods: {
+      changeCount(val) {//数量发送变化
+        if(val <=0 ||val == ''){
+          this.$toast('商品数量不能少于一件')
+        }else if(val>parseInt(this.productDesc.orderItem.productCount - this.productDesc.orderItem.returnCount)){
+          this.$toast('商品数量不能多于可退数量')
+        } else{
+          this.refundCount=parseInt(val)
+          this.refundPrice=this.productDesc.orderItem.realPrice*this.refundCount
+        }
+      },
+      changeReason(data) {//选择原因
+        this.reason=data[0]
+        this.close()
+      },
+      /**获取当前收货状态 */
+      changeLog(data){
+        this.proStatus = data[0]
+        this.close()
+      },
+      close() {//关闭
+        this.show=false 
+        this.showLog = false
+      },
+      showSelReason() {//打开
+        this.show= true 
+      },
+      /**打开收货状态选择弹窗 */
+      toLog(){
+        this.showLog=true
+      },
+      /**选择地址 */
+      selAddress(data) {
+        let id=data ?data.id:''
+        if(data!=null){
+          location.href='${base}/member-account-address.htm?addressId='+id+'&checkAddr=refund&orderId='+this.orderId+'&refundName=${refundName!}&status='+this.status
+        }else{
+          location.href='${base}/member-account-address.htm?checkAddr=refund&orderId='+this.orderId
+        }
+      },
+      subApply(){//提交申请
+        var isSub = this.isSub = true
+        if(this.status === 1){
+          this.productStatus = this.proStatus==='未收到货'?1:2
+        }
+        var params = {
+          "orderRefund": {
+            "id":this.productDesc.id,
+            "customerTel": this.userAddr.tel,
+            "customerName": this.userAddr.customerName,
+            "customerAddress": this.userAddr.provinceName + this.userAddr.cityName + this.userAddr.areaName + this.userAddr.address,
+            "refundReason": this.reason,
+            "customerTxt": this.customerTxt,
+            "refundType": this.status,
+            "productStatus": this.productStatus,
+            "refundAmount": this.refundPrice,
+            "productRefundCount": this.refundCount
+          }, 
+          "orderItemId":this.productDesc.orderItemId,
+          "pics": []
+        }
+        if(params.orderRefund.refundReason === ''){
+          this.$toast('请选择申请原因')
+          isSub = false
+          return
+        }
+        if(params.orderRefund.customerTxt === ''){
+          this.$toast('请输入申请描述')
+          isSub = false
+          return
+        }
+        if(isSub){
+          this.files.map(v=>{
+            params.pics.push(v.resourceId)
+          })
+          this.$toast('正在申请，请稍后...')
+          refundUpateApply(params).then(res => {
+            if(res.code === 200){
+              this.isSub = false
+              this.$toast('提交成功')
+              setTimeout(() => {
+                location.href = '${base}/member-customer-returns-index.htm'
+              }, 500);
+            }else{
+              this.isSub = false
+              this.$toast(res.message)
+            }
+          }).catch(err => {})
+        }
+      },
+       /**获取收货地址列表 */
+        getAddrList() {
+          // 获取收货地址
+          memberaddressList().then(res => {
+            if (res.code == 200) {
+              this.disAddr = false
+              if (res.data.length > 0) {//是否有收货地址
+                if(this.addressId==''){
+                  let defaultData = res.data.filter(v => v.isDefault)
+                  if (defaultData.length > 0) {
+                    this.userAddr = defaultData[0]
+                  } else {
+                    this.userAddr = res.data[0]
+                  }
+                }else{
+                  let defaultData= res.data.filter(v=>{return v.id==this.addressId})
+                  this.userAddr = defaultData[0]
+                } 
+              } else {
+                this.disAddr = true
+              }
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => { this.$toast(err.message) })
+        },
+      selectFile(files) { // 选择上传的文件
+      let formData = new FormData()
+        formData.append("uploadFile", files.file);
+        this.startUpLoad(formData)
+      },
+      startUpLoad(data){
+        memberUpload(data).then(res => {
+          if (res.code === 200) {
+            this.files.push(res.data)
+          } else {
+            this.$toast(res.message)
+          }
+        })
+      },
+     deleteImg(i) {
+       this.files.splice(i,1)
+     },
+     getRefundTnfo(){
+      this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+      refundGet({id:this.refundId}).then(res => {
+        if(res.code === 200){
+          this.$toast.clear()
+          var detail = res.data
+            this.status = detail.refundType
+            this.columns[0].values=this.columnes[detail.refundType]
+            this.columns[0].defaultIndex = this.columnes[detail.refundType].indexOf(detail.refundReason)
+            this.columnsLog[0].defaultIndex = detail.productStatus-1
+            detail.pics.forEach(v => {
+              var f = {
+                resourceId:v.picResource.id,
+                fileUrl:v.picResource.url
+              }
+              this.files.push(f)
+            });
+            this.orderId = detail.orderId
+            this.reason = detail.refundReason
+            this.customerTxt = detail.customerTxt
+            this.proStatus = detail.productStatus===1?'未收到货':'已收到货'
+            this.refundCount = detail.productRefundCount
+            this.refundPrice = detail.refundAmount
+            this.productDesc = res.data
+            this.allAmount = detail.orderItem.realPrice*(detail.orderItem.productCount-detail.orderItem.returnCount)
+        }else{
+          this.$toast(res.message)
+        }
+      })
+     }
+    },
+    created () {
+      this.getRefundTnfo()
+      this.getAddrList()
+    }
+  })
+</script>

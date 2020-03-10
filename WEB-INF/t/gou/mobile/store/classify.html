@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-店铺分类</title>
+  [#include "../includes/common.html"]
+</head>
+<body class="t-page">
+  [#assign topName="店铺分类"/]
+  [#include "../includes/topbar.html"]
+  <div class="cms nav-top" id="storeClassify" v-cloak>
+    <div class="classify-wrap">
+      <van-cell custom-class="classify-top" @click="toSearch('')" title="全部分类"  is-link ></van-cell>
+      <div v-for="(item,index) in proCategorys" :key="index">
+        <van-cell v-if="!item.childs" @click="toSearch(item.id)" 
+        custom-class="classify-top" :title="item.cateName" is-link ></van-cell>
+        <div  v-else>
+          <van-cell @click="showChilds(index)" 
+          custom-class="classify-top" :border="false" 
+          :title="item.cateName" is-link :arrow-direction="item.state?'down':'up'" ></van-cell>
+          <div class="classify-prolist" v-if="item.state">
+            <div class="classify-tag"
+             v-for="(info,tagIndex) in item.childs" :key="tagIndex"
+              @click="toSearch(info.id)">{{info.cateName}}</div>
+              <div @click="toSearch(item.id)" class="classify-all">查看全部</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var storeClassify = new Vue({
+    el:'#storeClassify',
+    data () {
+      return {
+        storeId:'${storeId!}',//店铺id
+        proCategorys:[],//店铺商品分类
+      }
+    },
+    methods: {
+      getProCategorys (id){//获取店铺分类列表
+        storeProCategorys({storeId:id}).then(res => {
+          if(res.code === 200){
+            var arr = res.data
+            arr.forEach(v => {
+              if(v.childs&&v.childs.length >0){
+                //如果有则默认展开
+                v.state = true
+              }else{
+                v.childs = null
+                v.state = false
+              }
+            });
+            this.proCategorys=arr
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      showChilds(index){//是否显示下级列表
+        var arr = this.proCategorys
+        arr[index].state = !(arr[index].state)
+        this.proCategorys=arr
+      },
+      toSearch(id){
+        if(id&&id!=''){
+          location.href="${base}/product-category.htm?storeCtgId="+id+"&storeId="+this.storeId
+        }else{
+          location.href="${base}/product-category.htm?storeId="+this.storeId
+        }
+      },
+    },
+    created () {
+      this.getProCategorys(this.storeId)
+    }
+  })
+</script>

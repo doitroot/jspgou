@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-更换头像</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="更换头像"/]
+  [#include "../../../includes/topbar.html"]
+  <div id="editName" class="nav-top" v-cloak>
+    <div class="cms ">
+      <div class="gs-swiper">
+        <img class="gs-banner gs-banner-img" :src="fileUrl">
+      </div>
+      <div class="login__submit container">
+          <van-button size="large" >
+          <van-uploader class="gs-banner" :after-read="getFiles" accept="image/gif, image/jpeg,image/jpg,image/png" multiple>
+            <van-icon name="photo" size="24px" class="t-icon icon"></van-icon>
+            从相册选择
+          </van-uploader>
+        </van-button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var editName = new Vue({
+    el:'#editName',
+    data () {
+      return {
+        baseUrl:'${base}',
+        userName:'${name!}',
+        prohibit:true,
+        fileUrl:'${memberImg!}',
+        resourceId:''
+      }
+    },
+    methods: {
+      getFiles(files){
+        let formData = new FormData()
+        formData.append("uploadFile", files.file);
+        this.startUpLoad(formData)
+      },
+      startUpLoad(data){
+        memberUpload(data).then(res => {
+          if (res.code === 200) {
+            this.fileUrl = res.data.fileUrl
+            this.resourceId = res.data.resourceId
+            this.saveHead(this.resourceId)
+          } else {
+            this.$toast(res.message)
+          }
+        })
+      },
+      saveHead(id){
+        if(id){
+          let query = {
+            resourceDataId:id,
+            status:2
+          }
+          updateMemberExt(query).then(res => {
+            if(res.code == 200){
+              this.$toast('更换成功！')
+              setTimeout(() => {
+                window.history.go(-1)
+              }, 1000);
+            }
+          })
+        }else{
+          this.$toast('请选择图片')
+        }
+        
+      }
+    }
+  })
+</script>

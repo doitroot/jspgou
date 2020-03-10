@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-修改昵称</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="修改昵称"/]
+  [#include "../../includes/topbar.html"]
+  <div id="editName" class="nav-top" v-cloak>
+    <div class="cms ">
+      <van-cell-group>
+        <van-field
+        maxlength="20"
+          v-model="userName"
+          placeholder="请输入昵称"
+          :border="false"
+        ></van-field>
+      </van-cell-group>
+      <div class="container" >
+        <span class="detail-txts t-12 t-label">昵称不能超过20个字符</span>
+      </div>
+      <div class="login__submit container">
+          <van-button @click="saveUserName" type='primary' size="large" :disabled="userName===''" >修改</van-button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var editName = new Vue({
+    el:'#editName',
+    data () {
+      return {
+        userName:'${name!}',
+        prohibit:true
+      }
+    },
+    methods: {
+      saveUserName(){
+        let query = {
+          nickname:this.userName,
+          status:2
+        }
+        updateMemberExt(query).then(res => {
+          if(res.code == 200){
+            this.$toast.success('修改成功！')
+            setTimeout(() => {
+              window.history.go(-1)
+            }, 1000);
+          }
+        })
+        
+      },
+      getUserInfo(){
+        getMember().then(res => {
+          this.userNam=res.data.nickname
+        }).catch(err => {})
+      },
+    }
+  })
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>出错了-${globalConfig.mallName!}</title>
+		[#include "../includes/common.html"/]
+	</head>
+
+	<body>
+			[#include "../includes/topBar.html"]
+		<div class="header">
+			<div class="container head-wrap">
+				<div class="fl">
+					[#include "../includes/logo.html"]
+				</div>
+				[#assign search="product"/]
+				[#include "../includes/search.html"]
+			</div>
+		</div>
+		[#include "../includes/categoryMenu.html"]
+		<div id="app">
+			<div class="error">
+				<div class="error__img">
+						<img src="${res}/images/error.png" alt="">
+				</div>
+				[#include "../includes/recommend.html"]
+				
+			</div>
+		</div>
+	
+		[#include "../includes/footer.html"]
+	</body>
+
+</html>
+<script>
+    var app=new Vue({
+      el:'#app'
+    })
+  </script> 

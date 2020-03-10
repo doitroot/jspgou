@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<title>出错了-${globalConfig.mallName!}</title>
+	</head>
+	<style>
+		/* 404 */
+		div{
+			margin: 0;
+			padding: 0;
+		}
+		a{
+			text-decoration: none;
+		}
+		.error-box{
+			padding: 210px 50px 30px;
+			width: 100%;
+			text-align: center;
+			box-sizing: border-box;
+		}
+		.error-box-img{
+			max-width: 100%;
+			height: auto;
+			margin: 0 auto;
+		}
+		.error-text{
+			font-size: 32px;
+			color: rgba(104, 104, 104, 0.5);
+			text-align: center;
+		}
+		.error-btns{
+			text-align: center;
+			margin-top: 120px;
+		}
+		.error-link{
+			display: inline-block;
+			width: 200px;
+			margin: 0 30px;
+			height: 65px;
+			line-height: 65px;
+			font-size: 32px;
+			border:  1px solid rgb(251, 76, 119);
+			color: rgb(251, 76, 119);
+			border-radius: 10px;
+		}
+	</style>
+	<body>
+			<div class="cms">
+					<div class="error-box">
+						<img class="error-box-img" src="${mobileRes}/img/404@2x.png" />
+					</div>
+					<div class="error-text">页面走丢了，要刷新一下</div>
+					<div class="error-btns">
+							<a class="error-link" href="javascript:history.go(-1);">返回</a>
+							<a class="error-link" href="${base}/">查看首页</a>
+					</div>
+				</div>
+	</body>
+
+</html>

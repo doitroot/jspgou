@@ -1,0 +1,2 @@
+webpackJsonp([70],{k6Ng:function(e,n){},rLhA:function(e,n,t){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var r={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=t("C7Lr")({name:"fansLayOut"},r,!1,function(e){t("k6Ng")},null,null);n.default=u.exports}});
+//# sourceMappingURL=70.a4d5a79eca3ec891a007.js.map

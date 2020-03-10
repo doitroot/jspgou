@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-注册协议</title>
+  [#include "./includes/common.html"]
+</head>
+<body class="t-page">
+    <div class="cms ">
+        [#assign topName="注册协议"/]
+        [#include "./includes/topbar.html"]
+        <div class="protocol-box nav-top">
+          <div class="protocal-cont">
+            <div class="protocal-title">注册协议</div>
+            <div class="protocal-txt">
+                ${(globalConfig.userRegisterAgreement)!}
+            </div>
+          </div>
+        </div>
+      </div>
+</body>
+</html>
+

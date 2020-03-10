@@ -1,0 +1,2 @@
+webpackJsonp([60],{"+H76":function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r={render:function(){var t=this.$createElement,e=this._self._c||t;return e("div",[e("h3",[this._v("页面丢失了")]),this._v(" "),e("router-link",{attrs:{to:"/index"}},[this._v("返回")])],1)},staticRenderFns:[]};var i=n("C7Lr")({},r,!1,function(t){n("8WDg")},null,null);e.default=i.exports},"8WDg":function(t,e){}});
+//# sourceMappingURL=60.cfe91bf6bf38334262b6.js.map

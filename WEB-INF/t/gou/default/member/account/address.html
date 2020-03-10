@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-收货地址</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/js/components/upload.js" type="text/babel"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container  clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="accountAddress"]
+      [#include "../../includes/accountNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="goodsAdd" v-loading='loading' v-cloak>
+        <h3 class="member-title member-title--marbot">收货地址<span class="member-smtitle">您已保存{{total}}个收货地址，还能保存{{20-total}}个收货地址</span></h3>
+        <div class="add person-order__body">
+          <!-- 添加或修改地址信息 -->
+          <el-form size="mini" class="account-personab-inner-havebadge" label-position="right" label-width="120px" :model="formData" ref="form" :rules="rules">
+            <el-form-item style="height:35px;" label="所在地区" class="add__name" prop="areaName">
+              <cms-area-select @change="getAreaInfo" :data="areaData"></cms-area-select>
+            </el-form-item>
+            <el-form-item style="width: 520px;" label="详细地址" class="add__name" prop="address">
+              <el-input maxlength="50" class="add__w300" v-model="formData.address"></el-input>
+            </el-form-item>
+            <el-form-item style="width: 520px;height: 35px;" label="收货人姓名" prop="customerName">
+              <el-input maxlength="50" v-model="formData.customerName"></el-input>
+            </el-form-item>
+            <el-form-item style="width: 520px;height: 35px;" label="手机号码" prop="tel">
+              <el-input v-model="formData.tel"></el-input>
+            </el-form-item>
+            <el-form-item style="width: 520px;height: 35px;" label="邮政编码" ref="postCodeForm" prop="postCode">
+              <el-input maxlength="6" v-model="formData.postCode"></el-input>
+            </el-form-item>
+            <el-form-item label="">
+              <el-checkbox v-model="formData.isDefault">设为默认地址</el-checkbox>
+            </el-form-item>
+            <el-form-item label="">
+              <el-button type='primary' @click="saveUserAdd" v-if="type=='save'"> 保存</el-button>
+              <el-button type='primary' @click="editUserAdd" v-if="type=='update'"> 保存修改</el-button>
+            </el-form-item>
+          </el-form>
+          <!--显示我的用户信息 -->
+          <ul>
+            <li class="add__user" v-for="(item,index) in addList" :key="index">
+              <div class="add__username" v-cloak>{{item.customerName}}
+                <span class="add__noradd" v-show="item.isDefault">默认地址</span>
+                <a href="javascript:;" class="add__edit" @click="delAddress(item.id)">删除</a>
+                <a href="javascript:;" class="add__edit" @click="setAddress(item)" style="padding-right:5px;">编辑</a>
+                <a href="javascript:;" class="add__edit" style="padding-right:5px;" v-show="!item.isDefault" @click="setDefault(item.id)">设为默认</a>
+              </div>
+              <div class="add__userinfo">
+                <span class="add__receiver" v-cloak>收货人：{{item.customerName}}</span>
+                <span class="add__mobile add__receiver" v-cloak>手机号码：{{item.tel}}</span>
+                <span class="add__code" v-cloak>邮政编码：{{item.postCode}}</span>
+              </div>
+              <div class="add__userarea add__userinfo" v-cloak>所在地区：{{item.provinceName}}{{item.cityName}}{{item.areaName}}</div>
+              <div class="add__useradd add__userinfo" v-cloak>详细地址：{{item.address}}</div>
+            </li>
+            <el-cms.alert title="您当前还没有收货地址，请添加" :closable="false" type="info" show-icon v-if="total==0"></el-cms.alert>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script type="text/babel">
+  var defaultData={
+          "provinceCode": "",
+          "provinceName": "",
+          "cityCode": "",
+          "cityName": "",
+          "areaCode": "",
+          "areaName": "",
+          "address": "",
+          "customerName": "",
+          "tel": "",
+          "isDefault": false,
+          "postCode": ""
+        }
+   var areaData={ 
+        province: {
+          areaCode: "",
+          areaName: ""
+        },
+        city: {
+          areaCode: "",
+          areaName: "",
+        
+        },
+        area: {
+          areaCode: "",
+          areaName: ""
+        }
+      }        
+  var personinfo = new Vue({
+    el: '#goodsAdd',
+    data() {
+      var validatePhone = (rule, value, callback) => {
+        var patrnPhone = /^0?(13[0-9]|15[012356789]|17[013678]|18[0-9]|14[57])[0-9]{8}$/
+        if (value === '') {
+          callback(new Error('请输入手机号码'));
+        } else {
+          if (!patrnPhone.test(value)) {
+            callback(new Error('手机号码格式错误'));
+          }
+          else{
+            callback();
+          }
+        }
+      };
+      var validateAddr = (rule, value, callback) =>{
+        var patrnAddr = /[\dA-Za-z\u4E00-\u9FA5]+/
+        if(value===''){
+          callback(new Error('请输入详细地址'));
+        }
+        else{
+          if(!patrnAddr.test(value)){
+            callback(new Error('地址格式不正确'));
+          }else{
+            callback();
+          }
+          
+        }
+      };
+      var validatePostCode = (rule, value, callback) =>{
+        var patrnCode =  /^[0-9]{6}$/
+        if(value === ''){
+          callback()
+        }else{
+          if(!patrnCode.test(value)){
+            callback(new Error('输入6位数字邮政编码'));
+          }else{
+            callback();
+          }         
+        }
+      }
+      return {
+        areaData: JSON.parse(JSON.stringify(areaData)),//临时存储编辑的省市信息
+        addList: [],
+        total: -1, //当前已保存的地址的个数  
+        loading:true,
+        type:'save',
+        formData: JSON.parse(JSON.stringify(defaultData)),
+        rules: {
+          areaName:[{
+            required: true,
+            message: '此项必填',
+            trigger: 'change'
+          }],
+          address: [{
+            required: true,
+            message:'此项必填',
+            trigger: 'blur'
+          },{       
+            max:50,
+            message:'地址过长',
+            trigger:'blur'
+          }],
+          customerName: [{
+            required: true,
+            message: '此项必填',
+            trigger: 'blur'
+          },{
+            max:16,
+            message:'用户名最多16个字符',
+            trigger:'blur'
+          }],
+          tel: [{
+            min: 11,
+            max: 11,
+            message: '请输入11位手机号码',
+            trigger: 'blur'
+          },{
+            required: true,
+            validator: validatePhone,
+            trigger: 'blur'
+          }],
+          postCode:[{
+            validator:validatePostCode,
+            trigger:'blur'
+          },{
+            min:6,
+            max:6,
+            message:'邮政编码长度是6个字符',
+            trigger:'blur'
+          }]
+        }
+      }
+    },
+
+    methods: {
+      getAreaInfo(data){
+          this.formData.provinceCode=data.province.areaCode
+          this.formData.provinceName=data.province.areaName
+          this.formData.cityCode=data.city.areaCode
+          this.formData.cityName=data.city.areaName
+          this.formData.areaCode=data.area.areaCode
+          this.formData.areaName=data.area.areaName
+      },
+      setDefault(id){       //设置是否为默认地址方法
+        var that = this
+        cms.ajax({
+          url:cms.url + '/member/memberaddress/updateDefault',
+          type:"get",
+          data:{
+            "id":id
+          }
+        },function(res){
+          if(res.code==200){
+            that.getAddress()
+           
+          }else{
+            cms.alert(res.message,5)
+           
+          }
+        })
+      },
+      getAddress() {    //获取所有收货地址方法
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/memberaddress/list',
+        }, function (res) {
+          if (res.code == 200) {
+            that.total = res.data.length
+            that.addList = res.data
+            that.loading=false
+          } else {
+            cms.alert(res.message,5)
+            that.loading=false
+          }
+        })
+      },
+      saveUserAdd() {    //添加收货地址方法
+        var that = this
+        this.$refs['form'].validate(function (valid,data) {
+          if (valid) {
+                if(that.total <20){
+                  cms.ajax({
+                url: cms.url + '/member/memberaddress/save',
+                type: "post",
+                data: JSON.stringify(that.formData),
+              },
+              function (res) {
+                if (res.code==200) {
+                  cms.alert('保存成功',4)
+                   that.formData= JSON.parse(JSON.stringify(defaultData))
+                   that.areaData=JSON.parse(JSON.stringify(areaData))
+                    that.getAddress()
+                    setTimeout(() => {
+                    that.$refs['form'].clearValidate()
+                  }, 10);
+                } else {
+                  cms.alert(res.message,5)
+                  return false
+                }
+              })
+                }else{
+                  cms.alert("你已填满20个收货地址")
+                }
+          } else {
+            return false
+          }
+        })
+      },
+      setAreaData(item){//编辑临时省市信息
+        this.areaData.province.areaCode=item.provinceCode
+        this.areaData.province.areaName=item.provinceName
+        this.areaData.city.areaCode=item.cityCode
+        this.areaData.city.areaName=item.cityName
+        this.areaData.area.areaCode=item.areaCode
+        this.areaData.area.areaName=item.areaName 
+      },
+      setAddress(item){   //显示编辑区域内容
+        this.setAreaData(item)
+        this.type='update'
+        this.$refs['form'].clearValidate()
+        this.formData=JSON.parse(JSON.stringify(item))
+      },
+      editUserAdd() {    //编辑收货地址方法
+        var that = this
+        this.$refs['form'].validate(function (valid) {
+          if(valid){
+              cms.ajax({
+              url: cms.url + '/member/memberaddress/update',
+              type: "post",
+              data: JSON.stringify(that.formData)
+            }, function (res) {
+            if(res.code==200){
+              that.type='save'
+              that.areaData=JSON.parse(JSON.stringify(areaData))
+              that.formData= JSON.parse(JSON.stringify(defaultData))
+              cms.alert('修改成功',4)
+              that.getAddress()
+              setTimeout(() => {
+                that.$refs['form'].clearValidate()
+              }, 10);
+            }else{
+              cms.alert(res.message,5)
+            }
+            })
+          }else {
+            return false
+          }
+        })
+      },
+      getUserAdd() {   //获取单个收货地址方法
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/memberaddress/get',
+        }, function (res) {
+          if (res.code == 200) {
+            that.formData = res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      delAddress(id) {   //删除收货地址方法
+        var that = this
+        this.$confirm('你确定要删除该地址吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: cms.url + '/member/memberaddress/delete',
+            data: {
+              "id": id
+            }
+          }, function (res) {
+            if (res.code == 200) {
+              that.getAddress()
+              that.areaData=JSON.parse(JSON.stringify(areaData))
+              that.formData= JSON.parse(JSON.stringify(defaultData))
+              cms.alert('删除成功!',5)
+              setTimeout(() => {
+                that.$refs['form'].clearValidate()
+              }, 10);
+            }
+          });
+        }).catch(() => {});
+      }
+    },
+    created() {
+      this.getAddress()
+    }
+  })
+</script>

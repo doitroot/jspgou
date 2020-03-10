@@ -1,0 +1,176 @@
+<div class="cate__warpper">
+	<div class="container cate__inner">
+		<div class="cate-all clearfix" id='categoryBody' >
+			<div class="cate-all__button">
+				<span class="fl">全部商品分类 </span>
+				<i class="fa fa-bars fr"></i>
+			</div>
+			<!--一级类目-->
+			<div class="cate-box [#if status??&&(status=='index')]index-status[/#if]">
+				<ul class="cate-menu">		
+					[@proCategory_page parentId='0']
+							[#list tag_list as cate]
+							[#if cate_index <16 ]
+								<li class="cate-menu__item"  @mouseenter="showContent(${cate_index},${cate.id!})" @mouseleave="contentActive=''">
+										<a href="${base}/product-category.htm?ctgId=${cate.id!}" class="cate-menu__lk" >
+											[#if cate.nameAlias?? && cate.nameAlias!='' ]
+												${cate.nameAlias!}
+											[#else]
+											${cate.cateName!} 
+											[/#if]
+										</a>
+											[#if cate.subCateSet??]
+												 [#list cate.subCateSet as child]
+											
+												 <a href="${base}/product-category.htm?ctgId=${child.id!}" class="cate-menu__lk" >
+													[#if ((cate.subCateSet?size)!=(child_index))]
+													<span >/</span>
+													[/#if]
+													${child.cateName!} 
+												</a>							
+											
+												 [/#list]
+											[/#if]
+									</li>
+									[/#if]
+								[/#list]
+						[/@proCategory_page]
+				</ul>
+				<!--二级容器-->
+				<div class="cate-menu__content" v-for="(item,index) in cateChilds"
+				 :key="index" v-show="contentActive===index" @mouseenter="contentActive=index" @mouseleave="contentActive=''"
+				 v-cloak>
+					<!--二三级分类显示-->
+					<section class="cate-menu__part">
+						<!--推荐分类栏-->
+						<div class="cate-part__content">
+							<ul class="cate-channels">
+								<!--推荐分类-->
+								<li class="cate-channels__item" v-for="top in item.topCateSet">
+									<a  :href="'${base}/product-category.htm?ctgId='+top.id">{{top.cateName}}</a>
+								</li>
+							</ul>
+							<div class="cate-detail">
+								<!-- 二级分类 -->
+								<dl class="cate-detail__group" v-for="second in item.childs">
+									<dt class="cate-detail__tit">
+										<a   :href="'${base}/product-category.htm?ctgId='+second.id" class="cate-detail__tlk">
+											{{second.cateName}}>
+										</a>
+									</dt>
+									<dd class="cate-detail__con" v-if="second.childs&&second.childs.length>0">
+										<a :href="'${base}/product-category.htm?ctgId='+last.id" class="cate-detail__link" v-for="last in second.childs">
+											{{last.cateName}}</a>
+									</dd>
+								</dl>
+							</div>
+						</div>
+						<!--推荐品牌-->
+						<div class="cate-part__rec">
+							<div class="cate-brand" v-if='item.brandSet&&item.brandSet.length>0'>
+								<!--推荐品牌-->
+								<a :href="brand.id" class="cate-brand__lk" v-for="brand in item.brandSet">
+									<img class="cate-brand__img" :src="imgUrl+brand.resourcesSpaceData.url" v-if="brand.resourcesSpaceData" />
+								</a>
+							</div>
+							<!--推荐广告-->
+							<a href="#" class="cate-ad" v-if="item.advertisingOne">
+								<img :src="imgUrl+item.advertisingOne.url" :alt="item.advertisingOne.name" />
+							</a>
+							<a href="#" class="cate-ad" v-if="item.advertisingTwo">
+								<img :src="imgUrl+item.advertisingTwo.url" :alt="item.advertisingTwo.name" />
+							</a>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+		<!--头部分类-->
+		<ul class="cate-nav__items">
+			<li class="cate-nav__item">
+				<a href="${base}/" class="cate-nav__link [#if status??&&(status=='index')]cate-nav__active[/#if]">首页</a>
+			</li>
+			<li class="cate-nav__item">
+				<a href="${base}/brands.htm" class="cate-nav__link [#if status??&&(status=='brands')]cate-nav__active[/#if]">品牌专区</a>
+			</li>
+			<li class="cate-nav__item">
+				<a href="${base}/storestreet.htm" class="cate-nav__link [#if status??&&(status=='store')]cate-nav__active[/#if]">店铺街</a>
+			</li>
+			<li class="cate-nav__item">
+				<a href="${base}/coupon.htm" class="cate-nav__link [#if status??&&(status=='coupon')]cate-nav__sactive[/#if]">领劵中心</a>
+			</li>
+			[@index_navi_page clientType='pc' count=8]
+			[#list tag_list as a]
+			<li class="cate-nav__item">
+				<a href="${base}/product-category.htm?ctgId=${a.proCategoryId!}" class="cate-nav__link">
+				${a.alias!}
+				</a>
+			</li>
+			[/#list]
+			[/@index_navi_page]
+		</ul>
+	</div>
+</div>
+<script type="text/babel">
+	var cates=new Vue({
+			el:"#categoryBody",
+			data () {
+				return {
+					firstCategoryList:[],//顶级分类
+				  cateChilds:[
+			
+					],//子集分类显示
+					imgUrl:cms.imgUrl,
+					contentActive:'',
+					activeRecord:[],//把滑动过的记录下来
+				}
+			},
+			methods: {
+				showContent(index,cateId){
+					if(this.activeRecord.indexOf(index)==-1){
+						this.activeRecord.push(index)
+						this.getChildCateGoryList(index,cateId)
+					}else{
+						this.contentActive=index	
+					}		
+				},
+				getChildCateGoryList(index,parentId){//通过顶级类目的id获取下级类目
+					var self=this;
+					$.get(cms.url+'/productcategory/list',
+				 {parentId:parentId},
+				 function (res) {
+					 self.$set(self.cateChilds[index],'childs',res.data[0].childs)
+					 self.contentActive=index	
+				 })	
+				},
+				getFirstCateGoryList(parentId){//获取顶级分类
+					var self=this;
+				 $.get(cms.url+'/productcategory/list',
+				 {parentId:parentId},
+				 function (res) {
+					let data=res.data	 
+					data.forEach(v => {//拼接一级类目显示
+				    let obj={//当前分类
+								cateName:v.cateName,
+								id:v.id,
+								productTypeId:v.productTypeId
+						}
+						v.subCateSet.unshift(obj)//把当前分类和置顶分类合并
+						self.firstCategoryList.push(v.subCateSet)
+						let contentObj={
+							advertisingOne:v.advertisingOne,	
+							advertisingTwo:v.advertisingTwo,
+							brandSet:v.brandSet,
+							topCateSet:v.topCateSet,
+							childs:[]
+						}
+					  self.cateChilds.push(contentObj)
+					});		
+				 })		
+				},
+			},
+			created () {
+				this.getFirstCateGoryList()
+			}
+	})
+</script>

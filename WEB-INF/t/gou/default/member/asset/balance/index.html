@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-账户余额</title>
+  [#include "../../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+
+<body>
+  [#include "../../../includes/topBar.html"]
+  [#include "../../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="assetIndex"]
+      [#include "../../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="balance" v-loading='loading' v-cloak>
+        <div>
+          <div class="member-title bace-title">
+            <!-- 主体头部 -->
+            <div class="bace-head">
+              <!-- 我的余额 -->
+              <div class="baceh-left">
+                <h3 class="baceh-title">我的余额</h3>
+                <span class="baceh-balance">
+                  ￥<span class="baceh-balance-p" >
+                    {{$float(balance)}}
+                  </span>
+                </span>
+                <div class="baceh-links">
+                  <a href="${base}/member-asset-balance-charge.htm" class="baceh-link baceh-link--active">充值</a>
+                  <a href="${base}/member-asset-balance-withdraw.htm" class="baceh-link">提现</a>
+                </div>
+              </div>
+              <!-- 右侧信息 -->
+              <div class="baceh-right">
+                <ul>
+                  <li>
+                    <img src="${res}/images/allbalance.jpg" class="bace-logo">
+                    <span>全部余额：</span>
+                    <span class="baceh-strong"> {{$float(balance)}}</span>
+                  </li>
+                  <li>
+                    <img src="${res}/images/accountsta.jpg" class="bace-logo">
+                    <span>账户状态：</span>
+                    <span v-if="enabled==1">启用</span>
+                    <span v-if="enabled==0">禁用</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="att-balance-main" >
+              <!-- 个人中心主体 -->
+              <div class="bace-main-head">
+                <h3 class="bacem-links">
+                  <span @click="flag=0" class="bacem-link bacem-link--active">充值明细</span>
+                  <span @click="flag=1" class="bacem-link">提现明细</span>
+                </h3>
+              </div>
+              <!--  -->
+              <div class="bacem-container" v-if="flag==0">
+                <div class="att-sch-group bacem-sch-group" style="position:relative;top:-30px;">
+                  <input type="text" placeholder=" 请输入充值单号进行检索" class="att-input bacem-input"
+                  v-model="queryParamsCharge
+                  .businessNo" @keyup.enter="searchCharge"/>
+                      <a href="javascript:;" class="att-sch-btn" @click.prevent="searchCharge">搜索</a>
+                </div>
+                <!-- 表格 -->
+                <div class="bacem-box">
+                  <table class="bacem-table">
+                    <tr class="bacem-tr bacem-tr-h">
+                      <td class="bacem-td bacem-tdf">时间</td>
+                      <td class="bacem-td bacem-tdnum">充值单号</td>
+                      <td class="bacem-td bacem-tdprice" style="text-align:left">充值金额</td>
+                      <td class="bacem-td bacem-tdsta">状态</td>
+                      <td class="bacem-td bacem-tdmesg">备注</td>
+                      <td class="bacem-td bacem-tdmesg">操作</td>
+                    </tr>
+                    <!-- 循环 -->
+                    <tr class="bacem-tr" v-for="(item,index) in chargeList" >
+                      <!-- 时间 -->
+                      <td class="bacem-td ">{{formatTime(item.createTime)}}</td>
+                      <!-- 充值单号 -->
+                      <td class="bacem-td ">
+                        <span class="bacem-charge">{{item.businessNo}}</span>
+                      </td>
+                      <!-- 充值金额 -->
+                      <td class="bacem-td" style="text-align:left">￥{{$float(item.money)}}</td>
+                      <!-- 状态 -->
+                      <td class="bacem-td">
+                        <span class="bacem-unpay" :style="chaegeStatus[item.status-1].style">
+                          {{chaegeStatus[item.status-1].status}}
+                        </span>
+                      </td>
+                      <!-- 备注 -->
+                      <td class="bacem-td">
+                        <span class="bacem-oflow" v-cloak>
+                          {{item.remark}}
+                        </span>
+                      </td>
+                      <!-- 操作-->
+                      <td class="bacem-td">
+                          <el-button type="primary" size="mini" 
+                          @click="payBill(item.businessNo,item.money)"
+                          v-if="item.status==1">
+                          去支付
+                         </el-button>
+                        </td>
+                    </tr>
+                  </table>
+                   <!-- 暂无充值记录时显示 -->
+                     <!-- 关注的店铺暂无时显示 -->
+                  <div v-if="chargeList.length==0&&!loading" style="padding-top: 60px;text-align:center;">
+                      <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+                  </div>
+                </div>
+                <!-- 分页按钮 -->
+                <div class="overflow score-pagging" v-if="chargeList.length!==0">
+                  <el-pagination class="fr" background layout="prev, pager, next" 
+                  :total="totalCharge" 
+                  :page-size='queryParamsCharge.size'
+                  @current-change="handleCurrentChangeCharge"
+                  :current-page.sync="queryParamsCharge.page"
+                  >
+                  </el-pagination>
+                </div>
+              </div>
+
+              <!-- 提现明细 -->
+              <div class="bacem-container" v-if="flag==1">
+                  <div class="att-sch-group bacem-sch-group" style="position:relative;top:-35px;">
+                      <input type="text" placeholder=" 请输入提现单号进行检索" class="att-input bacem-input"
+                      v-model="queryParamsPresent.businessNo" @keyup.enter="searchPresent"/>
+                          <a href="#" class="att-sch-btn" @click.prevent="searchPresent">搜索</a>
+                    </div>
+                <h3 class="bacem-info">
+                  温馨提示：<br>
+                  &nbsp;&nbsp;&nbsp;&nbsp;提现申请会在1~7日内审核，请耐心等候，如有问题，请联系系统客服
+                </h3>
+                <!-- 表格 -->
+                <div class="bacem-box bacem-boxt">
+                  <table class="bacem-table">
+                    <tr class="bacem-tr bacem-tr-h">
+                      <td class="bacem-td bacem-tdft">时间</td>
+                      <td class="bacem-td bacem-tdnumt">提现单号</td>
+                      <td class="bacem-td bacem-tdpricet">提现金额</td>
+                      <td class="bacem-td bacem-account">收款账户</td>
+                      <td class="bacem-td bacem-tdstat">状态</td>
+                      <td class="bacem-td bacem-tdmesgt">备注</td>
+                    </tr>
+                    <!-- 循环 -->
+                    <tr class="bacem-tr" v-for="(item, index) in presentList" :key="index">
+                      <!-- 时间 -->
+                      <td class="bacem-td ">{{formatTime(item.createTime)}}</td>
+                      <!-- 提现单号 -->
+                      <td class="bacem-td">
+                        <span class="bacem-charge">{{item.businessNo}}</span>
+                      </td>
+                      <!-- 提现金额 -->
+                      <td class="bacem-td ">￥{{$float(item.money)}}</td>
+                      <!-- 收款账户 -->
+                      <td class="bacem-td ">
+                        {{item.confusingAccount}}
+                        <!-- hover弹层 -->
+                        <i class="fa fa-bars bacem-fa">
+                          <span class="bacem-drop">
+                            <table class="bacem-dtable">
+                              <!-- 类型 -->
+                              <tr class="bacem-dbox">
+                                <td class="bacem-tdl">类型：</td>
+                                <td class="bacem-tdr">{{item.accountTypeCode == 1?'支付宝':'微信'}}</td>
+                              </tr>
+                              <!-- 账号 -->
+                              <tr class="bacem-dbox" v-if="item.confusingAccount">
+                                <td class="bacem-tdl">账号：</td>
+                                <td class="bacem-tdr">{{item.confusingAccount}}</td>
+                              </tr>
+                              <!-- 姓名 -->
+                              <tr class="bacem-dbox" v-if="item.accountUsername">
+                                <td class="bacem-tdl">姓名：</td>
+                                <td class="bacem-tdr">{{item.accountUsername}}</td>
+                              </tr>
+                              <!-- 开户行 -->
+                              <tr class="bacem-dbox" v-if="item.blankName">
+                                <td class="bacem-tdl">开户行：</td>
+                                <td class="bacem-tdr">{{item.blankName}}</td>
+                              </tr>
+                            </table>
+                          </span>
+                        </i>
+                      </td>
+                      <!-- 状态 -->
+                      <td class="bacem-td ">
+                        <span class="bacem-unpay">
+                          {{item.status|presentStatus}}
+                        </span>
+                      </td>
+                      <!-- 备注 -->
+                      <td class="bacem-td ">
+                        <span class="bacem-oflowt">
+                         {{item.remark}}
+                        </span>
+                      </td>
+                    </tr>
+                    
+                  </table>
+                  <!-- 暂无提现记录时显示 -->
+                  <div v-if="presentList.length==0&&!loading" style="padding-top: 35px;text-align:center;">
+                      <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+                  </div>
+                </div>
+                <!-- 分页按钮 -->
+                <div class="overflow score-pagging" v-if="presentList.length!==0">
+                    <el-pagination class="fr" background layout="prev, pager, next" 
+                    :total="totalPresent" 
+                    :page-sizes="[100, 200, 300, 400]"
+                    :page-size='queryParamsPresent.size'
+                    @current-change="handleCurrentChangePresent"
+                    :current-page.sync="queryParamsPresent.page"
+                    >
+                    </el-pagination>
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  [#include "../../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var vm = new Vue({
+      el: '#balance',
+      data() {
+        return {
+          flag: 0,
+          loading:false,
+          balance:0,  //账户余额
+          enabled:0,   //账户是否启用
+          chargeList:[] ,//充值记录列表
+          presentList:[] ,//提现记录列表
+          totalCharge:'',//充值记录的总条数
+          totalPresent:'',//充值记录的总条数
+          queryParamsCharge:{ page: 1,size: 10, businessNo: ""},//充值记录的查询
+          queryParamsPresent:{ page: 1,size: 10, businessNo: ""},//提现记录的查询
+          chaegeStatus:[{status:'待支付',style:'color:#409EFF'},
+              {status:'未完成',style:'color:#F56C6C'},
+              {status:'已完成',style:'color:#67C23A'},
+              {status:'已取消',style:'color:#F56C6C'}],
+        }
+      },
+      methods: {
+        formatTime(timeStr){  //调整时间的方法
+            return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+          },
+        getAccount(){    //获取账户详情
+          var that = this
+          cms.ajax({
+            url:cms.url + '/member/memberaccount/get',
+            type:"get"
+          },function(res){
+            if(res.code == 200){
+              that.balance = res.data.balance
+              that.enabled = res.data.member.enabled
+            }
+          })
+        },
+        getChargeList(){  //获取充值记录列表
+          var that = this
+          that.loading = true;
+          cms.ajax({
+            url:cms.url + '/member/memberrecharge/page',
+            type:"get",
+            data:that.queryParamsCharge
+          },function(res){
+            if(res.code == 200){
+              that.chargeList = res.data.content
+              that.totalCharge=res.data.totalElements
+              that.loading=false
+            }else{
+              that.loading=false
+            }
+          })
+        },
+        getPresentList(){  //获取提现记录列表
+          var that = this 
+          that.loading = true;
+          cms.ajax({
+            url:cms.url + '/member/memberpresent/page',
+            type:"get",
+            data:that.queryParamsPresent
+          },function(res){
+            if(res.code==200){
+              that.presentList = res.data.content
+              that.totalPresent=res.data.totalElements
+              that.loading=false
+            }else{
+              cms.alert(res.message,5)
+              that.loading=false
+            }
+          })
+        },
+        handleCurrentChangeCharge(value){  //充值页面的分页
+          this.queryParamsCharge.page = value
+          this.getChargeList()
+        },
+        handleCurrentChangePresent(value){//提现页面的分页
+          this.queryParamsPresent.page = value
+          this.getPresentList()
+        },
+        searchCharge(){//充值页面的搜索
+          this.queryParamsCharge.page=1//从第一页开始搜索
+          this.getChargeList()
+        },
+        searchPresent(){//提现页面的搜索
+          this.queryParamsPresent.page=1//从第一页开始搜索
+          this.getPresentList()
+        },
+        payBill(orderNo, amount){//去支付的跳转
+          let title = "会员充值:" + amount ;
+          let params = Qs.stringify({'orderNo':orderNo,'description':title,'subject':title,'payScene':'memberRecharge','amount':amount})
+          location.href="${base!}/member/tradePage.htm?"+params
+        }
+      },
+      filters:{
+        presentStatus(val){//提现状态的过滤器
+        var status = ['','待审核','未完成','已完成','转账失败']
+          return status[parseInt(val)]
+        }
+      },
+      created () {
+        this.getAccount()
+        this.getChargeList()
+        this.getPresentList()
+      }
+    })
+  </script>

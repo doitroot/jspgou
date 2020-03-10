@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-第三方登录</title>
+	[#include "./includes/common.html"]
+</head>
+  <body>
+      <div class="header head-shadow">
+        <div class="container head-wrap">
+          [#assign name='第三方登录']
+          [#include "./includes/logo.html"/]
+        </div>
+      </div>
+      <div class="failure-wrap container" id="failure">
+        <p class="failure-wrap__txt">${errorMsg!}</p>
+        <p class="failure-wrap__txt"><a href="${base}/login.htm" class="failure-wrap__link" > 返回登录</a></p>
+      </div>
+      [#include "./includes/footer.html"]
+  </body>
+</html>

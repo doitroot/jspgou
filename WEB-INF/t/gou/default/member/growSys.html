@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    <title>${globalConfig.mallName!}-成长体系</title>
+    [#include "../includes/common.html"]
+  </head>
+
+	<body>
+		[#include "../includes/topBar.html"]
+		<div class="header">
+			<div class="container head-wrap">
+        [#include "../includes/logo.html"]
+        [#assign search="product"/]
+        [#include "../includes/search.html"]
+			</div>
+		</div>
+    [#include "../includes/categoryMenu.html"]
+    <!-- 成长体系 -->
+    <div class="growSys" id="grow" v-cloak>
+      <div class="container">
+        <!-- 成长体系主体 -->
+        <div class="grow-main">
+          <div class="grow-main__left">
+            <div class="grow-main__top clearfix">
+              <div class="grow-main__photo">
+                  <a ><img class="bannerImg" :src="'${base}'+imgUrl" alt=""></a>
+                </div>
+                <div class="grow-main__info">
+                  <p class="grow-main__hello"></p>
+                  <p class="grow-main__tip">温馨提示：经常登陆商城或进行购物都可获得积分或经验值哦！</p>
+                </div>
+            </div>
+            <ul class="grow-main__lists clearfix">
+              <li class="grow-main__item">
+                <p class="grow-main__grade">我的等级</p>
+                <p class="grow-main__count">
+                    <a style="width: 18px;
+                    vertical-align: bottom;">
+                            <img src="${base}${user.levelImageUrl!}" style="width:18px;vertical-align: bottom;">
+                        </a>
+                  ${user.levelName!}</p>
+              </li>
+              <li class="grow-main__item">
+                <p class="grow-main__grade">成长经验</p>
+                <p class="grow-main__count">${user.exp!}</p>
+              </li>
+              <li class="grow-main__item">
+                <p class="grow-main__grade">我的积分</p>
+                <p class="grow-main__count">${user.score!}</p>
+              </li>
+            </ul>
+          </div>
+          <div class="grow-main__right">
+            <ul class="grow-exp clearfix ">
+                <li class="grow-exp__item" v-for="(item,index) in exps"  :class="{'grow-exp__item--active':${user.exp!}>=item.minExp&&${user.exp!}<item.maxExp}">
+                  <p class="grow-exp__count" v-if="index !== exps.length-1">{{item.minExp}} - {{item.maxExp}}</p>
+                  <p class="grow-exp__count" v-else>{{item.maxExp}}</p>
+                  <p>(成长经验)</p>
+                </li>
+            </ul>
+            <ul class="grow-proBar clearfix grow-proBar__item--first">
+              <li v-for="(item,index) in imgs" :key="index"
+              :class="[{}]"
+              class="grow-proBar__item">
+                <span class="  grow-proBar--color"
+                :class="{'grow-proBar--actcol':${user.exp!}>item.minExp}">
+                  <i class="fa fa-circle-o"></i>
+                  <!-- <img class="grow-proBar__icon" :src="'${res}/images/'+item.url+'.png'" alt=""> -->
+                </span>
+              </li>
+            </ul>
+            <div class="grow-line grow-proBar__item--first"></div>
+            <div :style="'width:'+expLength+'px'" style="max-width: 782px;" class="grow-line__active grow-proBar__item--first"></div>
+          </div>
+        </div>
+        <!-- 成长体系小技巧 -->
+        <div class="grow-info">
+          <div class="grow-info__title">
+            升级小技巧
+          </div>
+          <div class="grow-info__lists">
+            <ul class="grow-info__nav">
+              <li v-if="Number('${globalConfig.memberRegistGrowth!}')>0" class="grow-info__item">新用户注册增送${globalConfig.memberRegistGrowth!}经验值</li>
+              <li v-if="Number('${globalConfig.irstLoginPerdayGiftExp!}')>0" class="grow-info__item">用户每日登入赠送${globalConfig.irstLoginPerdayGiftExp!}经验值（注：每日只限第一次登入）</li>
+              <li v-if="Number('${globalConfig.shoppedGiftExtRatio!}')>0" class="grow-info__item">进行一次购物，以有效订单购买金额为标准，按${globalConfig.shoppedGiftExtRatio!}%的比例计算赠送经验值赠送，单笔订单最多可赠送${globalConfig.singleOrderMaxGiftExp!}经验值（注：有效订单为交易成功后的订单）</li>
+              <li v-if="Number('${globalConfig.orderCommentGiftExp!}')>0" class="grow-info__item">进行一次订单评价，可赠送${globalConfig.orderCommentGiftExp!}经验值（注：一个订单内多个商品只赠送一次）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    [#include "../includes/footer.html"]
+	</body>
+
+</html>
+<script>
+  var vm=new Vue({
+    el:"#grow",
+    data:{
+      exps:[],
+      imgs:[{url:'Lv1',minExp:'',maxExp:''},
+      {url:'Lv2',minExp:'',maxExp:''},
+      {url:'Lv3',minExp:'',maxExp:''},
+      {url:'Lv4',minExp:'',maxExp:''},
+      {url:'Lv5',minExp:'',maxExp:''}],
+      imgUrl:'${user.headImgUrl!}',//头像
+      expUrl:'${user.levelImageUrl!}',//等级
+      expLength:0,
+      exp:'${user.exp!}',
+    },
+    methods:{     
+     getList(){
+      var self=this
+      var num = Number(self.exp)
+      // var num = 450
+        cms.ajax({
+          url:'${base}/member/memberexp/list',
+        }, (res)=> {
+        if(res.code==200){
+          self.exps = res.data.splice(0,7)
+          var i = 0
+          var active = 0
+          var theExp = 0
+          if(res.data.length >0){
+            var arr = res.data.splice(0,7)
+            arr.forEach((v) => {
+              self.imgs[i].minExp = v.minExp
+              self.imgs[i].maxExp = Number(v.maxExp)
+              // self.imgs[i].url = v.url
+              if(num > self.imgs[i].minExp){
+                active=i
+                theExp = (num-self.imgs[i].minExp)/self.imgs[i].maxExp*115
+              }
+              i++
+            });
+            self.expLength=115*active+theExp
+            return
+          }
+        }
+      })
+     }
+    },
+    created() {
+     this.getList()
+    },
+  })
+</script>

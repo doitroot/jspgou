@@ -1,0 +1,2 @@
+webpackJsonp([150],{"W+XM":function(e,n,r){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=r("C7Lr")({name:"regionLayOut"},t,!1,function(e){r("jrwf")},null,null);n.default=u.exports},jrwf:function(e,n){}});
+//# sourceMappingURL=150.431e9bddb7d5686457aa.js.map

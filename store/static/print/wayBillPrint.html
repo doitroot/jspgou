@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>运单打印</title> 
+  <link href="./../css/element-ui/lib/theme-chalk/index.css" rel="stylesheet">
+  <script src="./../lib/vue.min.js"></script>
+  <script src="./../lib/element-ui.js"></script>
+  <style>
+  .boder{
+    width: 150mm;
+    border: 1px solid #eee;
+    height: 200mm;
+  }
+  .print-header{
+    margin: 0 auto;
+    padding: 10px 0;
+    width: 150mm;
+  }
+  </style>
+</head>
+
+<body>
+  <div style="min-height:600px" id="app">
+    <div :style="{width:width}" class="print-header">
+        <el-button type="primary" size="small"  @click="printOrder">打印</el-button>
+      <el-select v-model="tmpId" size="small" placeholder="请选择默认模板" @change="getTplDetails">
+        <el-option v-for="item in tmpList" :key="item.id" :label="item.name" :value="item.id"></el-option>
+      </el-select>
+    </div>
+    <div id="wayBillDialog">
+      <div style="position: relative;margin:0 auto;" :style="styleData" class="boder">
+        <div style="font-size:12px;position:absolute;" v-for="item in fieldData" :style="{
+           top:item.top+'px',
+           left:item.left+'px',
+           width:item.width+'px',
+           height:item.height+'px'
+         }" :key="item.id">{{item.text}}</div>
+      </div>
+    </div>
+   
+  </div>
+</body>
+</html>
+<script>
+   new Vue({
+     el: '#app',
+     data() {
+       return {
+         baseUrl: localStorage.getItem('baseUrl'),
+         tmpId: '',
+         tmpList: JSON.parse(localStorage.getItem('wayBillList')),
+         orderInfo: {},
+         styleData: {},
+         fieldData: [], // 打印项
+         width: ''
+       }
+     },
+     created() {
+       this.tmpId = this.tmpList.filter(v => v.isDefault)[0].id
+       this.getTplDetails(this.tmpId)
+     },
+     methods: {
+       getTplDetails(id) {
+         const wayBillInfo = JSON.parse(localStorage.getItem('wayBillInfo'))
+         const tplData = this.tmpList.filter(v => v.id === id)[0]
+         const tplField = JSON.parse(tplData.tplField)
+         const styleData = {
+           width: tplData.width + 'mm',
+           height: tplData.height + 'mm',
+           backgroundImage: `url('${this.baseUrl}${tplData.bgImgResourceData.url}')`,
+           backgroundSize: 'contain'
+         }
+         this.width = tplData.width + 'mm'
+         this.styleData = styleData
+         const fieldData = []
+         tplField.forEach(v => {
+           v.text = wayBillInfo[v.id]
+           fieldData.push(v)
+         })
+         this.fieldData = fieldData
+       },
+       printOrder() {
+         var printStr = document.querySelector('#wayBillDialog').innerHTML
+         var iframe = document.getElementById('print-iframe')
+         if (!iframe) {
+           iframe = document.createElement('IFRAME')
+           var doc = null
+           iframe.setAttribute('id', 'print-iframe')
+           iframe.setAttribute('style', 'position:absolute;width:0px;height:0px;left:-500px;top:-500px;')
+           document.body.appendChild(iframe)
+           doc = iframe.contentWindow.document
+           doc.write(printStr)
+           doc.close()
+           iframe.contentWindow.focus()
+         }
+         iframe.contentWindow.print()
+       }
+     }
+})
+
+</script>

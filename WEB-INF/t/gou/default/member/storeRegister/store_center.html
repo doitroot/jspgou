@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>${globalConfig.mallName!}-商家入驻</title>
+    [#include "../../includes/common.html"]
+</head>
+  <body>
+    <!-- 顶部导航栏 -->
+    [#include "../../includes/topBar.html"]
+    <div class="store-center" id="app" >
+      <!-- 商家中心banner -->
+      <div class="t-store__head">
+        <div class="container t-store__banner">
+          <div class="t-banner__btns" v-if="flag">
+            <a v-if="flag&&status == 1" href="${base}/member-storeRegister-store_select.htm" class="t-banner__link">立即入驻</a>
+            <a v-if="flag&&status != 1" href="${base}/member-storeRegister-storeSettledIn.htm" class="t-banner__link">查询入驻进度</a>
+          </div>
+        </div>
+      </div>
+      <!-- 入驻流程 -->
+      <div class="t-store__process">
+        <div class="container">
+          <h1 class="t-store__label">入驻流程</h1>
+          <ul class="process-box">
+            <li class="process-box__item fl">
+              <div class="process-box__icon fr">
+                  <img class="process-box__right" src="${res}/images/process-right.png" alt="">
+              </div>
+              <div class="process-box__head">
+                <img class="process-box__img" src="${res}/images/store-center-reg.png" alt="">
+              </div>
+              <div class="process-box__cont">
+                <h3 class="process-box__label">注册账户</h3>
+                <p class="process-box__txt">注册商城会员账户，登录后申请入驻</p>
+              </div>
+            </li>
+            <li class="process-box__item fl">
+              <div class="process-box__icon fr">
+                  <img class="process-box__right" src="${res}/images/process-right.png" alt="">
+              </div>
+              <div class="process-box__head">
+                <img class="process-box__img" src="${res}/images/store-center-apply.png" alt="">
+              </div>
+              <div class="process-box__cont">
+                <h3 class="process-box__label">入驻申请</h3>
+                <p class="process-box__txt">选择店铺类型及提交相关资料</p>
+              </div>
+            </li>
+            <li class="process-box__item fl">
+              <div class="process-box__icon fr">
+                  <img class="process-box__right" src="${res}/images/process-right.png" alt="">
+              </div>
+              <div class="process-box__head">
+                <img class="process-box__img" src="${res}/images/store-center-examine.png" alt="">
+              </div>
+              <div class="process-box__cont">
+                <h3 class="process-box__label">平台审核</h3>
+                <p class="process-box__txt">平台审核入驻商家信息</p>
+              </div>
+            </li>
+            <li class="process-box__item fl">
+              <div class="process-box__head">
+                <img class="process-box__img" src="${res}/images/store-center-success.png" alt="">
+              </div>
+              <div class="process-box__cont">
+                <h3 class="process-box__label">成功入驻</h3>
+                <p class="process-box__txt">缴纳相关费用，成功入驻登录进入商家管理后台</p>
+              </div>
+            </li>
+          </ul>
+          <h1 class="t-store__label">平台优势</h1>
+        </div>
+      </div>
+      <!-- 平台优势 -->
+      <div class="t-store__advantage">
+        <div class="advantage-wrap">
+          <div class="container advantage-box">
+            <div class="advantage-box__image fl">
+              <img class="advantage-box__img" src="${res}/images/store-center-list01.png" alt="">
+            </div>
+            <div class="advantage-box__cont fr">
+              <h2 class="advantage-box__title">多样的营销方式</h2>
+              <p class="advantage-box__txt">多样的单品优惠、店铺优惠及平台优惠营销方式，丰富你的营销手段</p>
+            </div>
+          </div>
+        </div>
+        <div class="advantage-bg">
+          <div class="container advantage-box">
+            <div class="advantage-box__cont advantage-box__left fl">
+              <h2 class="advantage-box__title">多样的营销方式</h2>
+              <p class="advantage-box__txt">多样的单品优惠、店铺优惠及平台优惠营销方式，丰富你的营销手段</p>
+            </div>
+            <div class="advantage-box__image advantage-box__right fr">
+              <img class="advantage-box__img" src="${res}/images/store-center-list02.png" alt="">
+            </div>
+          </div>
+        </div>
+        <div class="advantage-wrap">
+          <div class="container advantage-box">
+            <div class="advantage-box__image fl">
+              <img class="advantage-box__img" src="${res}/images/store-center-list03.png" alt="">
+            </div>
+            <div class="advantage-box__cont fr">
+              <h2 class="advantage-box__title">多样的营销方式</h2>
+              <p class="advantage-box__txt">多样的单品优惠、店铺优惠及平台优惠营销方式，丰富你的营销手段</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 入驻指南 -->
+      <div class="t-store__guide">
+          <h1 class="t-store__label">入驻指南</h1>
+          <div class="guide-wrap ">
+            <ul class="guide-wrap__list container">
+              <li class="guide-wrap__item fl guide-wrap__right">
+                <div class="guide-wrap__image">
+                  <img class="guide-wrap__img" src="${res}/images/store-center-guide01.png" alt="">
+                </div>
+                <div class="guide-wrap__cont">
+                  <h2 class="guide-wrap__title">资费标准</h2>
+                  <p class="guide-wrap__txt">资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准资费标准</p>
+                </div>
+                <div class="guide-wrap__btn">
+                  <a href="" class="guide-wrap__link">更多详情 ></a>
+                </div>
+              </li>
+              <li class="guide-wrap__item fl guide-wrap__right">
+                <div class="guide-wrap__image">
+                  <img class="guide-wrap__img" src="${res}/images/store-center-guide02.png" alt="">
+                </div>
+                <div class="guide-wrap__cont">
+                  <h2 class="guide-wrap__title">资质认证</h2>
+                  <p class="guide-wrap__txt">资质认证资质认证资质认证资质认证资质认证资质认证资质认证资质认证资质认证资质认证资质认证</p>
+                </div>
+                <div class="guide-wrap__btn">
+                  <a href="" class="guide-wrap__link">更多详情 ></a>
+                </div>
+              </li>
+              <li class="guide-wrap__item fl">
+                <div class="guide-wrap__image">
+                  <img class="guide-wrap__img" src="${res}/images/store-center-guide03.png" alt="">
+                </div>
+                <div class="guide-wrap__cont">
+                  <h2 class="guide-wrap__title">招商标准及方向</h2>
+                  <p class="guide-wrap__txt">招商标准及方向招商标准及方向招商标准及方向招商标准及方向招商标准及方向招商标准及方向招商标准及方向招商标准及方向招商标准及方向</p>
+                </div>
+                <div class="guide-wrap__btn">
+                  <a href="" class="guide-wrap__link">更多详情 ></a>
+                </div>
+              </li>
+            </ul>
+          </div>
+      </div>
+      <!-- 后台管理 -->
+      <div class="t-store__footer">
+          <hr class="foot__dashed"/>
+        <div class="container t-store__bg">
+            <hr class="t-store__dashed"/>
+            <a href="" class="t-store__link">商家管理后台</a>
+            <hr class="t-store__dashed t-store__right"/>
+        </div>
+      </div>
+    </div>
+    [#include "../../includes/footer.html"]
+  </body>
+</html>
+
+<script>
+    var app=new Vue(
+      {
+        el:'#app',
+        data:{
+          status:0,
+          flag:false,
+        },
+        methods:{
+          showReason(){//显示失败原因
+            this.reasonShow = !this.reasonShow
+          },
+          getTheStatus(){
+            var that = this
+            cms.ajax({
+                url: '${base}/member/enterstore/wait',
+                type: "get",
+            }, function (res) {
+                if (res.code == 200) {
+                    that.status = res.data.storeEntegerStatus
+                    that.flag = true
+                } else {
+                    console.log(res.message)
+                }
+            })
+          },
+        },
+        created(){
+          this.getTheStatus()
+        }
+      }
+    )
+  </script>

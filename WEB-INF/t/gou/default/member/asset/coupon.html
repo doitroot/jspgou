@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>优惠券</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="coupon"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body clearfix" id="ecouponinfo" v-cloak>
+        <div class="ecoupon__head">
+          <p style="font-weight: bold">优惠券</p>
+          <div style="cursor:pointer;">
+            <img src="${res}/images/ecoupon-get.png" alt="1" class="ecoupon__get">
+            <a href="${base}/coupon.htm">领取优惠券</a>
+          </div>
+        </div>
+        <!-- 优惠券主体部分 -->
+        <div class="ecoupon__main">
+          <!-- 优惠券tab栏 -->
+          <div class="ecoupon__nav">
+            <ul class="ecoupon__list" v-for="(item, index) in ecouponNavList" :key="index">
+              <li class="ecoupon__li" :class="{'ecoupon__li--active':liSelected==index}" @click.prevent="toggleMenu(index)">
+                <a href="#">{{item}}</a>
+              </li>
+            </ul>
+          </div>
+          <!-- 优惠券详情的包裹层 -->
+          <div class="ecoupon__item--wrap">
+            <!-- 每张的内容 -->
+            <div class="ecoupon__item clearfix" v-for="(item, index) in couponData" :key="index">
+              <!-- 上面的主体部分 -->
+              <div class="ecoupon__itemmain">
+                <div class="ecoupon__remain" :class="showExpiring(item.viewStatus)?'expiring':'expired'" v-if="item.viewStatus==1||item.viewStatus==4"></div>
+                <div class="ecoupon__all">
+                  <p class="ecoupon__value"><span class="ecoupon__symbol">¥</span>{{item.discountAmount}}</p>
+                  <p class="ecoupon__orderamount">满{{item.conOrderAmount}}可用</p>
+                  <!-- <p class="ecoupon__time" v-if="item.expirateType==2">自领取{{item.useDay}}日内有效</p> -->
+                  <p class="ecoupon__time">{{formatTime(item.useBeginTime)}}~{{formatTime(item.useEndTime)}}</p>
+                </div>
+                <div class="ecoupon__exit" @click="removeCoupon(item.memCouponId)"><img src="${res}/images/ecoupon-exit.png" alt="2"></div>
+              </div>
+              <!-- 下面的详细信息 -->
+              <div class="ecoupon__itemdecs">
+                <p class="ecoupon__scope">限品类:{{getCouponScope(item.couponScope,item)}}</p>
+                <p class="ecoupon__platform">限平台:{{item.isPlatformCoupon|getPlatformCoupon}}
+                  <span v-if="item.isPlatformCoupon==false">({{item.store.storeName}})</span>
+                </p>
+                <p class="ecoupon__code">券编号:{{item.id}}</p>
+                <p class="ecoupon__num">券数量:*{{item.getNum}}</p>
+              </div>
+              <div class="ecoupon__status">
+                <p class="ecoupon__btn" v-show="item.viewStatus<=2" @click="useCoupon(item.id)">马上使用</p>
+                <img src="${res}/images/ecoupon_used.png" alt="expired" class="ecoupon__used" v-if="item.viewStatus==3">
+              </div>
+
+            </div>
+          </div>
+          <!-- 优惠券列表结束 -->
+          <div style="text-align:center;">
+            <a href="javascript:;" class="load__btn" @click="loadMore" v-if="total>1" v-show="hidebtn">查看更多</a>
+          </div>
+          <div class="buycon_tips__wrap" v-if="total>4">
+            <p class="tips" v-show="!hidebtn" >╭❤～ 亲，已经加载完了哦!</p>
+          </div>
+          <!-- 列表内容暂无时显示 -->
+          <div v-if="couponData.length==0&&!loading" style="margin-top:130px;text-align:center;">
+            <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 尾部footer -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var ecouponinfo = new Vue({
+    el: "#ecouponinfo",
+    data: {
+      couponData: [], //优惠券列表数据
+      size: '',
+      total: '',
+      currentPage: '',
+      loading:false,
+      hidebtn: false,
+      liSelected: '', //切换tab栏的切换状态
+      ecouponNavList: ["全部", "可用优惠券", "已用优惠券", "过期优惠券"],
+      queryParams: {
+        status: ""
+      }
+    },
+    methods: {
+      getinfo() {
+        var that = this
+        that.loading=true
+        cms.ajax({
+          url: cms.url + '/member/coupon/page',
+          type: "get",
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            that.couponData = res.data.content
+            that.total = res.data.totalElements
+            that.loading=false
+          } else {
+            cms.alert(res.code)
+            that.loading=false
+          }
+        })
+      },
+      removeCoupon(id) { //删除优惠券
+        var that = this
+        this.$confirm('确定删除该优惠券？', '提示', {
+            distinguishCancelAndClose: true,
+            confirmButtonText: '确定',
+            cancelButtonText: '返回'
+          })
+          .then(() => {
+            let ids=[]
+            ids.push(id)
+            cms.ajax({
+              url: cms.url + '/member/coupon/delete',
+              type: 'post',
+              data: JSON.stringify({ids:ids})
+            }, function (res) {
+              if (res.code == 200) {
+                that.getinfo()
+              } else {
+                cms.alert('发生错误',5)
+              }
+            })
+          })
+          .catch(action => {
+            return false
+          });
+      },
+      toggleMenu(index) { //切换tab栏的切换状态
+        let that = this
+        that.liSelected = index
+        if (index == 0) {
+          that.queryParams.status = ""
+          this.getinfo()
+        }
+        if (index == 1) {
+          that.queryParams.status = "Effective"
+          this.getinfo()
+        }
+        if (index == 2) {
+          that.queryParams.status = "Used"
+          this.getinfo()
+        }
+        if (index == 3) {
+          that.queryParams.status = "Invalid"
+          this.getinfo()
+        }
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY.MM.DD')
+      },
+      showExpiring(status) {
+        if (status == 1) {
+          return true
+        }
+        if (status == 4) {
+          return false
+        }
+      },
+      useCoupon(id) { //马上使用
+        window.location.href="${base}/index.htm"
+      },
+      loadMore() { //加载更多
+      },
+      getCouponScope(val, item) { //处理是否所有商品可用此券
+        if (val === 1) {
+          return '全部商品'
+        }
+        if (val === 2) {
+          return '自营商品'
+        }
+        if (val === 3) {
+          return item.ctgs.join(',')
+        }
+      },
+    },
+    filters: {
+      toLocalTime(val, formatString = "YYYY-MM-DD") {
+        return moment(val).format(formatString)
+      },
+      getPlatformCoupon(val) { //处理是否平台优惠券
+        if (val) {
+          return '全平台'
+        } else {
+          return '商家优惠券'
+        }
+      }
+    },
+    created() {
+      this.getinfo()
+    }
+  })
+</script>

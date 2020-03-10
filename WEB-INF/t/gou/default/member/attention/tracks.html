@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-我的足迹</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+  <script src="${res}/js/locales.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="attentionTracks"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body clearfix" id="tracks" v-loading="loading" v-cloak>
+        <div class="member-title index-title att-goods-title">
+          <!-- 主体头部 -->
+          <h3 class="att-head-title">我的足迹</h3>
+        </div>
+        <div class="member-order__body index-body">
+          <!-- 分类 -->
+          <div class="att-container att__goodscon clearfix">
+            <span class="att-goods-fixedli" @click="toggleMenu('')"
+            v-if="navList.length >0"
+             :class="{'att-clsify':allCateActive}">全部分类
+            </span>
+            <ul class="att-goods-clsify att-goodstrack-clsify clearfix">
+              <li v-for="(item, index) in navList" :key="index" class="att-goods-clsifyli"
+                :class="[queryParams.productCategoryId==item.id?'att-clsify':'']"
+                @click="toggleMenu(item.id)">
+                <a  class="att-goods-name" href="javascript:;">{{item.cateName}}</a>
+              </li>
+            </ul>
+            <a class="att-more" v-show="navList.length>11">查看更多 <i class="fa fa-angle-down"></i></a>
+          </div>
+          <!-- 足迹 -->
+          <div class="att-tracks-container">
+            <div>
+              <!-- 第一个 -->
+              <div class="orderstate__info tracks-container" v-for="(item, index) in trackList" :key="index">
+                <!-- 左侧点线 -->
+                <span class="orderstate__icon tracks-icon tracks-icon-bg">
+                  <i class="fa fa-dot-circle-o"></i>
+                  <div class="orderstate__icon--line tracks-line tracks-line-head"></div>
+                </span>
+                <!-- 商品内容 -->
+                <span class="orderstate__scrolltext tracks-main v-cloak">
+                  <h3 class="tracks-title">{{handleTime(item.createTime)}}</h3>
+                  <div class="tracks-box clearfix">
+                    <!-- 图片 -->
+                    <div class="tracks-img-box">
+                        <img v-if="item.product.resources[0]" :src="baseUrl+item.product.resources[0].imageResouce.url" alt="" class="tracks-img">
+                    </div>
+                    <!-- 描述 -->
+                    <div class="tracks-text-box ">
+                      <a class="tracks-text" :href="'${base}/product-detail.htm?productId='+item.product.id" :title="item.product.name">
+                        {{item.product.name}}
+                      </a><br>
+                      <span class="tracks-price">
+                        ￥{{$float(item.product.salePrice)}}
+                      </span>
+                    </div>
+                  </div>
+                </span>
+                <a href="javascript:;" class="account-person-btn tracks-dbtn-group tracks-dbtn-group--active">
+                  <button type="button" class="tracks-dbtn" @click="removeTrack(item.product.id)">
+                    <span>删除</span>
+                  </button>
+                </a>
+              </div>
+            </div>
+            <!-- 足迹列表暂无时显示 -->
+            <div v-if="trackList.length==0&&!loading" style="text-align:center;margin-top:120px;">
+              <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+            </div>
+          </div>
+          <!-- tracks底部 -->
+
+
+          <div style="text-align:center;margin-top: 20px;">
+            <a href="javascript:;" class="buycon_tips__wrap" @click.prevent="loadMore" v-if="total>1" v-show="hidebtn">查看更多</a>
+          </div>
+          <div class="tips__wrap ecoupon__tipwrap" v-if="!hidebtn&&trackList.length!==0">
+            <p class="tips" >已经到底了，请去浏览更多的商品~</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var tracks = new Vue({
+    el: '#tracks',
+    data() {
+      return {
+        queryParams: {
+          "page": 1,
+          "size": 5,
+          "productCategoryId": ""
+        },
+        total: '',
+        hidebtn: true,//加载更多按钮的控制
+        baseUrl: cms.imgUrl,
+        loading:false,
+        allCateActive:true, //导航栏全部分类的选中状态
+        trackList: [],    //足迹列表
+        navList: []       //导航栏列表
+      }
+    },
+    methods: {
+      getTracks() {    //获取我的足迹列表
+        var that = this
+        that.loading = true
+        cms.ajax({
+          url: cms.url + '/member/myTracks/page',
+          type: 'get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.trackList = res.data.content
+            that.total = res.data.totalElements
+          } else {
+            that.loading = false
+          }
+        })
+      },
+      handleTime(time) {
+        moment.locale('zh-cn')
+        return moment(time).fromNow()
+      },
+      removeTrack(id) {    //删除我的足迹
+        this.$confirm('确认删除该记录?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: cms.url + '/member/myTracks/delete',
+            type: 'get',
+            data: { "productId": id }
+          }, function (res) {
+            if (res.code == 200) {
+              tracks.getTracks()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        })
+      },
+      loadMore() {     //查看更多
+        let that=this
+        if ( that.queryParams.size<that.total) {
+           that.queryParams.size+=5
+           that.getTracks()
+        }else{
+          that.hidebtn=false
+        }
+      },
+      getTracksCategory() {   //获取用户浏览的商品的全部分类id
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/myTracks/getCategory',
+          type: 'get',
+        }, function (res) {
+          if (res.code == 200) {
+            console.log(res)
+            that.navList = res.data
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      toggleMenu(id) {   //菜单栏的切换
+        if(id==''){
+          this.allCateActive=true
+        }else{
+          this.allCateActive=false
+        }
+        this.queryParams.productCategoryId=id
+        this.getTracks()
+      },
+      getNavList() {     //获取导航列表
+        var that = this
+        $.get(cms.url + '/productcategory/list', function (res) {
+          if (res.code == 200) {
+            that.navList = res.data
+          }
+        })
+      }
+    },
+    created() {
+      this.getTracks()
+      // this.getNavList()
+      this.getTracksCategory()
+    }
+
+  })
+</script>

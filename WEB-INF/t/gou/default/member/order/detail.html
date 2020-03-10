@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-订单详情</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+  <script src="${res}/lib/clipboard.min.js"></script>
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container gray-container--padd10" id="orderDetail" v-cloak>
+    <div class="container">
+      <!-- 订单导航 -->
+      <div class="container__orderdecs__nav">
+        <a href="${base}/member-account-index.htm">会员中心</a>
+        > <a href="${base}/member-order-index.htm">订单中心</a>
+        > <a href="">订单详情</a>
+      </div>
+      <div class="ordersdecs__container">
+        <!-- 流程控制 -->
+        <div class="flow">
+          <div class="flow__inner">
+            <div class="flow__build">
+              <div class="flow__icon"><img src="${res}/images/process-active2.png" alt=""></div>
+              <div class="flow__text">订单生成</div>
+              <div class="flow__time">{{formatTime(order.orderTime)}}</div>
+              <div class="flow__line"></div>
+            </div>
+            <div class="flow__build">
+              <div class="flow__icon" v-if="order.status==2||order.status==3||order.status==4">
+                <img src="${res}/images/process-active5.png" alt="">
+              </div>
+              <div class="flow__icon flow__icon--suc" v-if="order.status<2||order.status==5||order.status==6">
+                <img src="${res}/images/process5.png" alt="1">
+              </div>
+              <div class="flow__text">支付成功</div>
+              <div class="flow__time" v-if="order.payTime">{{formatTime(order.payTime)}}</div>
+              <div class="flow__time" v-if="!order.payTime">&nbsp;</div>
+              <div class="flow__line" v-if="order.status==2||order.status==3||order.status==4"></div>
+              <div class="flow__line-inactive" v-if="order.status<2||order.status==5||order.status==6"></div>
+            </div>
+            <div class="flow__build">
+              <div class="flow__icon" v-show="order.status==3||order.status==4">
+                <img src="${res}/images/process-active1.png" alt="">
+              </div>
+              <div class="flow__icon" v-show="order.status<3||order.status==5||order.status==6">
+                <img src="${res}/images/process1.png" alt="1">
+              </div>
+              <div class="flow__text">卖家发货</div>
+              <div class="flow__time" v-show="order.deliveryTime">{{formatTime(order.deliveryTime)}}</div>
+              <div class="flow__time" v-show="!order.deliveryTime">&nbsp;</div>
+              <div class="flow__line" v-show="order.status==3||order.status==4"></div>
+              <div class="flow__line-inactive" v-show="order.status<3||order.status==5||order.status==6"></div>
+            </div>
+            <div class="flow__build flow__build--mar70">
+              <div class="flow__icon" v-show="order.status==3||order.status==4">
+                <img src="${res}/images/process-active3.png" alt="">
+              </div>
+              <div class="flow__icon" v-show="order.status<3||order.status==5||order.status==6">
+                <img src="${res}/images/process3.png" alt="1">
+              </div>
+              <div class="flow__text">等待收货</div>
+              <div class="flow__time" v-show="order.deliveryTime">&nbsp;</div>
+              <div class="flow__time" v-show="!order.deliveryTime">&nbsp;</div>
+              <div class="flow__line" v-show="order.status==3||order.status==4"></div>
+              <div class="flow__line-inactive" v-show="order.status<3||order.status==5||order.status==6">&nbsp;</div>
+            </div>
+            <div class="flow__build flow__build--last">
+              <div class="flow__icon flow__icon--noh" v-show="order.status==4">
+                <img src="${res}/images/process-active4.png" alt="">
+              </div>
+              <div class="flow__icon" v-show="order.status<4||order.status==5||order.status==6">
+                <img src="${res}/images/process4.png" alt="1">
+              </div>
+              <div class="flow__text">订单完成</div>
+              <div class="flow__time" v-show="order.receiveTime">{{formatTime(order.receiveTime)}}</div>
+              <div class="flow__time" v-show="!order.receiveTime">&nbsp;</div>
+            </div>
+          </div>
+        </div>
+        <!-- 订单信息 -->
+        <div class="orderdecs__goods clearfix">
+          <div class="goods__orderinfo">
+            <h3 class="goods__title">订单信息</h3>
+            <div class="goods__items">
+              <ul class="goods__itemsinner">
+                <li class="goods__item"><span class="goods__key">订单编号：</span><span class="goods__value" v-show="!order.visual">{{order.orderCode}}</span></li>
+                <li class="goods__item"><span class="goods__key">订单类型：</span><span class="goods__value">{{order.orderType|handlerType}}</span></li>
+                <li class="goods__item"><span class="goods__key">下单用户：</span><span class="goods__value" v-if="order.orderExt">{{order.orderExt.customerName}}</span></li>
+                <li class="goods__item"><span class="goods__key">支付方式：</span><span class="goods__value">{{order.payMode|handlerPayMode}}</span></li>
+
+                <li class="goods__item" v-if="order.orderTime"><span class="goods__key">下单时间：</span><span class="goods__value">{{formatTime(order.orderTime)}}</span></li>
+                <li class="goods__item" v-if="order.payTime"><span class="goods__key">付款时间：</span>
+                  <span class="goods__value">{{formatTime(order.payTime)}}</span>
+                  <span v-if="!order.payTime">-</span>
+                </li>
+                <li class="goods__item" v-if="order.deliveryTime"><span class="goods__key">发货时间：</span>
+                  <span class="goods__value">{{formatTime(order.deliveryTime)}}</span>
+                  <span v-if="!order.deliveryTime">-</span>
+                </li>
+                <li class="goods__item" v-if="order.receiveTime"><span class="goods__key">成交时间：</span>
+                  <span class="goods__value">{{formatTime(order.receiveTime)}}</span>
+                  <span v-if="!order.receiveTime">-</span>
+                </li>
+              </ul>
+            </div>
+            <div class="goods__items">
+              <ul :class="order.orderExt?'goods__itemsinner':''">
+                <li class="goods__item" v-if="order.orderExt&&order.orderExt.deliveryCompany"><span class="goods__key">配送方式：</span>
+                  <span class="goods__value goods__value--lh30">{{order.orderExt.deliveryCompany.cnName}}</span>
+                  <span v-if="order.orderExt&&!order.orderExt.deliveryCompany">-</span>
+                </li>
+                <li class="goods__item" v-if="order.orderExt&&order.orderExt.expressNum"><span class="goods__key">运单编号：</span>
+                  <span class="goods__value goods__value--lh30">{{order.orderExt.expressNum}}</span>
+                  <span v-if="order.orderExt&&!order.orderExt.deliveryCompany">-</span>
+                </li>
+                <li class="goods__item"><span class="goods__key">收货地址：</span><span class="goods__value goods__value1"
+                    id="copy" v-if="order.orderExt">{{order.orderExt.customerAddress}} {{order.orderExt.customerTel}}
+                    <a href="javascript:;" class="goods__copy" @click="copyTxt" data-clipboard-target="#copy" id="triggerCopy">复制</a></span>
+                </li>
+                <li class="goods__item"><span class="goods__key">买家留言：</span>
+                  <span class="goods__value goods__value1" v-if="order.orderExt">{{order.orderExt.customerTxt}}</span>
+                  <span v-if="order.orderExt&&!order.orderExt.customerTxt">-</span>
+                </li>
+              </ul>
+            </div>
+            <div class="goods__items" v-if="order.orderExt&&order.orderExt.needInvoice">
+              <ul class="goods__itemsinner goods__itemsinner--noline">
+                  <li class="goods__item"><span class="goods__key">发票类型：</span><span class="goods__value goods__value--lh30"
+                      v-if="order.orderExt">
+                      {{order.orderExt.invoiceType===1?'个人发票':'企业发票'}}
+                    </span>
+                    <span v-else>-</span>
+                  </li>
+                <li class="goods__item"><span class="goods__key">发票抬头：</span><span class="goods__value goods__value--lh30"
+                    v-if="order.orderExt">
+                    {{order.orderExt.invoiceTitle}}
+                  </span>
+                  <span v-else>-</span>
+                </li>
+                <li class="goods__item" v-if="order.orderExt.invoiceType !== 1">
+                  <span class="goods__key">纳税人识别号：</span>
+                  <span class="goods__value goods__value--lh30"
+                    v-if="order.orderExt">
+                    {{order.orderExt.invoiceTaxpayerNum}}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="orderstate">
+            <div class="orderstate-inner">
+              <div class="orderstate__title">
+                <img class="orderstate__title--icon" src="${res}/images/order_state.png" alt="">
+                <span class="orderstate__title--text">订单状态 
+                  <span :class="order.status==5||order.status==6?'btnDColor':'btnCColor'"
+                   style="margin-right: 10px">{{order.status|handlerOrderStatus}}</span></span>
+              </div>
+              <div class="orderstate__close" v-if="order.status==1||(order.status==3&&order.deliveryTime)">
+                  <img class="orderstate__close--icon" src="${res}/images/icon8.png" alt="" v-if="countdownInfo!=''||deliveryInfo!=''">
+                <span v-if="order.status==1">{{countdownInfo}}</span>        
+
+                <span v-if="order.status==3">{{deliveryInfo}}</span>
+              </div>
+              <div class="orderstate__btngroup">
+                <a href="javascript:;" class="orderstate__btn" v-if="order.status==1 && showPayBtn" @click="orderPay(order)">立即支付</a>
+                <el-button :disabled="order.availRemind" @click="remindSend(order)" v-if="handlerTipBtn(order)" size="mini"
+                  v-show="order.showRemind">提醒卖家
+                </el-button>
+                <a href="javascript:;" class="orderstate__btn" v-if="order.status==3&&!order.hasExtendReceive"
+                  @click.prevent="extendReceive(order.id)">延迟收货</a>
+                <a href="javascript:;" class="orderstate__btn" v-if="order.status==3" @click.prevent="confirmReceive(order.id)">确认收货</a>
+              </div>
+              <!-- 如果是虚拟商品运送方式直接显示  “ 自动发货”,且无运单号及物流信息 -->
+              <div class="orderstate__info" v-if="order.visual">
+                <span class="orderstate__icon">
+                  <i class="fa fa-dot-circle-o"></i>
+                  <div class="orderstate__icon--line"></div>
+                </span>
+                <span class="orderstate__scrolltext">自动发货</span>
+              </div>
+              <!-- 物流信息 -->
+              <div class="orderstate__scroll" v-loading="expressLoading">
+                <div class="orderstate__info" v-for="(flow, index) in flowInfo" :key="index">
+                  <span class="orderstate__icon">
+                    <i class="fa fa-dot-circle-o" v-if="index==0"></i>
+                    <i class="express-icon" v-if="index!=0"></i>
+                    <div class="orderstate__icon--line" v-if="index!=flowInfo.length-1"></div>
+                  </span>
+                  <div class="orderstate__scrolltext">
+                    <span class="express-time">{{flow.acceptTime}}</span>
+                    <span class="express-info" :class="index==0?'bold':''">{{flow.acceptStation}}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 内容列表 -->
+        <div class="tablepa">
+          <table class="member-table member-table--pos">
+            <thead class="member-table__thead">
+              <tr>
+                <th class="member-table__th member-table__th--color">商品</th>
+                <th class="member-table__th member-table__th--color">单价</th>
+                <th class="member-table__th member-table__th--color">数量</th>
+                <th class="member-table__th member-table__th--color">小计</th>
+                <th v-if="order.status == 2||order.status == 3||order.status == 4" class="member-table__th member-table__th--color">操作选项</th>
+              </tr>
+            </thead>
+            <!-- 列表循环 -->
+            <tbody>
+              <tr class="member-table__tr" v-for="(item, index) in order.items" :key="index">
+                <td class="member-table__td member-table__td--nob">
+                  <div class="member-ordersdecs-product">
+                    <div class="member-product__media member-product__media--nob">
+                      <img :src="baseUrl+item.productInfo.coverImageUrl" alt="" class="member-product__img">
+                    </div>
+                    <div class="member-product__info member-product__info--width">
+                      <a class="order__details__pname" :href="'${base}/product-detail.htm?productId='+item.productId">
+                        {{item.productInfo.productName}}
+                      </a>
+                      <a :href="'${base}/member-order-snapshot.htm?productId='+item.productInfo.id+'&storeId='+item.storeId">[交易快照]</a>
+                      <div class="member-product__standard member-product__standard--size" v-if="item.productInfo.skuAttr">
+                        <span v-for="(sku, indexs) in JSON.parse(item.productInfo.skuAttr) " :key="indexs">
+                          {{sku.name}}: {{sku.value}}&nbsp;&nbsp;&nbsp;
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="member-table__td member-table__td--nob">
+                  <span class="member-product__user">￥{{$float(item.realPrice)}}</i>
+                  </span>
+                </td>
+                <td class="member-table__td member-table__td--nob">
+                  <div class="member-table__inner">
+                    <p class="member-product__total">{{item.productCount}}</p>
+                  </div>
+                </td>
+                <td class="member-table__td member-table__td--nob">
+                  <div class="member-table__inner">
+                    ￥{{$float(item.realAmount)}}
+                  </div>
+                </td>
+                <td v-if="order.status == 2||order.status == 3||order.status == 4" class="member-table__td member-table__td--nob">
+                  <div class="member-table__inner">
+                      <a :href="'${base}/member-order-service.htm?orderId='+order.id+ '&productId='+ item.productId" class="container__report--color" 
+                      v-if="order.status > 1 && order.status < 5 && ( 
+                       item.newRefund && item.newRefund.status >= 8 ||  !item.newRefund ) &&order.userDel === 0 ">
+                       申请售后
+                     </a>
+                     <a  class="btnCColor" v-if="item.newRefund && item.newRefund.status < 8  ">
+                       {{item.newRefund.status | handlerRefundStatus}} 
+                     </a>
+                     <a  class="code-link-dark"  v-if="item.productCount == item.refundCount  ">
+                         理赔成功
+                     </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr class="member-table__tr member-table__tr--nob">
+                <td class="member-table__td member-table__td--nob">
+                </td>
+                <td class="member-table__td member-table__td--nob">
+                </td>
+                <td v-if="order.status == 2||order.status == 3||order.status == 4" class="member-table__td member-table__td--nob">
+                </td>
+                <td class="member-table__td member-table__td--nob member-table__td--over">
+                  <div class="member-orders__numinner">
+                    <div class="member-product__state member-product__user--size">商品总额：</div>
+                    <div class="member-product__state member-product__user--size">运费：</div>
+                    <div class=" container__report--color member-product__state" style="font-size: 14px">实付款：</div>
+                    <div class="member-product__state member-product__user--size">更多：
+                      <a href="" class="member-product__fa">
+                        <i class="fa fa-angle-double-down"></i>
+                        <div class="member-product__more">
+                          <p class="member-product__message member-product__message--pa10">
+                            <span class="member-product__style">卖家优惠：</span>
+                            <span class="member-product__mon">￥{{$float(order.sellerDiscount)}}</span>
+                          </p>
+                          <p class="member-product__message"><span class="member-product__style">平台优惠：</span>
+                            <span class="member-product__mon">￥{{$float(order.platformDiscount)}}</span>
+                          </p>
+                          <p class="member-product__message"><span class="member-product__style">积分抵扣：</span>
+                            <span class="member-product__mon">￥{{$float(order.integralDiscount)}}</span>
+                          </p>
+                          <p class="member-product__message"><span class="member-product__style">红包抵扣：</span>
+                            <span class="member-product__mon">￥{{$float(order.redPacketDiscount)}}</span>
+                          </p>
+                          <p class="member-product__message"><span class="member-product__style">返积分：</span>
+                            <span class="member-product__mon">{{order.sendIntegral}}</span>
+                          </p>
+                          <p class="member-product__message"><span class="member-product__style">返红包：</span>
+                            <span class="member-product__mon">{{order.sendIntegral}}</span>
+                          </p>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                </td>
+                <td class="member-table__td member-table__td--nob">
+                  <div class="member-orders__amountinner">
+                    <div class="member-table__inner member-product__user--size member-product__state">
+                      ￥{{$float(order.orderProductAmount)}}
+                    </div>
+                    <div class="member-table__inner member-product__user--size member-product__state">
+                      ￥{{$float(order.orderFreight)}}
+                    </div>
+                    <div class="member-table__inner member-product__user--size member-product__state member-product__user--bsize">
+                      ￥{{$float(order.orderPayAmount)}}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- 列表内容暂无时显示 -->
+        <div class="shop__empty orders__center_empty" v-if="!order">
+          <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- start -->
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var orderDetail = new Vue({
+    el: '#orderDetail',
+    data() {
+      return {
+        order: {
+          status:0
+        }, //订单的详情
+        baseUrl: cms.imgUrl,
+        queryParams: {
+          id: '${orderId!}'
+        },
+        flowInfo: '', //物流信息
+        showPayBtn:true,
+        countdownInfo:'',
+        countdownTimer:null,
+        deliveryTimer:null,
+        deliveryInfo:'',
+        expressLoading: false
+      }
+    },
+    methods: {
+      getOrderList() { //获取订单详情列表
+        let that = this
+        cms.ajax({
+          url: '${base}/member/order/get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            res.data.showRemind = true //是否显示提醒按钮
+            res.data.availRemind = false //禁用提醒按钮
+            if(res.data.status == 1){
+              that.buyCountdown(res.data.orderTime)
+              that.countdownTimer=setInterval(()=>{
+                that.buyCountdown(res.data.orderTime)
+              },1000)     
+            }
+            if (!res.data.visual) {
+              if (res.data.status == 3 || res.data.status == 4) {
+                that.getFlowInfo(res.data.id)
+              }
+              if(res.data.status == 3 && res.data.deliveryTime){
+                that.sysReceiveCountdown(res.data.deliveryTime,res.data.hasExtendReceive)
+                that.deliveryTimer = setInterval(() => {
+                  that.sysReceiveCountdown(res.data.deliveryTime,res.data.hasExtendReceive)
+                })
+              }
+            }
+            that.order = res.data   
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      getFlowInfo(id) { //获取物流信息         
+        this.expressLoading = true
+        let that = this
+        cms.ajax({
+          url: '${base}/member/orderflow/info',
+          data: {
+            orderId: id
+          }
+        }, function (res) {
+          that.expressLoading = false
+          if (res.code == 200) {
+            if (res.data.traces.length > 0) {
+              that.flowInfo = res.data.traces.reverse() //翻转物流信息
+            } else {
+              that.flowInfo = [{
+                acceptTime: '',
+                acceptStation: '暂无物流信息'
+              }]
+            }
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      remindSend(order) { //提醒卖家
+        let that = this
+        cms.ajax({
+          url: '${base}/member/order/remind',
+          data: {
+            "orderId": order.id
+          }
+        }, function (res) {
+          if (res.code == 200) {
+            cms.alert('卖家已收到你的提醒，马上就会发货了',4)
+          } else if (res.code == 11568) { //一分钟后提醒
+            order.availRemind = true
+            let countdown = 60
+            let timer = setInterval(function () {
+              countdown--
+              if (countdown > 0 && countdown < 60) {
+                order.availRemind = true
+              } else {
+                that.$set(order, 'availRemind', false)
+                countdown = 60
+                clearInterval(timer)
+              }
+            }, 1000)
+            cms.alert(res.message,1)
+          } else if (res.code == 11569) { //已用尽时
+            order.showRemind = false
+            cms.alert(res.message,5)
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      handlerTipBtn(order) { //提醒卖家按钮的显示隐藏
+        if (order.status != 2 || order.payTime == '') { //非待发货状态时
+          return false
+        } else {
+          let alertBegin = moment(order.payTime).startOf('day').add(2, 'd') //获取可以提醒最早的时间
+          if (alertBegin - moment() < 0) {
+            return true
+          } else {
+            return false
+          }
+        }
+      },
+      confirmReceive(id) { //确认收货
+        this.$confirm('亲，确定宝贝已送至您的手中?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/order/confirm',
+            data: {
+              "orderId": id
+            }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              location.reload()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        }).catch(()=>{return false})
+      },
+      extendReceive(id) { //延迟收货
+        this.$confirm('亲，确定要延长收货时间?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/order/extendReceive',      
+            data: {
+              "orderId": id
+            }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              location.reload()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        }).catch(()=>{return false})
+      },
+      orderPay(order) { //立即支付
+        let params = Qs.stringify({'orderNo':order.orderCode,'description':'商品订单支付','subject':'商品订单支付','payScene':'memberOrderPay','amount':order.orderAmount})
+        location.href="${base!}/member/tradePage.htm?"+params
+      },
+      buyCountdown(orderTime) { //待付款的倒计时
+        let time= parseInt(3600000*'${globalConfig.orderCloseHour!}')  //后台设置过期时间
+        let ExpirationTime= orderTime+time
+        let diffTime=parseInt(ExpirationTime-new Date().getTime())
+          var t = null;
+          var d = null;
+          var h = null;
+          var m = null;
+          var s = null;
+          t =diffTime / 1000;
+          d = Math.floor(t / (24 * 3600));
+          h = Math.floor((t - 24 * 3600 * d) / 3600);
+          m = Math.floor((t - 24 * 3600 * d - h * 3600) / 60);
+          s = Math.floor((t - 24 * 3600 * d - h * 3600 - m * 60));
+          if(parseInt(t+d+h+m+s)<0){
+            clearInterval(this.countdownTimer)
+          }else{
+            this.countdownInfo='订单将在'+d+'天'+h+'小时'+m+'分'+s+'秒后自动关闭'
+          }     
+          if(parseInt(t+d+h+m+s)==0){//都为0的时候就去刷新页面
+            location.reload()
+          } 
+
+      },
+      sysReceiveCountdown(time,delay) { //自动收货的倒计时
+        var collectTime= parseInt(24*3600000*'${globalConfig.orderAutoReceiveTime!}')  //后台设置收货时间(天)
+          let ExpirationTime= collectTime+time
+          if(delay){
+            var receiveTime= parseInt(24*3600000*'${globalConfig.orderExtendReceiveTime!}')  //延迟收货时间
+            ExpirationTime = collectTime+time+receiveTime
+          }
+          let diffTime=parseInt(ExpirationTime-new Date().getTime())
+          var t = null;
+          var d = null;
+          var h = null;
+          var m = null;
+          var s = null;
+          t =diffTime / 1000;
+          d = Math.floor(t / (24 * 3600));
+          h = Math.floor((t - 24 * 3600 * d) / 3600);
+          m = Math.floor((t - 24 * 3600 * d - h * 3600) / 60);
+          s = Math.floor((t - 24 * 3600 * d - h * 3600 - m * 60));
+          if(parseInt(t+d+h+m+s)<0){
+            clearInterval(this.deliveryTimer)
+          }else{
+            this.deliveryInfo = '订单将在'+d+'天'+h+'小时'+m+'分'+s+'秒后自动确认收货，请在此之前确认是否收到货物，您还可以点击延迟收货按钮进行延长自动确认收货时长'
+          }     
+          if(parseInt(t+d+h+m+s)==0){//都为0的时候就去刷新页面
+            location.reload()
+          } 
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      },
+      copyTxt() { //复制文本
+        var clipboard = new ClipboardJS('#triggerCopy');
+        clipboard.on('success', function (e) {
+          e.clearSelection();
+        });
+      },
+      daojishi(t,time) {
+        var that = this
+        var djs = setInterval(function () {
+            t = 14 - parseInt(((new Date() / 1000) - time) / 60);     //剩余分钟数
+            var s = 60 - parseInt(((new Date() / 1000) - time) % 60); //剩余秒数
+            if (s == 60) {
+                s = 0;
+                t = t + 1;
+            }
+            if (t <= 0 && s<=0) {
+                clearInterval(djs)
+            }
+            that.buyDownTxt = '订单将在'+(t>=10?t:"0"+t)+'分'+(s>=10?s:"0"+s)+'秒后自动关闭'
+
+          }, 1000);
+      }
+    },
+    filters: {
+      handlerOrderStatus(val) { //交易状态的过滤器
+        var orderStatus = ['','待付款','待发货','待收货','已完成','已取消','超时交易关闭']
+        return orderStatus[parseInt(val)]
+      },
+      handlerType(val) { //订单类型的过滤器
+        return val == 1?'实物订单':'虚拟订单'
+      },
+      handlerSource(val) { //订单来源的过滤器
+        var sources = ['','PC','手机端','APP','公众号','小程序','平板']
+        return sources[parseInt(val)]
+      },
+      handlerPayMode(val) { //处理支付方式
+        var payModes = ['','支付宝','微信','银联','余额']
+        return payModes[parseInt(val)]
+      },
+      handlerRefundStatus(val) {//售后处理状态的过滤器
+        var refundStatus = ['待卖家确认','退款中','卖家拒绝','','待买家发货','待卖家收货','待买家收货','待卖家发货','已完成','买家取消']
+        return refundStatus[parseInt(val)]
+      }
+    },
+    created() {
+      this.getOrderList() //获取订单列表
+    }
+  })
+</script>

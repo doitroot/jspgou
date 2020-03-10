@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-支付成功</title>
+  [#include "../includes/common.html"]
+</head>
+<body>
+  [#assign topName="支付成功"/]
+  [#include "../includes/topbar.html"]
+  <div id="paySuccess" class="nav-top" v-cloak>
+      <div class="container t-14">
+          <div  style="text-align: center">
+              <div >
+                <img  src="${res}/images/order-sucess.png" >
+              </div>
+              <div class="shopCart-succes__txt">
+                <div class="shopCart-succes__price">恭喜您已成功支付 <span class="t-color t-wide"> ￥${(amount?number)?string(',###0.00')}</span> 元</div>
+                <div class="shopCart-succes__ordernum">订单号 : ${orderCode!}</div>
+              </div>
+              <br>
+            <div class="sucess-foot">
+                <van-button class="sucess-btn"  @click="backIndex" type="default">继续购物</van-button>
+                <van-button  class="sucess-btn"  @click="showOrder" type="primary">查看订单</van-button>
+            </div>
+          </div>
+          <br>
+          <div class="t-label t-12" style="line-height:24px;">
+            <van-icon name="info" class="t-icon"></van-icon>
+            安全提醒：本商城不会以系统维护，订单异常等理由，要求您点击垃圾或其他方式进行退款操作，或以各种理由索取您的隐私信息（如个人身份信息、会员账户、银行卡号、密码及手机验证码等）
+          </div>
+          <recommend-list></recommend-list>
+        </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#paySuccess',
+    data () {
+      return {
+        
+      }
+    },
+    methods: {
+      backIndex(){
+        location.href = '${base}/'
+      },
+      showOrder(){
+        location.href = '${base}/member-order-index.htm'
+      }
+    }
+  })
+</script>

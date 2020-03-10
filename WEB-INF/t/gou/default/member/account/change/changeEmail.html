@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>账户安全</title>
+  [#include "../../../includes/common.html"]
+</head>
+
+<body>
+  [#include "../../../includes/topBar.html"]
+  [#include "../../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container">
+      <!-- 左侧选项卡 -->
+        [#assign activeName="accountSecurity"]
+        [#include "../../../includes/accountNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body" id="changeEmail">
+        <h3 class="member-title index-title">账户安全</h3>
+        <div class="member-order__body person-order__body">
+          <div class="changePass">
+            <div class="changePass-nav">
+              <ul class="changePass__nav">
+                <li class="changePass__item changePass__item--Lradius" :class='[status===0||status===1||status===2?"changePass__item changePass__item--active":""]'>①&nbsp;验证身份<span
+                    class="changePass__ricon"><i class="fa fa-angle-right"></i></span></li>
+                <li class="changePass__item changePass__item--Mradius" :class='[status===2||status===1?"changePass__item changePass__item--active":""]'>②&nbsp;修改邮箱<span
+                    class="changePass__ricon"><i class="fa fa-angle-right"></i></span> </li>
+                <li class="changePass__item changePass__item--Rradius" :class='[status===2?"changePass__item changePass__item--active":""]'>③&nbsp;完成</li>
+              </ul>
+            </div>
+
+            <!-- 验证方式主体 -->
+            <el-form v-if="status==0" style="display:inline-block;margin-top: 30px;" size="mini" class="account-personab-inner-havebadge"
+              label-position="right" label-width="120px">
+              <el-form-item label="验证方式" class="add__name" >
+                  <el-select v-model="vaType"  style="width: 100px;" placeholder="请选择" @change="changeType">
+                      <el-option :label="item.name" :value="item.value" v-for='item in options' :key="item.value"></el-option>
+                    </el-select>
+                <el-input :disabled="true" class="c-input" v-model="selectData" style="position:relative;width: 160px;" >
+
+                </el-input>
+              </el-form-item>
+              <el-form-item label="验证码" class="add__name" style="position:relative">
+                <el-input v-model="code" maxlength="6"> </el-input>
+                <div class="errorMsg errorMsg--pos" v-cloak>
+                  {{errorMsg}}
+                </div>
+                <el-button style="position: absolute;; top: 0; right: 0" type="primary" @click="sendCode" :disabled="isSendStatus" v-cloak>{{sendStr}}</el-button>
+             
+              </el-form-item>
+              <el-form-item label="" style="text-align:left;">
+                <el-button type="primary" @click="next" :disabled="isCode"> 下一步</el-button>
+              </el-form-item>
+            </el-form>
+
+            <!-- 修改新密码主体 -->
+            <el-form v-show="status==1" style="display:inline-block;margin-top: 30px;width: 300px;" size="mini" 
+                  class="account-personab-inner-havebadge"
+              label-position="right" label-width="100px" :rules="rules" ref="form" :model="formData">
+              <el-form-item prop="email" label="邮箱">
+                <el-input  @change="clearMsg" v-model="formData.email" placeholder="请输入正确的未使用的邮箱">
+                </el-input>
+              </el-form-item>
+              <el-form-item prop="code2" label="验证码" style="position: relative;">
+                <el-input  @change="clearMsg" v-model="formData.code2" maxlength="6"></el-input>
+                <el-button style="position: absolute;right: 0;top: 0;"  type="primary" @click="sendCode2" :disabled="isSendStatus2" v-cloak>{{sendStr2}}</el-button>
+                <div class="errorMsg errorMsg--pos" v-cloak>
+                  {{errorMsg2}}
+                </div>
+              </el-form-item>
+              <el-form-item label=""  style="text-align:left;">
+                <el-button type="primary" @click="submit('form')"> 提交</el-button>
+              </el-form-item>
+            </el-form>
+
+            <!-- 密码设置成功 -->
+            <div v-if="status==2" class="changePass__success">
+              <div class="fl">
+                <span class="changePass__icon"><i class="fa fa-check-circle-o"></i></span>
+              </div>
+              <div class="changePass__text fl">
+                <p class="changePass__succinfo changePass__succinfo--size">邮箱修改成功!</p>
+                <p class="changePass__succinfo">新邮箱可用验证修改关键信息操作,返回<a href="/member-account-security.htm">账户安全</a></p>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- start -->
+  [#include "../../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var changeEmail = new Vue({
+    el: '#changeEmail',
+    data() {
+      //邮箱验证规则
+      var validateEmail = function(rule, value, callback){
+        var patrnEmail = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        if (value === '') {
+          callback(new Error('请输入邮箱'));
+        } else {
+          if (!patrnEmail.test(value)) {
+            callback(new Error('邮箱格式不正确'))
+          } else {
+            var that = this
+            cms.ajax({
+              url:cms.url + '/member/memberuser/checkEmailMsg',
+              type:"get",
+              data:{
+                email:value
+              }
+            },function(res){
+              if(res.data){
+                callback()
+              }else{
+            callback(new Error('该邮箱已绑定会员，不可重复绑定'))                
+              }
+            })
+          }
+        }
+      };
+      var validateCode = function(rule,value,callback){
+        if(value===''){
+          callback(new Error('请输入验证码'))
+        }else{
+          callback()
+        }
+      };
+      return {
+        formData:{
+          email:"",
+          checkpass:"",
+          token:"",
+          code2:""
+        },
+        errorMsg:"",
+        errorMsg2:"",
+        vaType: 1, //1手机2邮箱
+        status: 0,
+        selectData: '',
+        userData:{},   //接收返回的数据
+        options: [],
+        time:120,  //定时时间
+        time2:120,
+        sendStr: '发送验证码',
+        sendStr2:'发送验证码',
+        isSendStatus: false, //邮件发送禁用状态
+        isSendStatus2: false, //邮件发送禁用状态
+        timer:null,   //倒计时定时器,
+        timer2:null,   //倒计时定时器,
+        code:"",
+        code2:"",
+        rules:{
+          email:[{
+            required:true,
+            validator:validateEmail,
+            trigger:'blur'
+          }],
+          code2:[{
+            required:true,
+            validator:validateCode,
+            trigger:'blur'
+          }]
+        }
+      }
+    },
+    computed: {
+      isCode(){
+        if(this.code !== ""){
+          return false
+        }else{
+          return true
+        }
+      }
+    },
+    methods: {
+      getData() { //获取绑定信息
+        var self = this;
+        cms.ajax({
+          url: cms.url + '/member/memberuser/getInformation',
+        }, function (res) {
+          if (res.code == 200) {
+              self.userData=res.data
+            var arr = []
+            if (res.data.emailData) {
+              var obj = {
+                value: 2,
+                name: '邮箱'
+              }
+              arr.push(obj)
+              self.vaType = 2
+              self.selectData = res.data.emailData
+            }
+            if (res.data.phoneData) {
+              var obj = {
+                value: 1,
+                name: '手机'
+              }
+              arr.push(obj)
+              self.vaType = 1
+              self.selectData = res.data.phoneData
+            }
+            if (res.data.phoneData && res.data.emailData) {
+              self.vaType = 2
+              self.selectData = res.data.emailData
+            }
+            self.options = arr
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      setTimer(){
+        var that = this
+        that.timer = setInterval(function(){
+          that.time = that.time - 1
+          if(that.time <=0){
+            clearInterval(that.timer)
+            that.sendStr = "发送验证码"
+            that.time = 120
+            that.isSendStatus = false
+          }else{
+            that.sendStr = that.time + "秒后重新发送"
+            that.isSendStatus = true
+          }
+        },1000)
+      },
+      setTimer2(){
+        
+        var that = this
+        that.timer2 = setInterval(function(){
+          clearInterval(that.timer)
+          that.time2 = that.time2 - 1
+          if(that.time2 <=0){
+            clearInterval(that.timer2)
+            that.sendStr2 = "发送验证码"
+            that.time2 = 120
+            that.isSendStatus2 = false
+          }else{
+            that.sendStr2 = that.time2 + "秒后重新发送"
+            that.isSendStatus2 = true
+          }
+        },1000)
+      },
+      sendPhoneCode(){   //发送手机验证码
+        var that = this
+        cms.ajax({
+          url:cms.url + '/member/memberuser/sendPhone',
+          type:'post',
+          data:JSON.stringify({
+            sign:2
+          })
+        },function(res){
+          if(res.code==200){
+            cms.alert('验证码发送成功',4);
+            that.isSendStatus = true
+            that.sendStr = that.time + '秒后重新发送'
+            that.setTimer()
+            return true
+          }else{
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      sendEmailCode(){   //发送邮箱验证码
+        var that = this
+          cms.ajax({
+            url:cms.url + '/member/memberuser/sendEmail',
+            type:'post',
+            data:JSON.stringify({
+              sign:2,
+            })
+          },function(res){
+            if(res.code==200){
+              cms.alert('验证码发送成功',4);
+              that.isSendStatus = true
+              that.sendStr = that.time + '秒后重新发送'
+              that.setTimer()
+              return true
+            }else{
+              cms.alert(res.message,5)
+            }
+          })
+       
+        
+      },
+      sendCode(){   //发送相应的验证码
+        if(this.vaType == 1){
+          this.sendPhoneCode()
+        }
+        if(this.vaType == 2){
+          this.sendEmailCode()
+        }
+      },
+      next(){    //下一步
+        var that = this
+        if(this.vaType == 2){
+          cms.ajax({
+            url:cms.url + '/member/memberuser/verificationEmailMsg',
+            type:'post',
+            data:JSON.stringify({
+              code:that.code,
+              sign:2
+            })
+          },function(res){
+            if(res.code==200){
+              that.status = 1
+              that.formData.token = res.data
+            }else{
+              that.errorMsg = res.message
+            }
+          })
+        }
+        if(this.vaType == 1){
+          cms.ajax({
+            url:cms.url + '/member/memberuser/verificationPhoneMsg',
+            type:'post',
+            data:JSON.stringify({
+              code:that.code,
+              sign:2
+            })
+          },function(res){
+            if(res.code==200){
+              that.status = 1
+              that.formData.token = res.data
+            }else{
+              that.errorMsg = res.message
+            }
+          })
+        }
+      },
+      changeType(value){
+        if(value==1){
+          this.selectData=this.userData.phoneData
+        }else{
+          this.selectData=this.userData.emailData
+        }
+      },
+      sendCode2(){
+        var that = this
+        this.$refs['form'].validateField('email',(val)=>{
+          if(val != ""){
+              return false;
+          }else{
+            
+            cms.ajax({
+              url:cms.url + '/member/memberuser/sendEmail',
+              type:'post',
+              data:JSON.stringify({
+                email:that.formData.email,
+                sign:2,
+              })
+            },function(res){
+              if(res.code==200){
+                cms.alert('验证码发送成功',4);
+                that.isSendStatus2 = true
+                that.sendStr2 = that.time2 + '秒后重新发送'
+                that.setTimer2()
+                return true
+              }else{
+                cms.alert(res.message,5)
+              }
+            })
+          }
+        })
+      },
+      submit(){    //修改邮箱
+        var that = this
+        this.$refs['form'].validate(function(valid){
+          if(valid){
+            cms.ajax({
+              url:cms.url + '/member/memberuser/updateEmail',
+              type:"post",
+              data:JSON.stringify({
+                email:that.formData.email,
+                code:that.formData.code2,
+                token:that.formData.token,
+                sign:2
+              })
+            },function(res){
+              if(res.code ==200){
+                that.status = 2
+              }else{
+                that.errorMsg2 = res.message
+              }
+            })
+          }else{
+            return false
+          }
+        })
+      },
+      clearMsg(){
+        this.errorMsg2 = ''
+      }
+      
+    },
+    created() {
+      this.getData()   
+    }
+  })
+</script>

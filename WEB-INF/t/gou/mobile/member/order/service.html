@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-申请退款</title>
+  [#include "../../includes/common.html"]
+</head>
+<body class="t-page">
+  [#assign topName="申请退款"/]
+  [#include "../../includes/topbar.html"]
+  <div id="service" v-cloak>
+    <div class="cms nav-top" v-if="productDesc.id">
+      <div class="order-rwarp">
+        <div class="order_goods">
+          <div class="order__goodsImages"><img class="order__goodsImg" :src="productDesc.productInfo?baseUrl+productDesc.productInfo.coverImageUrl:'#'" /></div>
+          <div class="order__goodstxt">
+            <div class="order__goodstitle cell-2">{{productDesc.productInfo.productName}}</div>
+            <div class="order__price">
+              <span class="t-label">单价：</span>
+              <span class="order-weight" style="margin-right:25rpx;">￥{{$float(productDesc.productPrice)}}</span>
+              <span class="t-label">购买数量：</span>
+              <span class="order-weight">{{productDesc.productCount-productDesc.returnCount}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="t-space"></div>
+        <div v-if="orderItem.status===2||orderItem.status===3" class="t-cells t-bottom" @click="toRefund(1)">
+          <div class="t-cell-lefts"><img class="refund-icons" src="${mobileRes}/img/refund01.png" /> 仅退款</div>
+          <div class="t-cell-rights t-label">未收到货，需要退款 <span style="position:relative;bottom:3rpx;margin-left:10rpx;"> 〉</span></div>
+        </div>
+        <div v-if="orderItem.status===3||orderItem.status===4" class="t-cells t-bottom" @click="toRefund(2)">
+          <div class="t-cell-lefts"><img class="refund-icons" src="${mobileRes}/img/refund02.png" /> 退货/退款</div>
+          <div class="t-cell-rights t-label">已收到货，需要退回商品 <span style="position:relative;bottom:3rpx;margin-left:10rpx;"> 〉</span></div>
+        </div>
+        <div v-if="orderItem.status===4" class="t-cells t-bottom" @click="toRefund(3)">
+          <div class="t-cell-lefts"><img class="refund-icons" src="${mobileRes}/img/refund03.png" /> 换货</div>
+          <div class="t-cell-rights t-label">确认收货后，需要更换购买商品 <span style="position:relative;bottom:3rpx;margin-left:10rpx;"> 〉</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#service',
+    data () {
+      return {
+        baseUrl:'${base}',
+        productDesc:{},
+        orderItem:null,
+        orderId:'${orderId!}',
+        productId:parseInt('${productId!}'),//选择的商品id
+      }
+    },
+    methods: {
+      toRefund(status){
+        var refundName = '申请退款'
+        switch(status){
+          case 1:
+          refundName = '申请退款'
+          break
+          case 2:
+          refundName = '申请退货/退款'
+          break
+          case 3:
+          refundName = '换货'
+        }
+        location.href = '${base}/member-order-refund.htm?orderId='+this.orderId+'&productId='+this.productId+'&refundName='+refundName+'&status='+status
+      },
+      getOrderItem(id){//获取订单详情
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        memberOrderGet({id:id}).then(res => {
+          if(res.code == 200){
+            var obj = res.data
+            res.data.items.forEach(v => {
+              if(v.id === this.productId){
+                this.productDesc=v
+              }
+            });
+            this.$toast.clear()
+            this.orderItem=obj
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+    },
+    created () {
+      this.getOrderItem(this.orderId)
+    }
+  })
+</script>

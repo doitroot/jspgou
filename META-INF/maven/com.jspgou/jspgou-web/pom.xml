@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.jeecm.com/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jeecm.com/POM/4.0.0 http://www.jeecm.com/xsd/maven-4.0.0.xsd">
+ <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.jspgou</groupId>
+    <artifactId>parent</artifactId>
+    <version>6.1.0</version>
+  </parent>
+  <packaging>war</packaging>
+  <artifactId>jspgou-web</artifactId>
+  <properties>		
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>		
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>		
+		<java.version>1.8</java.version>				
+	</properties>
+  <dependencies>
+  <!--添加common模块依赖-->
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-common</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-component</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+      <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-platform</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-store</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+     <!-- 读写分离支持
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-shard</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+      -->
+     <!-- redis支持缓存 session等 -->
+     <!-- 
+      <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-redis</artifactId>
+         <version>6.1.0</version>
+     </dependency> 
+     -->
+     <!-- jspgou-mq-consumer 队列消息服务 不依赖则可独立部署 -->
+     <!-- 
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-mq-consumer</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+      -->
+     <!-- jspgou-threadmsg 线程消息服务  -->
+     
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-mq-thread</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+     <!-- 
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-elasticsearch</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+      -->
+     <dependency>
+         <groupId>com.jspgou</groupId>
+         <artifactId>jspgou-lucene</artifactId>
+         <version>6.1.0</version>
+     </dependency>
+  </dependencies>
+  <build>
+		<plugins>
+			<!--该插件可以生成querysdl需要的查询对象，执行mvn compile即可-->
+			<!-- spring-boot插件。使用方式：spring-boot:run。该方式只适合在IDEA开发工具下使用，Eclipse使用该方式启动会出现无法停止tomcat服务的情况 -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- 指定启动的入口类 -->
+					<mainClass>com.jspgou.Application</mainClass>
+					<!-- 关闭fork。否则使用spring-boot:run启动时，在idea中无法调试程序，在eclipse中无法关闭web服务 -->
+					<fork>false</fork>
+				</configuration>
+				<executions>
+	               <execution>
+	                    <goals>
+	                        <goal>repackage</goal>
+	                    </goals>
+	                    <configuration>
+	                        <skip>true</skip>
+	                    </configuration>
+	                </execution>
+	            </executions>
+				<dependencies>
+					<!-- 热加载插件。修改方法里面的内容无需重启tomcat，但修改配置文件或者新增方法则无效。需关闭devtool的自动reload功能 -->
+					<!-- 
+					<dependency>
+						<groupId>org.springframework</groupId>
+						<artifactId>springloaded</artifactId>
+						<version>${springloaded.version}</version>
+					</dependency>
+					 -->
+				</dependencies>
+			</plugin>
+		</plugins>
+	</build>
+</project>

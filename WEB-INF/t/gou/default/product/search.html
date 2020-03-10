@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>商品搜索</title>
+		[#include "../includes/common.html"]
+		<script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+	<script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+	<script src="${res}/js/login.js"></script>
+	</head>
+
+	<body>
+		[#include "../includes/topBar.html"]
+		<div class="header">
+			<div class="container head-wrap">
+				<div class="fl"> 
+					[#assign name=""]
+					[#include "../includes/logo.html"]
+				</div>
+				[#assign search="product"/]
+				[#include "../includes/search.html"]
+			</div>
+		</div>
+		[#include "../includes/categoryMenu.html"]
+		<div id="app"   v-cloak>
+			<div class="search-box">
+				<!--商品分类导航-->
+				<div class="cms-crumbs prod-search-head">
+					<ul class="cms-crumb container">
+						<li class="cms-crumb__item">
+							<p>全部搜索结果 <i class="fa fa-fw fa-angle-double-right"></i>
+								<span v-if="'${brandName!}'" class="prod-search-head-b">"${brandName!}"</span>
+								<span v-else class="prod-search-head-b">"{{queryParams.keyword}}"</span>
+							</p>
+						</li>
+					</ul>
+				</div>
+				<!-- 中部导航搜索栏 -->
+			<div class="productTab">
+				<div class="productTab-head">
+					<!-- 上部左侧 -->
+					<div class="productTab-head-left clearfix">
+						<ul class="productTab-head-ul clearfix">
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('def')" :class="{'productTab-head-li__text--active':queryParams.oderBy === 'def'}">综合</span>
+							</li>
+							<li class="productTab-head-li">
+								<span v-show="queryParams.oderBy != 'priceAsc'" class="productTab-head-li__text " @click="oderByTab('priceAsc')"
+								 :class="queryParams.oderBy === 'priceDesc' ?'productTab-head-li__text--active':''">
+									价格 <i v-show="queryParams.oderBy === 'priceDesc'" class="fa fa-long-arrow-down"></i>
+								</span>
+								<span v-show="queryParams.oderBy === 'priceAsc'" class="productTab-head-li__text " @click="oderByTab('priceDesc')"
+								 :class="queryParams.oderBy === 'priceAsc' ?'productTab-head-li__text--active':''">
+									价格 <i v-show="queryParams.oderBy === 'priceAsc'" class="fa fa-long-arrow-up"></i>
+								</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('popularity')" :class="queryParams.oderBy === 'popularity'?'productTab-head-li__text--active':''">人气</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('sales')" :class="queryParams.oderBy === 'sales'?'productTab-head-li__text--active':''">销量</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text productTab-head-li__text--last" @click="oderByTab('shelfDay')" :class="queryParams.oderBy === 'shelfDay'?'productTab-head-li__text--active':''">新品</span>
+							</li>
+							<li class="productTab-head-li productTab-head-li--block">
+
+							</li>
+						</ul>
+						<div class="productTab-input-group">
+							<input class="productTab-input" type="text" v-model.number="queryParams.salePriceBegin" placeholder="￥">
+							-
+							<input class="productTab-input" type="text" v-model.number="queryParams.salePriceEnd" placeholder="￥">
+							<div class="productTab-btn-group">
+								<button class="productTab-btn" @click="query">确定</button>
+								<button class="productTab-btn productTab-btn--default" @click="clearPrice">取消</button>
+							</div>
+						</div>
+
+					</div>
+				</div>
+				<div class="productTab-body">
+					<label>
+						<input type="checkbox" @click="isSupport(queryParams.selfSupport)" class="productTab-body--filter">自营商品
+					</label>
+					<label>
+						<input type="checkbox" @click="isStock(queryParams.hasStock)" class="productTab-body--filter">仅显示有货
+					</label>
+				</div>
+			</div>
+			</div>
+			<!--商品内容-->
+			<div class="prodSearch-intro clearfix" v-if="productList&&productList.length>0">
+				<!--商品图片展示-->
+				<ul class="prodSearch-intro-ul clearfix" v-loading="listloading" >
+					<li class="prodSearch-intro-li" v-for="(item,index) in productList" :key="index">
+						<div class="prodSearch-intro-box">
+							<a :href="'${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId"><img :src="baseUrl+item.imageUrl" class="prodSearch-intro-box__img"></a>
+							<h3 class="prodSearch-intro-box__price">
+							 <strong class="prodSearch-intro-box__bloder" v-if="item.salePrice" >
+								￥{{$float(item.salePrice)}}
+							</strong>
+						</h3>
+							<p class="prodSearch-intro-box__descript"><a :href="'${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId" class="prodSearch-intro-box__link prodSearch-intro-box__line2"  v-cloak>
+								{{item.name}}
+									 </a></p>
+							<strong class="prodSearch-intro-box__bloder clearfix">
+								<a :href="'${base}/store-index.htm?storeId='+item.storeId" class=" prodSearch-intro-box__line1">
+									 {{item.storeName}}
+									</a></strong>
+									<div class="platform-warp">
+										<span v-if="item.selfSupport" class="prodSearch-intro-box__classify">自营</span>
+									</div>
+							<ul class="prodSearch-intro-box__ul clearfix">
+								<li class="prodSearch-intro-box__li">
+									月售<span class="redcolor" > {{item.monthSales}} </span>笔
+								</li>
+								<li class="prodSearch-intro-box__li">
+									月评<span class="redcolor" > {{item.monthComment}}</span>
+								</li>
+								<li class="prodSearch-intro-box__li prodSearch-li-special" @click="collectProduct(item.id,index)">
+									<i class="fa" :class="item.isCheck?'fa-star':'fa-star-o'"></i>
+								</li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+				<div class="clearfix att-shop-pagging" style="text-align:right;">
+					<el-pagination background layout="prev, pager, next" :total="total" :page-size="20" @current-change="sizeChange"
+					 :current-page="queryParams.page">
+					</el-pagination>
+				</div>
+			</div>
+			<div v-else-if="status" class="container">
+				 <div style="padding:20px 60px;">
+						<i class="fa fa-warning" style="color:#ffcc00;font-size:24px;position: relative;
+						top: 4px;"></i>
+						<span style="font-size: 14px;
+						font-weight: 700;
+						color: #f60;" v-if="'${brandName!}'">
+								抱歉，没有找到与“<em style="color:#333;top:4px;" class="prod-search-head-b">${brandName!}</em>”相关的商品
+						</span>
+						<span style="font-size: 14px;
+						font-weight: 700;
+						color: #f60;" v-else>
+								抱歉，没有找到与“<em style="color:#333;top:4px;" class="prod-search-head-b">${keyword!?html}</em>”相关的商品
+						</span>
+				 </div>
+			</div>
+			<!-- start -->
+		</div>	
+		<!-- start -->
+		[#include "../includes/footer.html"]
+	</body>
+</html>
+<script >
+	var app = new Vue({
+		el: '#app',
+		data: {
+			queryParams: {
+				"page": 1,
+				"size": 20,
+				"keyword": "${keyword!?html}",
+				"brandId": "${brandId!}",
+				"ctgId": "",
+				"salePriceBegin": "",
+				"salePriceEnd": "",
+				"selfSupport": "",
+				"hasStock": "",
+				"saleAttrCode": "",
+				"oderBy": "",
+				"storeId": "",
+				"promoteId": ""
+			},
+			total: 0,
+			productList: null,
+			baseUrl:cms.url,
+			listloading:true,
+			status:false
+		},
+		methods: {
+			clearPrice(){//清空当前搜索价格
+				this.queryParams.salePriceBegin = ''
+				this.queryParams.salePriceEnd = ''
+				this.query()
+			},
+			collectProduct(id,index){//收藏接口
+				cms.ajax({
+					url:cms.url+'/member/memberfollowproduct/save',
+					data:{id:id}
+				},(res)=>{
+					if(res.code==200){
+						this.$set(this.productList[index],'isCheck',true)
+						// cms.alert('关注成功',4)
+					}
+				})		
+			},
+			getProductList(params) { //获取商品搜索列表接口信息
+				var self = this
+				this.status=false
+				$.get(cms.url + '/product/search', params, function (res) {
+					 if(res){
+						self.total = res.totalElements
+						self.productList = res.content
+						self.listloading=false
+					}else{
+						self.listloading=false
+						cms.alert('加载失败',5)
+					}
+				self.status=true		
+				})
+			},
+			sizeChange(value) { //分页改变
+				this.queryParams.page = value
+				this.getProductList(this.queryParams)
+			},
+			isSupport(status) { //是否自营
+				if (status === '') {
+					this.queryParams.selfSupport = true
+				} else {
+					this.queryParams.selfSupport = ''
+				}
+				this.query()
+			},
+			isStock(status) { //是否有库存
+				if (status === '') {
+					this.queryParams.hasStock = true
+				} else {
+					this.queryParams.hasStock = ''
+				}
+				this.query()
+			},
+			query() { //搜索
+				this.queryParams.page = 1
+				this.getProductList(this.queryParams)
+			},
+			oderByTab(type) { //排序
+				this.queryParams.oderBy = type
+				this.query()
+			}
+		},
+		created() {
+			this.getProductList(this.queryParams)
+		}
+	})
+</script>

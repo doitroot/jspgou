@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  [#include "../includes/common.html"/]
+  <script src="${res}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${res}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${res}/js/login.js"></script>
+</head>
+<style>
+  .frame-close{
+    position: absolute;
+    color: #666;
+    font-size: 14px;
+    right: 20px;
+    top: 7px;
+    cursor: pointer;  
+  }
+</style>
+<body style="width: 340px;height: 401px;overflow: hidden;" >
+  <div class="login-box" id="app" style="top:0">
+    <span class="frame-close" id="frameClose" style="z-index:8888">关闭</span>
+    <span class="login-box__title">用户登录</span>
+    <div class="errorMsg">{{errorMsg}}</div>
+    <div class="login-box__enter">
+      <img class="login-box__userImg" src="${res}/images/login_03.png">
+      <input class="login-box__user" @keyup.enter="login" type="text" placeholder="请输入用户名" v-model="formData.userName">
+    </div>
+    <div class="login-box__enter">
+      <img class="login-box__userImg" src="${res}/images/login_06.png">
+      <input class="login-box__pwd" @keyup.enter="login" type="password" placeholder="密码" v-model="formData.pStr">
+     
+    </div>
+    <div class="login-btn" @keyup.enter="login" @click="login">
+      <span v-if="!isLogin">登录</span>
+      <span v-else>登录中…</span>
+    </div>
+    <p class="login-box__with">
+      <a href="${base}/register.htm"  target="_blank"  class="login-box__link float-right">免费注册</a>
+      <a href="${base}/retrieve.htm" target="_blank" class="login-box__link">忘记密码</a>
+    </p>
+    <div class="login-box__txt" v-if="thirdInfo.QQ||thirdInfo.WECHAT_WEB||thirdInfo.WEIBO">一键登录</div>
+    <div class="login-box__on">
+      <div class="login-box__picture" @click="qqLogin" v-if="thirdInfo.QQ">
+        <img src="${res}/images/login_09.png">
+      </div>
+      <div class="login-box__picture" @click="wxLogin" v-if="thirdInfo.WECHAT_WEB">
+        <img src="${res}/images/login_11.png">
+      </div>
+      <div class="login-box__picture" @click="wbLogin" v-if="thirdInfo.WEIBO">
+        <img src="${res}/images/login_15.png">
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
+<script>
+  function closeLogin(status) {
+    if(status){
+          window.parent.location.reload()
+        }else{      
+          $(window.parent.document.getElementsByTagName('body')[0]).css({
+            "overflow-x":"auto",
+            "overflow-y":"auto"
+        })
+         $(window.parent.document.getElementById('loginFrame')).remove()
+        }     
+  }
+  $('body').on('click','#frameClose',function (params) {
+    closeLogin(false)
+  })
+ 
+</script>
+<script>
+  var app = new Vue({
+    el: '#app',
+    data: {
+      formData: {
+        userName: '',
+        pStr: '',
+        captcha: '',
+        sessionId: ''
+      },
+      captchaImg: '',
+      rember: false,
+      isCaptcha: false,
+      activeName: 'name',
+      errorStatus: false,
+      errorMsg: '',
+      isLogin: false,
+      storeInfo: {},
+      thirdInfo:{QQ:'',WECHAT_WEB:'',WEIBO:'',WECHAT_H5:''},
+    },
+    methods: {
+      login() {
+        var self = this
+        if (!self.isLogin) {
+          self.errorStatus = false
+          self.errorMsg = ''
+          if (self.formData.userName === '') {
+            self.errorStatus = true
+            self.errorMsg = '请输入用户名'
+            return false
+          }
+          if (self.formData.pStr === '') {
+            self.errorStatus = true
+            self.errorMsg = '请输入密码'
+            return false
+          }
+          self.isLogin = true
+          var params = {
+            identity: self.formData.userName,
+            desStr: encrypt(JSON.stringify({
+            	pStr: self.formData.pStr
+            })),
+            captcha: self.formData.captcha,
+            sessionId: self.formData.sessionId
+          }
+          $.post('${base}/login', params, function (res) {
+            if (res.code == 200) {
+            localStorage.setItem('token', res.data['JSPGOU-Auth-Token'])
+              closeLogin(true)
+            } else {
+              self.isLogin = false
+              self.errorMsg = res.message;
+            }
+          })
+        }
+      },
+      getThirdInfo() {
+        var self = this
+        cms.ajax({
+          url: '${base}/third/thirdInfo',
+          type: 'get',
+        }, function (res) {
+          if (res.code === 200) {
+            self.thirdInfo = res.data
+            res.data.forEach(item => {
+              switch (item.code){
+                case 'QQ':
+                self.thirdInfo.QQ=item.isEnable
+                break;
+                case 'WECHAT_WEB':
+                self.thirdInfo.WECHAT_WEB=item.isEnable;
+                break;
+                case 'WEIBO':
+                self.thirdInfo.WEIBO=item.isEnable;
+                break;
+                case 'WECHAT_H5':
+                self.thirdInfo.WECHAT_H5=item.isEnable;
+                break;
+              }
+            })
+           }
+          }
+        )
+      },
+      qqLogin(){//qq登陆
+        window.parent.location.href = '${base}/thirdParty/qq/pc?backUrl='+window.parent.location.href
+      },
+      wxLogin(){//微信登陆
+        window.parent.location.href = '${base}/thirdParty/wechat/pc?backUrl='+window.parent.location.href
+      },
+      wbLogin(){//微博登陆
+        window.parent.location.href = '${base}/thirdParty/sina/pc?backUrl='+window.parent.location.href
+      } 
+    },
+    created() {
+      this.getThirdInfo()
+    }
+  })
+</script>

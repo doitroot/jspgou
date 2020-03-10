@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-帮助中心</title>
+  [#include "./includes/common.html"]
+</head>
+
+<body>
+
+  [#include "./includes/topBar.html"]
+  <div class="header index-search">
+    <div class="container head-wrap">
+      [#include "./includes/logo.html"]
+      [#include "./includes/search.html"]
+    </div>
+  </div>
+  [#include "./includes/categoryMenu.html"]
+  <div class="gray-container account-container help__container" id="helpCenter" v-cloak>
+    <div class="brands-nav helpcenter__navtitle">
+      <span class="brands-nav__icon"><i class="fa fa-home"></i></span><a href="${base}/index.htm">首页</a>&nbsp;>&nbsp;<a
+        href="#">帮助中心</a>
+    </div>
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      <div class="help__navwrap">
+        <p class="helpcenter__title">
+          帮助中心
+        </p>
+        <div class="help__navitem" v-for="(item, index) in tableData" :key="index">
+          <p class="help__navtitle" @click="toggleArrow(item,index)">
+            <span>
+              {{item.name?item.name:''}}
+            </span>
+            <i class="fa hc_arrow" :class="item.isShow?'fa-caret-up':'fa-caret-down'"></i>
+          </p>
+          <ul class="help__navul" v-if="item.isShow">
+            <li v-for="(article,index2) in item.articles" :key="article.id" @click="getArticle(article.id)" :class="activeId==article.id?'help__navul--active':''">{{article.title?article.title:''}}</li>
+          </ul>
+        </div>
+      </div>
+      <!-- 主体内容 -->
+      <div class="helpcenter_body">
+        <h2 class="helpcenter_maintitle">{{articles.title}}</h2>
+        <div v-html="articles.content" style="overflow:hidden;padding:10px;">
+
+        </div>
+      </div>
+    </div>
+  </div>
+  [#include "./includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var vm = new Vue({
+    el: "#helpCenter",
+    data: {
+      toggleStatus: true,
+      tableData: [],
+      cateId: '${cateId!}',
+      activeId: '${articleId!}',
+      articles: {
+        author: "",
+        content: "",
+        description: "",
+        imgResource: null,
+        keywords: "",
+        linkUrl: "",
+        title: ""
+      },
+    },
+    methods: {
+      toggleArrow(item, index) { //切换箭头及列表的显示隐藏
+        var self = this
+        if (item.isLoad) { //判断是否加载过数据
+          item.isShow = !item.isShow
+        } else {
+          cms.ajax({
+            url: '${base}/article/getCateId',
+            type: 'get',
+            data: {
+              cateId: item.id
+            }
+          }, function (res) {
+            if (res.code === 200) {
+              self.$set(self.tableData[index], 'isLoad', true)
+              self.$set(self.tableData[index], 'articles', res.data)
+              self.$set(self.tableData[index], 'isShow', true)
+            }
+          })
+        }
+      },
+      getArticle(id) {
+        this.activeId = id
+        var self = this
+        cms.ajax({
+          url: '${base}/article/get',
+          type: 'get',
+          data: {
+            id: id
+          }
+        }, function (res) {
+          if (res.code === 200) {
+            self.articles = res.data
+
+          }
+        })
+      },
+      getTableData() {
+        var self = this
+        cms.ajax({
+          url: '${base}/articlecategory/tree',
+          type: 'get',
+        }, function (res) {
+          if (res.code === 200) {
+            self.tableData = res.data
+            if (self.cateId !== '') {
+              var item = {}
+              var index = ''
+              self.tableData.forEach((v, i) => {
+                if (v.id == self.cateId) {
+                  item = v
+                  index = i
+                }
+              });
+              self.toggleArrow(item, index)
+              if(self.activeId!==''){
+                self.getArticle(self.activeId)
+              }
+            }
+          }
+        })
+      }
+    },
+    created() {
+      this.getTableData()
+    }
+  })
+</script>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-首页</title>
+  [#include "./includes/common.html"]
+</head>
+<body>
+  [#include "./includes/topBar.html"]
+  <div class="header index-search">
+    <div class="container head-wrap">
+      [#include "./includes/logo.html"]
+      [#assign search="product"/]
+      [#include "./includes/search.html"]
+    </div>
+  </div>
+  [#assign status="index"/]
+  [#include "./includes/categoryMenu.html"]
+  
+  <div class="index-bgcolor" id="index">
+    <!-- 获取背景广告图数据 -->
+    [@position_page  positionCode='index_body_bg']
+     [#assign adBg=""]
+     [#if tag_bean.adPosition.sysAds?? && tag_bean.adPosition.sysAds?size > 0]
+        [#assign adBg=tag_bean.adPosition.sysAds[0].resourcesSpaceData.url!]     
+     [/#if] 
+    [/@position_page]
+    <!-- 首页banner图 -->
+    <div class="index-banner">
+        <!-- 首页背景广告 -->
+        <div
+        style="position:absolute;z-index: 100;width:100%; height: 100%;max-height:640px;
+        background:url('${base!}${adBg}') 50% 0 no-repeat">
+          <a href=""></a>
+        </div>
+        <div class="container" style="overflow:hidden">
+          <div class="swiper-container " style="z-index:300;width:1002px;margin-left: 198px;overflow:visible;" id="indexBanner">
+            <div class="swiper-wrapper sw--com">
+                [@position_page  positionCode='index_slider']
+                  [#if tag_bean.adPosition.sysAds??]
+                  [#list tag_bean.adPosition.sysAds as slider]
+                  <div class="swiper-slide">
+                      <div class="index-banner__bg1">
+                        <div class="index-banner__bgimg">
+                          <a href="javascript:;"
+                            data-type="${slider.linkType!}"
+                            data-target="${slider.isTarget!?string('2','1')}"
+                            data-productid="${slider.productId!}"
+                            data-storeid="${slider.storeId!}"
+                            data-articleid="${slider.articleId!}"
+                            data-productCateid="${slider.productCateId!}"
+                            data-linkurl="${slider.linkUrl!}"
+                            class="JsLink"
+                          ><img src="${base!}${(slider.resourcesSpaceData.url)!}" alt="" class="sw__img"></a>
+                        </div>
+                      </div>
+                    </div>   
+                   [/#list]  
+                  [/#if] 
+              [/@position_page]
+            </div>
+            <div class="swiper-pagination"></div>
+            <!--分页器-->
+            <div class="ban__lBtn"><span class="ban__ltoggle"><i class="fa fa-angle-left"></i></span></div>
+            <!--左箭头-->
+            <div class="ban__rBtn"><span class="ban__rtoggle"><i class="fa fa-angle-right"></i></span></div>
+            <!--右箭头-->
+          </div>
+          <script>
+              var mySwiper = new Swiper('#indexBanner', {
+                loop:true,
+                autoplay:true,
+                navigation: {
+                  nextEl: '.ban__lBtn',
+                  prevEl: '.ban__rBtn',
+                },
+                // autoplay: true,
+                pagination: {
+                  el: '.swiper-pagination',
+                },
+              });
+            </script>
+        </div>
+    </div>
+    <!---->
+    <div class="container" style="z-index:300;padding-top:20px;background: #fff;">
+      <!-- 图片展 -->
+         <ul class="showPhotos clearfix">
+        [@position_page  positionCode='index_top_ad']
+           [#if (tag_bean.adPosition.sysAds)??]
+           [#list tag_bean.adPosition.sysAds as ad]
+           [#if ad_index < 3 ]
+           		<a   href="javascirpt:;"
+                       data-type="${ad.linkType!}"
+                       data-target="${ad.isTarget!?string('2','1')}"
+                       data-productid="${ad.productId!}"
+                       data-storeid="${ad.storeId!}"
+                       data-articleid="${ad.articleId!}"
+                       data-productCateid="${ad.productCateId!}"
+                       data-linkurl="${ad.linkUrl!}"
+           		  class="JsLink showPhotos__item [#if ad_index == 1 ] showPhotos__item--mar[/#if]">
+           			<li >
+           				<img src="${base}${(ad.resourcesSpaceData.url)!}" alt="" class="bannerImg">
+             		 </li>
+             	</a>
+            [/#if]
+           [/#list]
+           [/#if]
+    	[/@position_page]
+      </ul>
+      <!-- 品牌推荐 -->
+      <div class="brandRec">
+        <div class="hotSel-title">
+          <h2 class="hotSel-title__big">品牌推荐</h2>
+          <span class="hotSel-title__small">Brand Recommends</span>
+        </div>
+        <ul class="brandRec__brands clearfix">
+        [@brand_page  pageNo="0" count="18"]
+         [#list tag_bean.content as bean]
+         <a href="${base}/product-search.htm?brandId=${(bean.id)!}&brandName=${(bean.name)!}"  class="brandRec__item">
+         		<li >
+         			<img title="${bean.name}"  class="brandRec__img" src="${base!}${(bean.resourcesSpaceData.url)!}" alt="">
+            </li>
+         </a>
+        [/#list]
+        [/@brand_page]
+        </ul>
+      </div> 
+      <!-- 楼层间隔广告获取 -->
+      [@position_page  positionCode='index_floor_interval']
+        [#assign adList = (tag_bean.adPosition.sysAds)![] ]  
+      [/@position_page]
+      <!-- 楼层信息获取 -->
+      [@indexLayout_page pageNo="0" count="10"]
+      [#list tag_bean.content as floor]
+       [#if floor_index%2==0]
+          [#if floor_index > 0]
+            [#assign ad = (adList[floor_index/2-1])!{}]
+             [#if (ad.resourcesSpaceData.url)??]
+              <div class="botImg">
+                <a href="#"
+                       data-type="${ad.linkType!}"
+                        data-target="${ad.isTarget!?string('2','1')}"
+                        data-productid="${ad.productId!}"
+                        data-storeid="${ad.storeId!}"
+                        data-articleid="${ad.articleId!}"
+                        data-productCateid="${ad.productCateId!}"
+                        data-linkurl="${ad.linkUrl!}"
+                        class="JsLink"
+                
+                ><img src="${base!}${ad.resourcesSpaceData.url}" alt="" class="bannerImg"></a> 
+              </div>
+              [/#if]
+          [/#if]
+       [/#if]
+      <div class="mobileDig clearfix">
+        <!-- 标题 -->
+        <div class="mobileDig__top clearfix"
+        style="border-color:${floor.indexLayout.themeColor!}"
+        >
+          <div class="hotSel-title fl">
+            <h2 class="hotSel-title__big"><span class="hotSel-title__bigLine"
+              style="background:${floor.indexLayout.themeColor!}"
+              ></span> ${floor.indexLayout.floorName!}</h2>
+            <span class="hotSel-title__small">${floor.indexLayout.subtitle!}</span>
+          </div>
+          <!-- 右侧导航 -->
+          <ul class="hotSel-title__nav fr" id="floorPagin${floor_index}">
+            [#list floor.panelTitles as floorTitle]
+            <li class="fl hotSel-title__item [#if floorTitle_index==0]hotSel-title__item--active[/#if]" 
+            style="[#if floorTitle_index==0]background:${floor.indexLayout.themeColor!};[/#if]">
+              <span class="">${floorTitle!}</span></li>
+            [/#list]
+          </ul>
+        </div>
+        <!-- 布局1 -->
+        [#if floor.indexLayout.layoutType==1]
+        <div class="mobileDig-con">
+          <!--处理深色布局分类颜色-->
+          [#assign catebgcolor = floor.indexLayout.themeColor?replace("rgb","rgba")]
+          <!-- 布局1左侧 -->
+          <div class="mobileDig-con__left"  >
+            <a class="mobileDig-con__leimg JsLink" 
+            data-type="${(floor.indexLayout.advertisement.linkType)!}"
+            data-target="${(floor.indexLayout.advertisement.isTarget)!?string('2','1')}"
+            data-productid="${(floor.indexLayout.advertisement.productId)!}"
+            data-storeid="${(floor.indexLayout.advertisement.storeId)!}"
+            data-articleid="${(floor.indexLayout.advertisement.articleId)!}"
+            data-productCateid="${(floor.indexLayout.advertisement.productCateId)!}"
+            data-linkurl="${(floor.indexLayout.advertisement.linkUrl)!}"
+            
+            
+            >
+              <img src="${base!}${(floor.indexLayout.advertisement.resourcesSpaceData.url)!}" width="210px" height="278px"
+                alt="">
+            </a>
+            <!-- 后台是字符串转化一下 -->
+            [#assign categoryData=floor.indexLayout.categoryData]
+            [#assign categoryObj=categoryData?eval]
+            <p class="mobileDig-navt" style="background:${catebgcolor?replace(')',',0.8)')}">
+              [#list categoryObj as categoryItem]
+              [#if categoryItem_index <3]
+               <a class="mobileDig-navt__item" href="${base!}/product-category.htm?ctgId=${categoryItem.cate_id}">
+                ${categoryItem.cate_name}
+                <span class="mobileDig-navt__line">/</span>
+              </a>
+                [/#if]
+                [/#list]
+            </p>
+            <div class="mobileDig-goods">
+              <ul class="mobileDig-goods__ul1 " style="background:${catebgcolor}">
+                [#list categoryObj as categoryItem]
+                [#if categoryItem_index gte 3 && categoryItem_index<14] 
+                <li class="mobileDig-goods__item">
+                  <a href="${base!}/product-category.htm?ctgId=${categoryItem.cate_id}">
+                    ${categoryItem.cate_name}
+                  </a>
+                </li>
+                  [/#if]
+                  [/#list]
+              </ul>
+            </div>
+          </div>
+          <!-- 布局1右侧 -->
+          <div class="mobileDig-con__right" id="floor${floor_index}">
+            <div class="swiper-wrapper">
+              [#list floor.penelLayoutVOs as panel]
+                [#if panel.layoutType==1]
+                [#if panel.advertisements??]
+              <div class="swiper-slide">
+                [#if (panel.advertisements?size>0)]
+                <div class="mobileDig-rcon__mid" id="mobileMid${panel.id}">
+                  <div class="swiper-wrapper">
+                    [#list panel.advertisements as advert]
+                    <div class="swiper-slide">
+                      <!-- 广告链接没写 -->
+                      <a  href="#"
+                      class="JsLink"
+                      data-type="${(advert.linkType)!}"
+                      data-target="${(advert.isTarget)!?string('2','1')}"
+                      data-productid="${(advert.productId)!}"
+                      data-storeid="${(advert.storeId)!}"
+                      data-articleid="${(advert.articleId)!}"
+                      data-productCateid="${(advert.productCateId)!}"
+                      data-linkurl="${(advert.linkUrl)!}"
+                      target="${(advert.isTarget)!?string('_blank','')}"
+                      ><img src="${base!}${advert.resourcesSpaceData.url!}" class="mobileDig-rcon__midImg"></a>
+                      [#if  panel.brands?size>0]
+                      <ul class="mobileDig-rcon__brands">
+                        [#list panel.brands as brands]
+                        <!-- 品牌链接没写 -->
+                        [#if brands_index<6] <li>
+                          <a href="">
+                            <img src="${base!}${brands.resourcesSpaceData.url!}" class="mobileDig-rcon__img">
+                          </a>
+                          </li>
+                          [/#if]
+                          [/#list]
+                      </ul>
+                      [/#if]
+                    </div>
+                    [/#list]
+                  </div>
+                  <div class="dir--right1" id="mobileMidNext${panel.id}">
+                    <i class="fa fa-angle-right"></i>
+                  </div>
+                  <div class="dir--left1" id="mobileMidPrev${panel.id}">
+                    <i class="fa fa-angle-left"></i>
+                  </div>
+                </div>
+                <!-- 动态加载swiper -->
+                <script>
+                  new Swiper('#mobileMid${panel.id}', {
+                    loop: true,
+                    observer: true,
+                    observeParents: true,
+                    simulateTouch: false, //禁止鼠标模拟
+                    navigation: {
+                      nextEl: '#mobileMidNext${panel.id}',
+                      prevEl: '#mobileMidPrev${panel.id}',
+                    },
+                    autoplay: {
+                      delay: 3000, //1秒切换一次
+                      disableOnInteraction: false,
+                    },
+                  })
+                </script>
+                <div class="mobileDig-rcon__rig">
+                  <ul class="mobileDig-lists">
+                    [#if panel.products ??]
+                    [#list panel.products as product]
+                    [#if product_index<6] <li class="mobileDig-lists__item mobileDig-lists__item--w200">
+                      <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                        <div class="mobileDig-lists__img">
+                          <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                        </div>
+                        <p class="mobileDig-lists__title">${product.product.name!}</p>
+                        <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                      </a>
+                      </li>
+                      [/#if]
+                      [/#list]
+                      [/#if]
+                  </ul>
+                </div>
+                [#else]
+                <ul class="mobileDig-lists">
+                  [#list panel.products as product]
+                  [#if product_index<10] <li class="mobileDig-lists__item ">
+                    <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                      <div class="mobileDig-lists__img">
+                        <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                      </div>
+                      <p class="mobileDig-lists__title">${product.product.name!}</p>
+                      <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                    </a>
+                    </li>
+                    [/#if]
+                    [/#list]
+                </ul>
+                [/#if]
+              </div>
+              [/#if]
+              [#else]
+                [#if panel.products??]
+              <div class="swiper-slide">
+                <ul class="mobileDig-lists">
+                  [#list panel.products as product]
+                  [#if product_index<10] <li class="mobileDig-lists__item ">
+                    <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                      <div class="mobileDig-lists__img">
+                        <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                      </div>
+                      <p class="mobileDig-lists__title">${product.product.name!}</p>
+                      <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                    </a>
+                    </li>
+                    [/#if]
+                    [/#list]
+                </ul>
+              </div>
+              [/#if]
+               [/#if] 
+              [/#list]
+            </div>
+            <div class="dir--right" id="floorPrev${floor_index}">
+              <i class="fa fa-angle-right"></i>
+            </div>
+          </div>
+        </div>
+        <!-- 楼层选项切换 -->
+        [#else]
+        <!-- 布局2 -->
+        <div class="kitchen">
+          <!-- 布局2左边 -->
+          <div class="kitchen__left">
+            <a             
+            data-type="${(floor.indexLayout.advertisement.linkType)!}"
+            data-target="${(floor.indexLayout.advertisement.isTarget)!?string('2','1')}"
+            data-productid="${(floor.indexLayout.advertisement.productId)!}"
+            data-storeid="${(floor.indexLayout.advertisement.storeId)!}"
+            data-articleid="${(floor.indexLayout.advertisement.articleId)!}"
+            data-productCateid="${(floor.indexLayout.advertisement.productCateId)!}"
+            data-linkurl="${(floor.indexLayout.advertisement.linkUrl)!}"
+            class="JsLink"
+            ><img src="${base!}${floor.indexLayout.advertisement.resourcesSpaceData.url!}" alt="" class="kitchen__leftImg"></a>
+            <!-- 后台是字符串转化一下 -->
+            [#assign categoryData=floor.indexLayout.categoryData]
+            [#assign categoryObj=categoryData?eval]
+            [#assign catebgcolor = floor.indexLayout.themeColor?replace("rgb","rgba")]
+            <ul class="kitchen-leNav"  style="background:${catebgcolor?replace(')',',0.8)')}" >
+              [#list categoryObj as categoryItem]
+              [#if categoryItem_index <3] <li class="kitchen-leNav__li">
+                <a class="kitchen-leNav__item" href="${base!}/product-category.htm?ctgId=${categoryItem.cate_id}">
+                  ${categoryItem.cate_name}</a>
+                </li>
+                [/#if]
+                [/#list]
+            </ul>
+            <ul class="kitchen-botNav" style="background:${floor.indexLayout.themeColor!}">
+              [#list categoryObj as categoryItem]
+              [#if categoryItem_index gte 3 && categoryItem_index<7]
+               <li class="kitchen-botNav__item">
+                <a class="kitchen-botNav__link" href="${base!}/product-category.htm?ctgId=${categoryItem.cate_id}">
+                  ${categoryItem.cate_name}
+                </a>
+                </li>
+                [/#if]
+                [/#list]
+            </ul>
+          </div>
+          <!-- 布局2右边 -->
+          <div class="kitchen__right" id="floor${floor_index}">
+            <div class="swiper-wrapper">
+               [#list floor.penelLayoutVOs as panel]
+              [#if panel.layoutType==1]
+              <div class="swiper-slide">
+                  [#if (panel.advertisements?size>0)]
+                  <!-- 右侧中心内容 -->
+                  <div class="kitchen-rcon__mid" id="mobileMid${panel.id}">
+                    <div class="swiper-wrapper">
+                      [#list panel.advertisements as advert]
+                      <div class="swiper-slide">
+                        <a 
+                        class="JsLink"
+                        data-type="${(advert.advertisement.linkType)!}"
+                        data-target="${(advert.isTarget)!?string('2','1')}"
+                        data-productid="${(advert.productId)!}"
+                        data-storeid="${(advert.storeId)!}"
+                        data-articleid="${(advert.articleId)!}"
+                        data-productCateid="${(advert.productCateId)!}"
+                        data-linkurl="${(advert.linkUrl)!}"
+                        ><img src="${base!}${advert.resourcesSpaceData.url!}" class="kitchen-rcon__midImg"></a>
+                        [#if panel.brands??]
+                        [#if panel.brands?size>0]
+                        <ul class="kitchen-rcon__brands">
+                          [#list panel.brands as brands]
+                          <!-- 品牌链接没写 -->
+                          [#if brands_index<6] <li>
+                            <a href="">
+                              <img src="${base!}${brands.resourcesSpaceData.url!}" class="mobileDig-rcon__img">
+                            </a>
+                            </li>
+                            [/#if]
+                            [/#list]
+                        </ul>
+                        [/#if]
+                        [/#if]
+                      </div>
+                      [/#list]
+                    </div>
+                    <div class="dir--right1" id="mobileMidNext${panel.id}">
+                      <i class="fa fa-angle-right"></i>
+                    </div>
+                    <div class="dir--left1" id="mobileMidPrev${panel.id}">
+                      <i class="fa fa-angle-left"></i>
+                    </div>
+                    <!-- 动态加载swiper -->
+                    <script>
+                      new Swiper('#mobileMid${panel.id}', {
+                        loop: true,
+                        observer: true,
+                        observeParents: true,
+                        simulateTouch: false, //禁止鼠标模拟
+                        navigation: {
+                          nextEl: '#mobileMidNext${panel.id}',
+                          prevEl: '#mobileMidPrev${panel.id}',
+                        },
+                        autoplay: {
+                          delay: 3000, //1秒切换一次
+                          disableOnInteraction: false,
+                        },
+                      })
+                    </script>
+                  </div>
+                  <!-- 右侧右边内容 -->
+                  <div class="mobileDig-rcon__rig">
+                    <ul class="mobileDig-lists">
+                   	  [#if panel.products ??]
+                      [#list panel.products as product]
+                      [#if product_index<6] <li class="mobileDig-lists__item mobileDig-lists__item--w200">
+                        <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                          <div class="mobileDig-lists__img">
+                            <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                          </div>
+                          <p class="mobileDig-lists__title">${product.product.name!}</p>
+                          <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                        </a>
+                        </li>
+                        [/#if]
+                        [/#list]
+                        [/#if]
+                    </ul>
+                  </div>
+                  [#else]
+                  <ul class="mobileDig-lists">
+                 [#list panel.products as product]
+                  [#if product_index<10] <li class="mobileDig-lists__item mobileDig-lists__item--w215">
+                    <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                      <div class="mobileDig-lists__img">
+                        <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                      </div>
+                      <p class="mobileDig-lists__title">${product.product.name!}</p>
+                      <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                    </a>
+                    </li>
+                    [/#if]
+                    [/#list]
+                  </ul>
+                  [/#if]
+                </div>
+                [#else]
+                <div class="swiper-slide">
+                <ul class="mobileDig-lists">
+                  [#list panel.products as product]
+                   [#if product_index<10] <li class="mobileDig-lists__item mobileDig-lists__item--w215">
+                     <a class="hotSel__block" href="${base!}/product-detail.htm?productId=${product.product.id}">
+                       <div class="mobileDig-lists__img">
+                         <img src="${base!}${product.showImageUrl!}" width="130px" height="130px">
+                       </div>
+                       <p class="mobileDig-lists__title">${product.product.name!}</p>
+                       <p class="mobileDig-lists__text">￥${product.product.salePrice?string('0.00')}</p>
+                     </a>
+                     </li>
+                     [/#if]
+                     [/#list]
+                   </ul>
+                  </div>
+                [/#if]
+                [/#list]
+              </div>
+              <div class="dir--right" id="floorPrev${floor_index}">
+                <i class="fa fa-angle-right"></i>
+              </div>
+            </div>
+        </div>
+        [/#if]
+        <script>
+          var floorSwiper${floor_index} = new Swiper('#floor${floor_index}', {
+            simulateTouch: false, //禁止鼠标模拟
+            observer: true,
+            observeParents: true,
+            navigation: {
+              nextEl: '#floorPrev${floor_index}'
+            },
+            on: {
+              slideChange: function () {
+                var j = this.realIndex;
+                $('#floorPagin${floor_index}>li').removeClass('hotSel-title__item--active')
+                .css('background','#fff')
+                .eq(j).addClass(
+                  'hotSel-title__item--active').css('background','${floor.indexLayout.themeColor!}');
+              },
+            },
+          })
+          $('#floorPagin${floor_index}>li').on('click', function (e) {
+            e.preventDefault();
+            // 得到当前索引
+            var i = $(this).index();    
+            // $('#floorPagin${floor_index}>li')
+            //   .removeClass('hotSel-title__item--active')
+            //   .eq(i)
+            //   .addClass('hotSel-title__item--active');
+            floorSwiper${floor_index}.slideTo(i, 0, true);
+          });
+        </script>
+      </div>
+      [/#list]
+      [/@indexLayout_page]
+      <!-- 推荐 -->
+      [#include "./includes/recommend.html"]
+    </div>
+  </div>
+  </div>
+  [#include "./includes/footer.html"]
+</body>
+</html>
+

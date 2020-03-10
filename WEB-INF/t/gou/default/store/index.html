@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+    [@store_head storeId="${storeId!}"]
+	<head>
+		<title>店铺商品,店铺首页</title>
+    [#include "../includes/common.html"]
+    <style>
+      .prodSearch-intro-li{
+        box-sizing: border-box;
+        border: 2px solid transparent;
+        box-shadow: none;
+      }
+      [#if tag_bean.storeSet??]
+      .store-color{
+        background-color: ${tag_bean.storeSet.themeColor!};
+      }
+      .prodSearch-intro-li:hover{
+        border:2px solid ${tag_bean.storeSet.themeColor!};
+      }
+      .productTab .productTab-head-left .productTab-head-li__text--active{
+          background-color: ${tag_bean.storeSet.themeColor!};
+      }
+      [#else]
+      .store-color{
+        background-color: #483e39;
+      }
+      .prodSearch-intro-li:hover{
+        box-sizing: border-box;
+        border: 2px solid transparent;
+      }
+      [/#if]     
+      </style>
+  </head>
+	<body>
+    [#include "../includes/topBar.html"]
+		<div class="header shopGoods">
+			<div class="container head-wrap">
+        [#include "../includes/logo.html"]
+        [#assign search="product"/]
+        [#include "../includes/search.html"]
+			</div>
+    </div> 
+      <div id="storeIndex">
+      <!-- 店铺信息 -->
+      <div class="sG__info">
+        <!--关注店铺-->	
+          <div class="sG__nav clearfix">
+            <ul class="sG__items">
+              [#if tag_bean.selfShop== true??]
+              <li class="sG__btn">自营</li>
+              [/#if]
+              <li class="sG__list sG-name" v-cloak>${tag_bean.storeName!}
+                <span class="sG__star--active">{{decimal(${tag_bean.storeStatistics.matchV!})}}</span>
+                <div class="sG-name__box">
+                  <div class="sG-name__score">
+                    <ul class="fl">
+                      <li class="sG-name__item sG-name__title">店铺评分</li>
+                      <li class="sG-name__item">商品评价：<span>{{decimal(${tag_bean.storeStatistics.matchV!})}}</span></li>
+                      <li class="sG-name__item">服务态度：<span>{{decimal(${tag_bean.storeStatistics.service!})}}</span></li>
+                      <li class="sG-name__item">物流速度：<span>{{decimal(${tag_bean.storeStatistics.express!})}}</span></li>
+                    </ul>
+                    <ul class="fr">
+                      <li class="sG-name__item sG-name__title"><span class="sG-name__compare"></span>与行业相比</li>
+                      <li class="sG-name__item">
+                          <span class="sG-name__compare" :class="${tag_bean.matchVState}==1?'sG__star--active':''">{{${tag_bean.matchVState!} | compareFiter}}</span>
+                          {{${tag_bean.matchVState!} | stateFilter}}
+                          <span v-if="${tag_bean.matchVState}!=2"> ${tag_bean.matchVContrast!}</span>
+                      </li>
+                      <li class="sG-name__item">
+                          <span class="sG-name__compare" :class="${tag_bean.serviceState}==1?'sG__star--active':''">{{${tag_bean.serviceState!} | compareFiter}}</span>
+                          {{${tag_bean.serviceState!} | stateFilter}}
+                          <span v-if="${tag_bean.serviceState}!=2"> ${tag_bean.serviceContrast!}</span>
+                      </li>
+                      <li class="sG-name__item">
+                          <span class="sG-name__compare" :class="${tag_bean.expressState}==1?'sG__star--active':''">{{${tag_bean.expressState!} | compareFiter}}</span>
+                          {{${tag_bean.expressState!} | stateFilter}}
+                          <span v-if="${tag_bean.expressState}!=2"> ${tag_bean.expressContrast!}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div  class="sG-name__info">
+                   <div class="sG-name__item">公司名称：<span>${tag_bean.companyName!}</span></div> 
+                   [#if tag_bean.selfShop== true??]
+                   
+                   [#else]
+                   <div class="sG-name__item">证照信息：<img class="sG-name__image" src="${res}/images/guohui.png" /></div> 
+                   [/#if]
+                  </div>
+                  <div class="sG-name__btns">
+                      <a href="${base}/store-index.htm?storeId=${tag_bean.storeStatistics.id}" class="store__buy">进店逛逛</a>
+                      <!-- 店铺收藏 -->
+                      <span  v-if="!isFollow">
+                        <a href="" @click.prevent="followShop(${tag_bean.storeStatistics.id})" style="margin-left: 10px" class="store__collect">收藏店铺</a>
+                      </span>
+                  </div>
+                </div>
+              </li>
+              <li class="sG__attion">
+                <div  v-if="!isFollow" @click="followShop('${tag_bean.storeStatistics.id!}')">
+                  <span class="sG__star"><i class="fa fa-star-o"></i></span> <a >关注店铺</a></div>
+                <div v-else><span class="sG__star"><i class="fa fa-star"></i></span> <a class="sG__star--active">已关注</a></div>
+              </li>
+
+            </ul>
+          </div>
+      </div>
+      <div class="sG__banner" style="position: relative;">   
+        <a>
+          <div class="container" style="margin: 35px auto 0; ">
+            [#if tag_bean.storeLogoResource??]
+            <img style="max-height: 65px;" src="${tag_bean.storeLogoResource.url!}" alt="">
+            [/#if]
+          </div>
+          [#if tag_bean.storeSet??]
+          <img style="position: absolute;z-index: -1;top: 0;left: 0;width: 100%;height: 100%;" src="${(tag_bean.storeSet.resourcesSpaceData.url)!}" alt="">
+          [/#if]
+        </a>
+      </div>
+      
+      <!-- 中部导航条 -->
+      
+      <div class="sG-nav store-color">
+          
+        <div class="container">
+          <ul class="sG-nav__lists clearfix">
+              <li class="sG-nav__item sG-nav__item--hover"  @click="getCtgId('')">首页</li>
+              <li class="sG-nav__item sG-nav__item--hover" >
+                店铺全部分类
+                <span style="padding-left:3px;"><i class="fa fa-angle-down"></i></span>
+                <div class="sG-nav__hid">
+                    <ul class=" clearfix">
+                        [#list tag_bean.productCategories as cate]
+                          [#if cate_index < 15]
+                          <li class="sG-nav__titem sG-nav__link">${cate.cateName}
+                            <ul class="sG-nav__bot">
+                                [#if cate.childs??]
+                                  [#list cate.childs as child]
+                                    <li class="sG-nav__bitem sG-nav__link" @click="getCtgId(${child.id})" >${child.cateName}</li>
+                                  [/#list]
+                                [/#if]
+                            </ul>
+                          </li>
+                          [/#if]
+                          <li class="sG-nav__top"></li>
+                        [/#list]
+                    </ul>
+                  </div>
+              </li>
+              [#list tag_bean.navigations as nav]
+                [#if nav_index<10]
+                <li class="sG-nav__item sG-nav__item--hover"  @click="getCtgId(${nav.id})">${nav.cateName}</li>
+                [/#if]
+              [/#list]
+              <li class="sG-nav__search">
+                <input type="text" class="sG-nav__ipt" v-model="queryParams.keyword"  @keyup.enter="query()" />
+                <span class="sG-nav__icon" @click="query()"><i class="fa fa-search"></i></span>
+              </li>
+          </ul>
+        </div>
+      </div>
+      <!-- 主体内容区域 -->
+      <div class="sG-main clearfix" :style="storeType === 2?'width:1180px':'width:1200px'" >
+        <!-- 左侧导航 -->
+        <div class="sG-main__left" v-if="storeType === 2">
+          <div class="sG-leNav">
+            <h3 class="sG-leNav__title"  @click="getCtgId('')">商品分类</h3>
+            <!-- 所有商品 -->
+            [#list tag_bean.productCategories as cate]
+            <ul class="sG-leNav__nav1" >
+              <li class="sG-leNav__all" @click="toggleArrow(${cate.id})">${cate.cateName}
+                 <i :class="cateShow.indexOf(${cate.id}) <0?'fa-angle-down':'fa-angle-left'" class="fa  sG-leNav__icon"></i></li>
+              <ul class="sG-leNav__hid" v-show="cateShow.indexOf(${cate.id}) <0">
+                [#if cate.childs??]
+                  [#list cate.childs as child]
+                    <li class="sG-leNav__hitem" @click="getCtgId(${child.id})" >${child.cateName}</li>
+                  [/#list]
+                [/#if]
+              </ul>
+            </ul>
+            [/#list]
+          </div>
+        </div>
+
+        <!-- 右侧内容 -->
+        <div class="sG-main__right" v-loading="loading" :style="storeType===2?'width:960px;':'width:1200px;'" >
+          <!-- 中部导航搜索栏 -->
+          <div class="sG__shopSearch"  v-if="storeType === 2">
+              <div class="productTab">
+                  <div class="productTab-head">
+                    <!-- 上部左侧 -->
+                    <div class="productTab-head-left clearfix">
+                      <ul class="productTab-head-ul clearfix">
+                        <li class="productTab-head-li">
+                          <span class="productTab-head-li__text" @click="oderByTab('def')" 
+                          :class="{'productTab-head-li__text--active':queryParams.oderBy === 'def'}">综合</span>
+                        </li>
+                        <li class="productTab-head-li">
+                          <span v-show="queryParams.oderBy != 'priceAsc'"
+                           class="productTab-head-li__text"
+                            @click="oderByTab('priceAsc')"
+                           :class="queryParams.oderBy === 'priceDesc' ?'productTab-head-li__text--active':''">
+                            价格 <i v-show="queryParams.oderBy === 'priceDesc'" class="fa fa-long-arrow-down"></i>
+                          </span>
+                          <span v-show="queryParams.oderBy === 'priceAsc'" class="productTab-head-li__text " @click="oderByTab('priceDesc')"
+                           :class="queryParams.oderBy === 'priceAsc' ?'productTab-head-li__text--active':''">
+                            价格 <i v-show="queryParams.oderBy === 'priceAsc'" class="fa fa-long-arrow-up"></i>
+                          </span>
+                        </li>
+                        <li class="productTab-head-li">
+                          <span 
+                          class="productTab-head-li__text" @click="oderByTab('popularity')" 
+                          :class="queryParams.oderBy === 'popularity'?'productTab-head-li__text--active':''">人气</span>
+                        </li>
+                        <li class="productTab-head-li">
+                          <span class="productTab-head-li__text" @click="oderByTab('sales')" 
+                          :class="queryParams.oderBy === 'sales'?'productTab-head-li__text--active':''">销量</span>
+                        </li>
+                        <li class="productTab-head-li">
+                          <span class="productTab-head-li__text productTab-head-li__text--last" @click="oderByTab('shelfDay')" :class="queryParams.oderBy === 'shelfDay'?'productTab-head-li__text--active':''">新品</span>
+                        </li>
+                        <li class="productTab-head-li productTab-head-li--block">
+          
+                        </li>
+                      </ul>
+                      <div class="productTab-input-group">
+                        <input class="productTab-input" type="text" v-model.number="queryParams.salePriceBegin" placeholder="￥">
+                        -
+                        <input class="productTab-input" type="text" v-model.number="queryParams.salePriceEnd" placeholder="￥">
+                        <div class="productTab-btn-group">
+                          <button class="productTab-btn" @click="query">确定</button>
+                          <button class="productTab-btn productTab-btn--default" @click="clearPrice">取消</button>
+                        </div>
+                      </div>
+          
+                    </div>
+                  </div>
+                  <div class="productTab-body">
+                    <label>
+                      <input type="checkbox" @click="isSupport(queryParams.selfSupport)" class="productTab-body--filter">自营商品
+                    </label>
+                    <label>
+                      <input type="checkbox" @click="isStock(queryParams.hasStock)" class="productTab-body--filter">仅显示有货
+                    </label>
+                  </div>
+                </div>
+          </div>
+
+          <!--商品内容-->
+          <div class="prodSearch-intro " :style="storeType===2?'width:960px;':'width:1200px;'" v-if="productList&&productList.length > 0">
+            <!--商品图片展示-->
+            <ul class="prodSearch-intro-ul clearfix" v-loading="listloading" >
+              <li class="prodSearch-intro-li" v-for="(item,index) in productList" :key="index">
+                <div class="prodSearch-intro-box">
+                  <a :href="'${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId"><img :src="baseUrl+item.imageUrl" class="prodSearch-intro-box__img"></a>
+                  <h3 class="prodSearch-intro-box__price">
+                    <strong class="prodSearch-intro-box__bloder" v-if="item.salePrice" >
+                      ￥{{$float(item.salePrice)}}
+                  </strong>
+                </h3>
+                <p class="prodSearch-intro-box__descript"><a :href="'${base}/product-detail.htm?productId='+item.id+'&storeId='+item.storeId" class="prodSearch-intro-box__link prodSearch-intro-box__line2"  v-cloak>
+                  {{item.name}}
+                      </a></p>
+                    <div class="platform-warp" v-if="item.selfSupport">
+                      <span class="prodSearch-intro-box__classify">自营</span>
+                    </div>
+                <ul class="prodSearch-intro-box__ul clearfix">
+                  <li class="prodSearch-intro-box__li">
+                    月售<span class="redcolor" > {{item.monthSales}} </span>笔
+                  </li>
+                  <li class="prodSearch-intro-box__li">
+                    月评<span class="redcolor" > {{item.monthComment}}</span>
+                  </li>
+                  <li class="prodSearch-intro-box__li prodSearch-li-special" @click="collectProduct(item.id,index)">
+                    <i class="fa" :class="item.isCheck?'fa-star':'fa-star-o'"></i>
+                  </li>
+                </ul>
+              </div>
+            </li>
+            </ul>
+            <div class="clearfix att-shop-pagging" style="text-align:right;">
+              <el-pagination background layout="prev, pager, next" :total="total" :page-size="20" @current-change="sizeChange"
+                :current-page="queryParams.page">
+              </el-pagination>
+            </div>
+          </div>	
+          <div v-else class="container">
+              <div style="padding:20px 60px;">
+						<i class="fa fa-warning" style="color:#ffcc00;font-size:24px;position: relative;
+						top: 4px;"></i>
+						<span style="font-size: 14px;
+						font-weight: 700;
+						color: #f60;" v-if="keyword!=''">
+								抱歉，没有找到与“<em style="color:#333;top:4px;" class="prod-search-head-b">{{keyword}}</em>”相关的商品
+						</span>
+						<span style="font-size: 14px;
+						font-weight: 700;
+						color: #f60;" v-else>
+								抱歉，没有找到分类相关商品
+						</span>
+				 </div>
+           </div>
+        </div>
+      </div>
+    </div>
+		[#include "../includes/footer.html"]
+	</body>
+  [/@store_head]
+</html>
+
+<script>
+  var storeIndex = new Vue({
+    el:"#storeIndex",
+    data:{
+      params:{
+        storeId:'${storeId!}'
+      },
+      loading:false,
+      isFollow:false,
+      productList:[],
+      cateShow:[],
+      queryParams: {
+				"page": 1,
+				"size": 20,
+				"keyword": "${keyword!}",
+				"brandId": "",
+				"storeCtgId": "${ctgId!}",
+				"salePriceBegin": "${minPrice!}",
+				"salePriceEnd": "${maxPrice!}",
+				"selfSupport": "",
+				"hasStock": "",
+				"saleAttrCode": "",
+				"oderBy": "sales",
+				"storeId": "${storeId!}",
+				"promoteId": ""
+			},
+      total: 0,
+      listloading:false,
+      keyword:'',//店铺内关键字
+      baseUrl:cms.url,
+      storeMatchV:false,//店铺名称下隐藏的店铺信息
+      storeType:1,
+    },
+    methods: {
+      decimal(s){
+        return s.toFixed(1)
+      },
+      toggleArrow(id){   //切换列表的显示隐藏
+        var i = this.cateShow.indexOf(id)
+        if(i > -1){
+          this.cateShow.splice(i,1)
+        }else{
+          this.cateShow.push(id)
+        }
+        this.getCtgId(id)
+        console.log(this.cateShow)
+      },
+      followShop(id){//关注店铺
+        var that = this
+          cms.ajax({
+            url: cms.url + '/member/followStore/save',
+            type: 'get',
+            data: {"storeId":id}
+          },function(res){
+          if(res.code == 200){
+            cms.alert('收藏成功',4)
+            that.isFollow = true
+          } else {
+            cms.alert('发生错误',5)
+          }
+        })
+      },
+      getCtgId(id){
+        this.queryParams.storeCtgId = id
+        this.queryParams.keyword = ''
+        if(id == ''){
+          this.storeType = 1
+        }else{
+          this.storeType = 2
+        }
+        this.query()
+      },
+      collectProduct(id,index){//收藏接口
+				cms.ajax({
+					url:cms.url+'/member/memberfollowproduct/save',
+					data:{id:id}
+				},(res)=>{
+					if(res.code==200){
+						this.$set(this.productList[index],'isCheck',true)
+						// cms.alert('关注成功',4)
+					}
+				})		
+			},
+      clearPrice(){//清空当前搜索价格
+				this.queryParams.salePriceBegin = ''
+				this.queryParams.salePriceEnd = ''
+				this.query()
+			},
+      sizeChange(value) { //分页改变
+				this.queryParams.page = value
+				this.getProductList(this.queryParams)
+			},
+			isSupport(status) { //是否自营
+				if (status === '') {
+					this.queryParams.selfSupport = true
+				} else {
+					this.queryParams.selfSupport = ''
+				}
+				this.query()
+			},
+			isStock(status) { //是否有库存
+				if (status === '') {
+					this.queryParams.hasStock = true
+				} else {
+					this.queryParams.hasStock = ''
+				}
+				this.query()
+			},
+			oderByTab(type) { //排序
+				this.queryParams.oderBy = type
+				this.query()
+      },
+      query(type) { //搜索
+        this.queryParams.page = 1
+        this.keyword = this.queryParams.keyword
+        this.getProductList(this.queryParams)
+        if(type === 1){
+          this.storeType = 1
+          let params = {
+            "page": 1,
+            "size": 20,
+            "keyword": this.queryParams.keyword,
+            "brandId": "",
+            "storeCtgId": "",
+            "salePriceBegin": "",
+            "salePriceEnd": "",
+            "selfSupport": "",
+            "hasStock": "",
+            "saleAttrCode": "",
+            "oderBy": "sales",
+            "storeId": "",
+            "promoteId": ""
+          }
+          this.getProductList(params)
+        }
+			},
+      getProductList(params) { //获取商品搜索列表接口信息
+        var self = this
+        self.listloading=true
+				$.get(cms.url + '/product/search', params, function (res) {
+          self.listloading=false
+					 if(res){
+						self.total = res.totalElements
+						self.productList = res.content
+					}else{
+            self.productList = []
+						cms.alert('加载失败',5)
+					}		
+				})
+			},
+      focusShow(e){
+        console.log(e)
+        this.storeMatchV = true
+      }
+    },
+    filters:{
+      stateFilter(state){
+        this.state = parseInt(state)
+        var states = ['','高于','持平','低于']
+        return states[parseInt(state)]
+      },
+      compareFiter(val){
+        var compares = ['','↑','-','↓']
+        return compares[parseInt(val)]
+      }
+    },
+    created(){
+        this.query()
+    }
+  })
+</script>

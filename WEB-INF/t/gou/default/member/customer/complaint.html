@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-举报投诉</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="complaint"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body " id="complaint" v-cloak>
+        <div class="ecoupon__head">
+          <p class="ecoupon__title">举报/投诉</p>
+        </div>
+        <!-- 主体内容的展示 -->
+        <div class="complaint__wrap">
+          <!-- tabs栏的切换 -->
+          <div class="ecoupon__nav complaint__nav">
+            <ul class="ecoupon__list" v-for="(item, index) in navList" :key="index">
+              <li class="ecoupon__li" :class="{'ecoupon__li--active':liSelected==index}" @click="toggleMenu(index)">
+                <a href="#">{{item}}</a>
+              </li>
+            </ul>
+          </div>
+          <!-- 主体内容的具体展示 -->
+          <div class="bacem-container complaint__container" v-loading="loading">
+            <!-- 表格 -->
+            <div class="score-box compl__table">
+              <table class="bacem-table">
+                <tr class="bacem-tr bacem-tr-h">
+                  <td class="bacem-td score-tdf cmplt__itemtitle">商品</td>
+                  <td class="bacem-td bacem-tdsta">举报/投诉类型</td>
+                  <td class="bacem-td bacem-tdprice">时间</td>
+                  <td class="bacem-td bacem-tdmesg status__tr">状态</td>
+                  <td class="bacem-td">处理结果</td>
+                  <td class="bacem-td">操作</td>
+                </tr>
+                <!-- 循环 -->
+                <tr class="bacem-tr" v-for="(item, index) in tableData" :key="index">
+                  <!-- 商品名称 -->
+                  <td class="score-td">
+                    <div class="cmplt-item__box">
+                      <img :src="item.product.resources[0]?${base}item.product.resources[0].imageResouce.url:'#'" alt="" class="cmplt__pic">
+                      <div class="cmplt__itemdecs">
+                        <p class="cmplt__goods">商品名称:{{item.product.name}}</p>
+                        <p class="cmplt__store">店铺名称:{{item.store.storeName}}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <!-- 举报投诉类型-->
+                  <td class="bacem-td">
+                    <span>
+                      {{item.reportDictType | dictType}}
+                    </span>
+                  </td>
+                  <!-- 时间-->
+                  <td class="bacem-td ">{{formatTime(item.createTime)}}</td>
+                  <!-- 状态 -->
+                  <td class="bacem-td">
+                    <span class="score-oflow" :class="item.status==1?'score__decrease':'score__add'">
+                      {{item.status | handleStatus}}
+                    </span>
+                  </td>
+                  <!-- 处理结果 -->
+                  <td class="bacem-td">
+                    <div style="width:200px" class="overfow-text ">
+                      {{item.dealResult}}
+                    </div>
+                  </td>
+                  <td class="bacem-td">
+                    <a href="#" class="cmpl_decBtn" @click.prevent="alertDesc(item.id,item.product.resources[0].imageResouce.url)">详情</a>
+                  </td>
+                </tr>
+
+              </table>
+            </div>
+            <!-- 分页按钮 -->
+            <div class="overflow score-pagging cmplt__pagination" v-if="tableData.length>0">
+              <el-pagination class="fr" 
+              background 
+              layout="prev, pager, next" 
+              :total="total" 
+              :current-page.sync="queryParams.page"
+              :page-size='queryParams.size'
+              @current-change="handleCurrentChange"
+              >
+              </el-pagination>
+            </div>
+            <!-- 对话框的内容 -->
+            <el-dialog title="详情" :visible="dialogVisible" width="620px" :before-close="handleClose">
+              <table class="cmpl_table" v-if="descInfo.id">
+                <tr class="dialog__main">
+                  <td>
+                    <div class="dialog__pic">
+                      <img style="width: 100%;height: auto;" :src="'${base}'+imgUrl" alt="1">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="dialog__info">
+                      <p class="dialog__decs">商品名称:{{descInfo.product.name}}</p>
+                      <p class="dialog__decs">商品ID:{{descInfo.product.id}}</p>
+                      <p class="dialog__decs">商品类目:{{descInfo.product.category.cateName}}</p>
+                      <p v-if="descInfo.product.brand" class="dialog__decs">商品品牌:{{descInfo.product.brand.name}}</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr><br /></tr>
+                <tr>
+                  <td class="dialog__centd">状&nbsp;&nbsp;&nbsp; &nbsp;态:</td>
+                  <td>{{descInfo.status | handleStatus}}</td>
+                </tr>
+                <tr>
+                  <td class="dialog__centd">举报类型:</td>
+                  <td>{{descInfo.reportDictType | dictType}}</td>
+                </tr>
+                <tr>
+                  <td class="dialog__centd" style="vertical-align:middle;">详细信息:</td>
+                  <td>
+                    <p class="cmpl_decsinfo">{{descInfo.specificDescription}}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="vertical-align:middle;" class="dialog__centd">上传凭证:</td>
+                  <td>
+                    <div class="ev__picwrap">
+                      <img v-for="(item,index) in descInfo.spaceDatas" :key="index" :src="'${base}'+item.url" alt="1" class="cmpl__evpic" />
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="dialog__centd">处理结果:</td>
+                  <td>{{descInfo.dealResult}}</td>
+                </tr>
+              </table>
+            </el-dialog>
+            <!-- 列表内容暂无时显示 -->
+            <div  v-if="tableData.length==0&&!loading" style="text-align:center;margin-top: 120px;">
+              <img src=" ${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+            </div>
+          </div>
+          </div>
+      </div>
+    </div>
+    [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var defaultData = {
+    "page": 1,
+    "size": 10,
+    "status": ""
+  }
+  var complaint = new Vue({
+    el: "#complaint",
+    data: {
+      navList: ["全部", "未处理", "已处理"],  //导航栏列表
+      liSelected: '',                     //控制导航栏列表的选中状态
+      queryParams: Object.assign({}, defaultData),
+      tableData: [],          //列表数据
+      total: '',
+      loading: false,
+      dialogVisible: false,     //弹出框的显示隐藏
+      descInfo: {},             //弹出框的数据
+      baseUrl: cms.imgUrl,
+      imgUrl:'',
+    },
+    methods: {
+      getTableData() {    //获取举报投诉列表         
+        var that = this
+        that.loading = true
+        cms.ajax({
+          url: cms.url + '/member/memberreport/page',
+          type: 'get',
+          data: that.queryParams
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.tableData = res.data.content
+            that.total = res.data.totalElements
+          } else {
+            that.loading = false
+          }
+        })
+      },
+      alertDesc(id,url) {//处理弹出框显示的内容(详情列表)               
+        var that = this
+        that.loading = true
+        if(url&&url!=''){
+          that.imgUrl=url
+        }
+        cms.ajax({
+          url: cms.url + '/member/memberreport/get',
+          type: 'get',
+          data: { id: id }
+        }, function (res) {
+          if (res.code == 200) {
+            that.loading = false
+            that.descInfo = res.data
+            that.dialogVisible = true
+          } else {
+            that.loading = false
+          }
+        })
+      },
+      toggleMenu(index) {    //切换菜单状态及显示的内容
+        this.liSelected = index
+        if (index == 0) {
+          this.queryParams = Object.assign({}, defaultData)
+          this.queryParams.page = 1    //切换导航重置分页当前页数为1
+          this.getTableData()
+        }else if (index == 1) {
+          this.queryParams.status = 1
+          this.queryParams.page = 1
+          this.getTableData()
+        }else if (index == 2) {
+          this.queryParams.status = 2
+          this.queryParams.page = 1
+          this.getTableData()
+        }
+      },
+      handleCurrentChange(val) {
+        this.queryParams.page = val
+        this.getTableData()
+      },
+      handleClose() {      //弹出框关闭按钮
+        this.dialogVisible = false
+        this.imgUrl=''
+      },
+      formatTime(timeStr) {  //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY/MM/DD')
+      }
+    },
+    filters: {
+      handleStatus(val) {//投诉状态的过滤器
+        if (val == 1) {
+          return '未处理'
+        }
+        if (val == 2) {
+          return '已处理'
+        }
+      },
+      dictType(val){
+        switch(val){
+          case '1':
+          return "虚假宣传"
+          break;
+          case '2':
+          return "信息有误"
+          break;
+          case '3':
+          return "违禁品"
+          break;
+          case '4':
+          return "侵权"
+          break;
+          case '5':
+          return "价格违规"
+          break;
+          case '6':
+          return "政治有害"
+          break;
+          case '7':
+          return "滥发信息"
+          break;
+          default:
+          return '无'
+        }
+      }
+    },
+    created() {
+      this.getTableData()
+    }
+  })
+
+</script>

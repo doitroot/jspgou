@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <title>${globalConfig.mallName!}-收银台</title>
+  [#include "../includes/common.html"]
+  <script src="${mobileRes}/lib/crypto/rollups/tripledes.js "></script>
+  <script src="${mobileRes}/lib/crypto/components/mode-ecb.js"></script>
+  <script src="${mobileRes}/js/login.js"></script>
+</head>
+
+<body class="t-page">
+  [#assign topName="收银台"/]
+  [#include "../includes/topbar.html"]
+  <div id="payHtmlContent"></div>
+  <div class="cms nav-top" id="payOrder" v-cloak>
+    <div class="container t-14 t-label" style="line-height:28px">
+      <p class="t-block" style="width: 47%">选择支付方式：</p>
+      <p class="t-block t-text-right" style="width: 50%">需支付<span class="t-color">${(amount?number)?string(',###0.00')}</span>元</p>
+    </div>
+    <div>
+      <van-radio-group v-model="pay.payType">
+        <van-cell-group>
+          <van-cell @click.stop="getPayType(type.payType)" v-for="(type,index) in typeList" :key="index" class="t-bottom" :title="type.name" clickable>
+            <template slot="icon">
+              <van-icon class="pay-icon" :name="type.icon" :style="type.style"></van-icon>
+            </template>
+            <van-radio :name="type.payType" />
+          </van-cell>
+        </van-cell-group>
+      </van-radio-group>
+      <div class="login__submit container">
+        <van-button @click="submitPay" type='primary' size="large" >支付</van-button>
+      </div>
+      <!-- 支付密码框-->
+      <van-popup v-model="passVisable" position="bottom">
+        <div class="pwd-popup">
+        <div class="pwd-header">
+          <div class="pwd-title">输入支付密码</div>
+          <div class="pwd-icon" @click="closePopup">
+              <van-icon name="cross" ></van-icon>
+          </div>
+          </div>
+          <div class="pwd-header">支付金额:${(amount?number)?string(',###0.00')}元</div>
+        <van-cell-group>
+          <van-field v-model="form.password"  type="password"  center clearable placeholder="请输入支付密码" style="padding:0;">
+            <van-button slot="button" type="primary" @click="amountPay">确定</van-button>
+          </van-field>
+        </van-cell-group>
+        <a href="${base}/member-account-verifyInfo.htm?name=payPwd" class="pwd-foget">忘记密码？</a>
+      </div>
+      </van-popup>
+      <!-- 支付过程-->
+      
+    </div>
+  </div>
+</body>
+
+</html>
+<script>
+  // 微信h5支付函数,调用这个即可在微信环境中调起app支付
+function onBridgeReady(params){
+   WeixinJSBridge.invoke(
+      'getBrandWCPayRequest', {
+         "appId":params.appId,     //公众号名称，由商户传入     
+         "timeStamp":params.timeStamp,         //时间戳，自1970年以来的秒数     
+         "nonceStr":params.nonceStr, //随机串     
+         "package":params.packageStr,     
+         "signType":params.signType,         //微信签名方式：     
+         "paySign":params.paySign//微信签名 
+      },
+      function(res){
+      if(res.err_msg == "get_brand_wcpay_request:ok" ){
+        location.href = '${base}/member-paysuccess.htm?orderCode=${orderNo!}&amount=${amount!}'
+      }else{
+        payVue.$toast('支付失败')
+      } 
+   }); 
+}
+  var wechatType = [{
+    payType: 2,
+    name: '微信',
+    icon: 'wechat',
+    style: {
+      color: '#00c800'
+    }
+  }
+    [#if payScene!='memberRecharge']
+      ,{
+        payType: 4,
+        name: '账户余额',
+        icon: 'gold-coin',
+        style: {
+          color: '#fe9d28'
+        }
+      }
+    [/#if]
+  ]
+  var h5Type = [
+    [#if alipay?? || wechat??  || unionpay?? ]
+    [#if alipay?? ]
+      {
+        payType: 1,
+        name: '支付宝',
+        icon: 'alipay',
+        style: {
+          color: '#009df2'
+        }
+      }, 
+      [/#if]
+      [#if wechat?? ]
+      {
+        payType: 2,
+        name: '微信',
+        icon: 'wechat',
+        style: {
+          color: '#00c800'
+        }
+      },
+      [/#if]
+      [#if balance ?? ]
+        [#if payScene!='memberRecharge']
+        {
+          payType: 4,
+          name: '账户余额',
+          icon: 'gold-coin',
+          style: {
+            color: '#fe9d28'
+          }
+        }
+        [/#if] 
+      [/#if]
+    [/#if] 
+  ]
+  // {
+  //       payType: 3,
+  //       name: '银联',
+  //       icon: 'card',
+  //       style: {
+  //         color: '#004889'
+  //       }
+  //     },
+ var payVue= new Vue({
+        el: '#payOrder',
+        data() {
+          return {
+            passVisable: false,
+            payLoading:false,
+            typeList: [],
+            form: {
+              password: ''
+            },
+            pay: {
+              orderNo: '${orderNo!}',
+              subject: '${subject!}',
+              description: '${description!}',
+              payScene: '${payScene!}',
+              bizContent: '',
+              payType: 0,
+              paySource: 2,
+              payPassword: ''
+            }
+          }
+        },
+        methods: {
+          getPayType(type){//更换支付方式
+            this.pay.payType = type
+          },
+          isWeChatRunTime() { //判断是否是微信浏览器
+            var ua = window.navigator.userAgent.toLowerCase();
+            if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+              this.typeList = wechatType //根据环境设置支付方式
+              this.pay.payType = wechatType[0].payType
+              this.pay.paySource = 4
+            } else {
+              this.typeList = h5Type //根据环境设置支付方式
+              this.pay.payType = h5Type[0].payType
+              this.pay.paySource = 2
+              /**在普通浏览器中判断使用微信H5进行支付的场景下，
+                    捕获是否由用户在微信客户端所操作取消和支付完成后跳转的页面
+                    微信说明文档：https://pay.weixin.qq.com/wiki/doc/api/H5.php?chapter=15_4
+              */
+              let urlHash = window.location.hash
+              if(urlHash == "#wechat" ){
+            	  //回填默认选中微信支付方式
+                   this.pay.payType = 2
+            	   this.$dialog.confirm({
+            		  title: '支付确认',
+            		  message: '1、请在微信客户端内完成支付，如您已支付成功，请点击“已完成支付按钮<br/>2、如果您还未安装微信6.0.2及以上版本，请点击“取消”并选择其他支付方式”',
+            		  messageAlign:'left',
+            		  confirmButtonText:'已完成支付',
+            		  cancelButtonText:'取消'
+            		}).then(() => {
+            		  //处理用户点事件后续业务（需要根据订单号查询支付结果），成功跳转至支付成功提示页面，失败提示“支付失败，停留在当前页面”
+                this.queryOrderStatus()
+            		}).catch(() => {
+                  this.queryOrderStatus()
+            		});
+              }
+            }
+          },
+          queryOrderStatus(){
+            //通过id查询订单支付状态
+            queryOrderStatus(
+              {"businessNo": "${orderNo!}",
+                "scene": "${payScene!}"
+              })
+              .then(res=>{
+                if(res.code===200){
+                 location.href = '${base}/member-paysuccess.htm?orderCode=${orderNo!}&amount=${amount!}'
+                 }else{
+                    this.$toast('支付失败') 
+                  }})
+          },
+          /**支付按钮触发事件*/
+          submitPay() {
+            if (this.pay.payType == 4) { //余额支付唤起密码框
+              this.passVisable = true
+            } else {
+              this.commitPay(this.pay)
+            }
+          },
+          amountPay(){//余额支付
+            if(this.form.password===''){
+              this.$toast({
+                message:'支付密码不能为空',
+                forbidClick:true,
+                duration:600
+              })
+            }else{
+              this.pay.payPassword = encrypt(this.form.password)
+            this.passVisable=false
+            this.commitPay(this.pay) 
+            }
+           
+          },
+          commitPay(pay) { //提交支付信息
+            this.passVisable=false//关闭支付框
+            let Toast=  this.$toast({
+                type:'loading',
+                message:'正在支付',
+                mask:true,
+                forbidClick:true,
+                duration:0
+              })
+            memberPay(pay).then(res => {
+              Toast.clear()
+              if (res.code == 200) {       
+                if (pay.payType == 1 || pay.payType == 3) { //银联支付宝支付
+                  	$('#payHtmlContent').append(res.data.payBody);
+                } else if (pay.payType == 2) { //微信支付
+                	//微信客户端H5判断
+                  	var ua = window.navigator.userAgent.toLowerCase();
+		            if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+		              if (typeof WeixinJSBridge == "undefined"){             
+		                    if( document.addEventListener ){
+		                        document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+		                    }else if (document.attachEvent){
+		                        document.attachEvent('WeixinJSBridgeReady', onBridgeReady); 
+		                        document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+		                    }
+		                  }else{
+		                    onBridgeReady(res.data);
+		                  }
+		            }else{
+		            	//非微信客户端H5支付跳转，指定微信H5支付回调页面地址（地址默认为当前页面且最后拼接#wechat,一定需要进行URL编码）
+		            	//,页面初始化加载时需要判断在普通浏览器下需要判断访问当前页面是否携带#wechat，即代表是微信H5支付回调操作，需要处理弹框提示
+		            	let redirectUrl = encodeURIComponent(location.href+"#wechat")
+		                location.href=res.data.payBody+"&redirect_url="+redirectUrl
+		            }     
+                } else if (pay.payType == 4) { //余额支付
+                  if (res.data.payBody == 'success') {
+                    location.href = '${base}/member-paysuccess.htm?orderCode=${orderNo!}&amount=${amount!}'
+                  }
+                }              
+              } else {    
+                  this.$toast(res.message);   
+                  this.form.password = ''
+                  this.pay.payPassword =''
+              }
+            }).catch(err => {})
+          },
+          closePopup(){
+            this.passVisable = false
+          }
+        },
+        created() {
+          this.isWeChatRunTime()
+          [#if !authPay ?? || 'true' != authPay]
+          this.$toast('无效的请求地址，请检查链接是否正确', '系统提示', {
+            confirmButtonText: '确定',
+            showClose: false,
+            showCancelButton: false,
+            closeOnClickModal: false,
+            type: 'warning'
+          }).then(() => {
+            location.href = "${base}"
+          });
+          [/#if] 
+          }
+        })
+
+</script>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>我的卡劵</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body>
+  [#assign topName="我的卡劵"/]
+  [#include "../../includes/topbar.html"]
+  <div class="tab-bg nav-top" id="myCoupon">
+    <van-tabs v-model="active" @change="onChange" :line-width="60">
+      <van-tab :title="'待使用'+(active==0? totals:'')">
+        <div v-if="couponList.length == 0">
+          <div class="empty-coupon">
+            <img class="empty-coupon__bg" src="${mobileRes}/img/pou_01.png" />
+          </div>
+          <div class="empty-coupon__txt">您当前暂无该类优惠券</div>
+          <div class="reg__box">
+            <van-button class="reg__btn" @click="toCenter" size="normal" type="primary" style="color:#fff;">去领券</van-button>
+          </div>
+        </div>
+        <div v-else>
+          <!-- 优惠券 -->
+          <div class=" coupon__warpper container" v-for="(item,index) in couponList" :key="index">
+            <div class="coupon__items coupon-list">
+              <div class="coupon__info">
+                <div class="coupon__inner">
+                  <span class="coupon__price">
+                    <span class="rmb">¥</span>{{item.discountAmount}}</span>
+                  <span class="coupon__limt">满{{item.conOrderAmount}}元可用</span>
+                </div>
+                <div class="coupon__inner coupon__inner--left">
+                  <span class="coupon__name">{{item.name}}</span>
+                  <span class="coupon__time">有效期:{{formatTime(item.useBeginTime)}}-{{formatTime(item.useEndTime)}} </span>
+                </div>
+              </div>
+              <div class='coupon__footer'>
+                <div class="coupon__save" @click="goUse" :data-id="item.id">去使用</div>
+                <!-- <div class="coupon__num">剩余:10张</div> -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </van-tab>
+      <van-tab :title="'已使用'+ (active==1?totals:'')">
+        <div v-if="couponList.length == 0">
+          <div class="empty-coupon">
+            <img class="empty-coupon__bg" src="${mobileRes}/img/pou_01.png" />
+          </div>
+          <div class="empty-coupon__txt">您当前暂无该类优惠券</div>
+          <div class="reg__box">
+            <van-button class="reg__btn" @click="toCenter" size="normal" type="primary" style="color:#fff;">去领券</van-button>
+          </div>
+        </div>
+        <div v-else>
+          <div class="coupon__warpper container" v-for="(item,index) in couponList" :key="index">
+            <!-- 优惠券 -->
+            <div class="coupon__items coupon-list invalid-bg" @click="goAleady">
+              <div class="coupon__info">
+                <div class="coupon__inner">
+                  <span class="coupon__price">
+                    <span class="rmb">¥</span>{{item.discountAmount}}</span>
+                  <span class="coupon__limt">满{{item.conOrderAmount}}元可用</span>
+                </div>
+                <div class="coupon__inner coupon__inner--left">
+                  <span class="coupon__name">{{item.name}}</span>
+                  <span class="coupon__time">有效期:{{formatTime(item.useBeginTime)}}-{{formatTime(item.useEndTime)}}  </span>
+                </div>
+              </div>
+              <div class='coupon__footer'>
+                <div class="coupon__save invalid">已使用</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </van-tab>
+      <van-tab :title="'已过期'+ (active==2?totals:'')">
+        <div v-if="couponList.length == 0">
+          <div class="empty-coupon">
+            <img class="empty-coupon__bg" src="${mobileRes}/img/pou_01.png" />
+          </div>
+          <div class="empty-coupon__txt">您当前暂无该类优惠券</div>
+          <div class="reg__box">
+            <van-button class="reg__btn" @click="toCenter" size="normal" type="primary" style="color:#fff;">去领券</van-button>
+          </div>
+        </div>
+        <div v-else>
+          <div class="coupon__warpper container" v-for="(item,index) in couponList" :key="index">
+            <!-- 优惠券 -->
+            <div class="coupon__items coupon-list invalid-bg">
+              <div class="coupon__info">
+                <div class="coupon__inner">
+                  <span class="coupon__price">
+                    <span class="rmb">¥</span>{{item.discountAmount}}</span>
+                  <span class="coupon__limt">满{{item.conOrderAmount}}元可用</span>
+                </div>
+                <div class="coupon__inner coupon__inner--left">
+                  <span class="coupon__name">{{item.name}}</span>
+                  <span class="coupon__time">有效期:{{formatTime(item.useBeginTime)}}-{{formatTime(item.useEndTime)}}  </span>
+                </div>
+              </div>
+              <div class='coupon__footer'>
+                <div class="coupon__save invalid">已过期</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </van-tab>
+    </van-tabs>
+  </div>
+  <van-toast id="van-toast" />
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#myCoupon',
+    data() {
+      return {
+        active: 0,
+        couponList: [],
+        totals: 0,
+        status: 'Effective'
+      }
+    },
+    methods: {
+      onChange(e) {//切换tab
+        let arr = ['Effective', 'Used', 'Invalid']
+        this.status=arr[e]
+        this.active=e
+        this.getList()
+      },
+      goUse(e) {//去使用优惠券
+        let id = e.currentTarget.dataset.id
+        window.location.href='${base}/index.htm'
+      },
+      toCenter(e) {//去领取优惠券
+        window.location.href='${base}/coupon.htm'
+      },
+      goAleady() {//查看已使用优惠券
+      },
+      getList() {
+        memberCouponPage({ status: this.status }).then(res => {
+          if (res.code == 200) {
+            this.couponList=res.data.content
+            this.totals=res.data.totalElements
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => { this.$toast('服务异常') })
+      },
+      formatTime(timeStr) {
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+      },
+    },
+    created() {
+      this.getList()
+    }
+  })
+</script>

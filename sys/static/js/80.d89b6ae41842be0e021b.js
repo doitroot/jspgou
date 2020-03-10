@@ -1,0 +1,2 @@
+webpackJsonp([80],{"5H7U":function(e,t){},L4uw:function(e,t,n){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var r={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=n("C7Lr")({name:"orderListLayOut"},r,!1,function(e){n("5H7U")},null,null);t.default=u.exports}});
+//# sourceMappingURL=80.d89b6ae41842be0e021b.js.map

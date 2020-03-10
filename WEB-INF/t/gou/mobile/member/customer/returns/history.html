@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-协商历史</title>
+  [#include "../../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+  [#assign topName="协商历史"/]
+  [#include "../../../includes/topbar.html"]
+  <div id="history" v-cloak>
+    <div class="cms nav-top">
+      <div class="rh-warp">
+        <div class="rh-cell" v-for="(item,index) in details" :key="index">
+          <div class="rh-icon" :class="index == 0 ?'rh-first':''">●</div>
+          <div class="rh-cont t-bottom my-quiz-span">{{item.operateTxt}} <span>（{{formatTime(item.createTime)}}）</span></div>
+          <div v-if="index >0" class="rh-tline"></div>
+          <div v-if="details.length >1" class="rh-bline"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#history',
+    data () {
+      return {
+        details:null,
+        saleId:'${saleId!}'
+      }
+    },
+    methods: {
+      getOrderItem(id){//获取订单详情
+        refundGet({id:id}).then(res => {
+          if(res.code == 200){
+            this.details=res.data.details.reverse()
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      }
+    },
+    created () {
+      this.getOrderItem(this.saleId)
+    }
+  })
+</script>

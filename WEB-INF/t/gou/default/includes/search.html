@@ -1,0 +1,203 @@
+<!-- 首页搜索部分 -->
+<div class="header-search">
+  <!-- 我的购物车 -->
+  <div href="#" class="header-search__buycar">
+    <div class="header-search__buycar--img">
+      <a href="${base}/member-cart-index.htm" class="header-search__lk">
+      我的购物车&nbsp;&nbsp;<i class="fa fa-shopping-cart"></i>
+    </a>
+    </div>
+    <!-- 购物车商品 -->
+    <div class="header-burcar__items" id="cartBox"  v-loading="loading">
+      [#if user??]
+      <div v-if="cartList.length>0" v-cloak> 
+        <div class="header-burcar__inner" >
+          <h3 class="header-burcar__title">购物车列表</h3>
+        </div>
+        <div class="header-burcar__box">
+          <div class="header-burcar__item" v-for="product in cartList">
+            <div class="header-burcar__inner ">
+              <div class="header-burcar__img"><img :src="baseUrl+product.item.product.coverImage" alt=""></div>
+              <div class="header-burcar__text">
+                 <a :href="'${base}/product-detail.htm?productId='+product.item.product.id">{{product.item.product.name}}</a></div>
+              <div class="header-burcar__edit">
+                <p class="header-burcar__count">￥{{$float(product.item.oldPrice)}} x {{product.item.productCount}}</p>
+                <p class="header-burcar__del" @click="removeCart(product.item.productId,product.item.productSkuId)">删除</p>
+              </div>
+              <div class="clear"></div>
+            </div>
+          </div>
+        </div>
+        <div class="header-burcar__totals" v-cloak>
+          <span class="header-burcar__total">共{{number}}件商品 共计¥ {{$float(total)}}</span>
+          <a href="${base}/member-cart-index.htm" class="header-burcar__btn">去购物车结算</a>
+        </div>
+    </div>
+    <div v-else>
+        <div style="font-size: 14px; text-align: center;color:#666;line-height: 66px;">
+            购物车中还没有商品，赶紧选购吧！
+            </div>
+    </div>
+     
+      [#else]
+      <div style="position: absolute;
+       top: 50%;
+       left: 50%;
+       margin-left: -47px;
+       margin-top: -9px;
+       font-size: 14px;">
+        请<a href="${base}/login">登录</a>后查看
+      </div>
+      [/#if]
+    </div>
+  </div>
+  <!-- 搜索框 -->
+  <div class="header-seainput" id="headerSearch">
+    <!-- 搜索框搜索 -->
+    <div class="header-seainput__input">
+      <div class="search-tab">
+          <a @click="searchTab('product')" class="search-tab__link" :class="searchActive == 'product'?'search-tab__active':''">商品</a>
+          <span class="line-center">|</span>
+          <a @click="searchTab('store')" class="search-tab__link" :class="searchActive == 'store'?'search-tab__active':''">店铺</a>
+      </div>
+      <div class="header-seainput__icon"><i class="fa fa-search"></i></div>
+      <input type="text" class="header-seainput__info" :placeholder="placeholder" 
+      v-model="productName"
+       @keyup.enter="search"
+        @focus="getPlaceholder">
+    </div>
+    <!-- 搜索框按钮 -->
+    <div>
+      <a href="javascript:;" class="header-seainput__btn" 
+      @click="search"><i class="fa fa-search"></i></a>
+    </div>
+    <div class="clear"></div>
+    <!-- 搜索框商品列表 -->
+    <p class="header-goods">
+      [#list globalConfig.searchKeyWords as key]
+      [#if key_index<8]
+      <a href="${base}/product-search.htm?keyword=${key!}" class="header-goods__item key-overflow">${key!}</a>
+        [/#if]
+      [/#list]
+    </p>
+  </div>
+</div>
+<script type="text/babel">
+  var  searchObj= new Vue({
+    el:'#headerSearch',
+     data () {
+       return {
+        searchActive:'${search!}',
+         placeholder:'${keyword!?html}'==''?'':'${keyword!?html}',
+         productName:'${keyword!?html}'!=''?'${keyword!?html}':'${globalConfig.hotWords!}',//商品关键字
+         baseUrl:cms.url,
+       }
+     },
+     methods: {
+      searchTab(val){//切换商品、店铺
+        this.searchActive = val
+      },
+      search(){
+        if(this.searchActive=='product'){
+          this.searchProduct()
+        }else{
+          this.searchStore()
+        }
+      },
+      getPlaceholder(){
+        this.productName=this.placeholder
+      },
+       searchProduct(){//商品搜索
+         if(this.productName==''){
+          location.href='${base}/product-search.htm?keyword='+this.placeholder
+         }else{
+          location.href='${base}/product-search.htm?keyword='+this.productName
+         }
+       },
+       searchStore(){//店铺搜索
+        //   if(this.productName==''){
+        //   location.href='${base}/store-search.htm?keyword='+this.placeholder
+        //  }else{
+          location.href='${base}/store-search.htm?keyword='+this.productName
+        //  }
+       }
+
+     }
+  })
+</script>
+   [#if user??]
+ <script >
+    var shopCart= new Vue({
+      el:'#cartBox',
+       data () {
+         return {
+           cartList:[],
+           baseUrl:'${base}',
+           loading:false
+         }
+       },
+       computed: {
+         number(){
+           let number=0
+            this.cartList.forEach(v => {
+              number=number+v.item.productCount
+            });
+            return number
+         },
+         total(){
+          let total=0
+            this.cartList.forEach(v => {
+              total=total+(v.item.productCount*v.item.oldPrice)
+            });
+            return total   
+         }
+       },
+       methods: {
+         getCartList(){
+           var self=this
+           cms.ajax({
+             url:cms.url+'/member/cart/get',
+           }, (res)=> {
+            if(res.code==200){
+              let arr=[]
+            res.data.forEach(v => {
+             v.items.forEach(item => {
+               arr.push(item)
+             });
+            });   
+              this.cartList=arr
+            }
+           })
+         },
+         removeCart(id, skuId) { // 移除购物车选项
+          this.loading=true
+            let params
+            if (skuId == null) { // 有skuid id 二者取其一
+              params = {
+                productIds: [id],
+                productSkuIds: ['']
+              }
+            } else {
+              params = {
+                productIds: [''],
+                productSkuIds: [skuId]
+              }
+            }
+            cms.ajax({
+            url: '${base}/member/cart/delete',
+            type: 'post',
+            data: JSON.stringify(params)
+          }, (res) => {
+            if (res.code === 200) {
+              this.getCartList()
+            }
+            this.loading=false
+          })
+        },
+       },
+       created () {
+          this.getCartList()
+       }
+    })
+  </script>
+  [/#if]

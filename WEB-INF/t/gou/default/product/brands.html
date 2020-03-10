@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>品牌专区</title>
+		[#include "../includes/common.html"]
+	</head>
+
+	<body>
+    [#include "../includes/topBar.html"]
+		<div class="header">
+			<div class="container head-wrap">
+				<div class="fl"> 
+					[#assign name="产品目录"]
+					[#include "../includes/logo.html"]
+        </div>
+        [#assign search="product"/]
+				[#include "../includes/search.html"]
+		  </div>
+		</div>
+		[#include "../includes/categoryMenu.html"]
+		<div id="app">
+      <div class="brands">
+        <div class="brands-nav">
+          <span class="brands-nav__icon"><i class="fa fa-home"></i></span><a href="">首页</a>&nbsp;>&nbsp;<a href="">全部品牌</a>
+        </div>
+        <!-- 全部品牌类型 -->
+        <ul class="allbrand clearfix">
+            <li class="allbrand__item allbrand__item--active"><a href="" class="allbrand__item--color" >全部品牌</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+            <li class="allbrand__item"><a href="">家用电器</a></li>
+            <li class="allbrand__item"><a href="">电脑办公</a></li>
+        </ul>
+        <!-- 所有品牌名称 -->
+        <ul class="bname clearfix">
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item bname__item--nomar">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚</a></p>
+          </li>
+          <li class="bname__item">
+            <div><a href=""><img src="${res}/images/brand1.jpg" alt="" class="bname__img"></a></div>
+            <p class="bname__text"><a href="">诺基亚诺基亚诺基亚诺基亚诺基亚诺基亚诺基亚诺基亚</a></p>
+          </li>
+        </ul>
+      </div>
+		</div>
+
+		[#include "../includes/footer.html"]
+	</body>
+
+</html>
+<script>
+    var app=new Vue({
+      el:'#app'
+    })
+  </script>

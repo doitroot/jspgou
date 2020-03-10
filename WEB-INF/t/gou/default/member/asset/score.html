@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-我的积分</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName="assetScore"]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body " id="myScore" v-cloak>
+        <div class="member-title bace-title">
+          <!-- 主体头部 -->
+          <div class="bace-head bace-head1">
+            <!-- 我的积分 -->
+            <div class="baceh-left">
+              <h3 class="baceh-title">我的积分：<span class="redcolor ">${user.score!}</span></h3>
+            </div>
+          </div>
+        </div>
+        <div class="score-main">
+            <!-- 个人中心主体 -->
+            <div class="score-main-head">
+              <h3 class="bacem-links">
+                <span  class="bacem-link" 
+                v-for="(item, index) in navList" :key="index"
+                :class="{'bacem-link--active':navSelected==index}"
+                 @click="toggleMenu(index)" >
+                {{item}}</span> 
+              </h3>
+              <div class="score-sch-group score-sch-group1">
+                <input type="text" placeholder="请输入编号或项目名称进行检索" class="att-input score-input" 
+                  v-model="queryParams.sourceOrNumber" 
+                  @keyup.enter="searchList"
+                  @change="resetList($event)" />
+                <a href="#" class="att-sch-btn" @click.stop="searchList">搜索</a>
+              </div>
+            </div>
+            <!--  -->
+            <div class="bacem-container">
+              <!-- 表格 -->
+              <div class="score-box">
+                <table class="bacem-table" v-loading="loading">
+                  <tr class="bacem-tr bacem-tr-h">
+                    <td class="bacem-td score-tdf">来源</td>
+                    <td class="bacem-td bacem-tdsta">积分变化</td>
+                    <td class="bacem-td bacem-tdprice">时间</td>
+                    <td class="bacem-td bacem-tdmesg">备注</td>
+                  </tr>
+                  <!-- 循环 -->
+                  <tr class="bacem-tr" v-for="(item, index) in scoreList" :key="index">  
+                    <!-- 来源 -->
+                    <td class="score-td">
+                      <p :title="item.sourceName" class="score__source">
+                       <span>{{item.sourceName}}</span> 
+                      </p>
+                        <span>编号：{{item.businessNum}}</span>
+                    </td>
+                    <!-- 状态 -->
+                    <td class="bacem-td">
+                      <span class="bacem-unpay" :class="item.calculatorType==1?'score__add':'score__decrease'">
+                        <span>{{item.calculatorType|handlerScore}}</span>{{item.score}}
+                      </span>
+                    </td>
+                    <!-- 时间 -->
+                    <td class="bacem-td ">{{formatTime(item.createTime)}}</td>
+                    <!-- 备注 -->
+                    <td class="bacem-td">
+                      <span class="score-oflow" title="交易抵扣">
+                        {{item.remark}}
+                      </span>
+                    </td>
+                  </tr>
+  
+                </table>
+                   <!-- 列表内容暂无时显示 -->
+                 <div v-if="scoreList.length==0&&!loading" style="margin-top:90px;" class="list__empty-wrap">
+                  <img src="${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+                 </div>
+              </div>
+               <!-- 分页按钮 -->
+               <div class="overflow score-pagging" v-if="scoreList.length!==0">
+                  <el-pagination class="fr" background layout="prev, pager, next" 
+                  :total="total" 
+                  :page-sizes="[100, 200, 300, 400]"
+                  :page-size='queryParams.size'
+                  @current-change="handleCurrentChange"
+                  :current-page.sync="queryParams.page"
+                  >
+                  </el-pagination>
+              </div>
+  
+            </div>
+  
+          </div>
+      </div>
+    </div>
+  </div>
+
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var defaultData={
+     "businessType": "",
+     "sourceOrNumber": "",
+     "page": 1,
+     "size": 10
+    }
+    var myScore = new Vue({
+       el: '#myScore',
+       data() {
+         return {
+           queryParams:Object.assign({},defaultData),
+           total:'', 
+           loading:false,
+           scoreList:'',//积分列表  
+           navList:["全部","注册","签到","评论","交易"],//切换列表
+           navSelected:''//列表的选中状态
+         }
+       },
+       methods: {
+         getScoreList(){//获取积分列表
+           let that=this 
+           that.loading=true     
+           cms.ajax({
+             url: cms.url + '/member/memberscore/page',
+             type: "get",
+             data: that.queryParams
+             }, function (res) {
+             if (res.code == 200) {
+               that.scoreList = res.data.content
+               that.total=res.data.totalElements
+               that.loading=false            
+             } else {
+               that.loading=false
+               cms.alert(res.message,5)
+             }
+           })
+         },
+         toggleMenu(index){//导航列表的切换及数据的请求
+            this.navSelected=index
+            switch (index){
+              case 0:
+              this.queryParams=Object.assign({},defaultData)
+              this.getScoreList()
+              break;
+              case 1:
+              this.queryParams.businessType="1"
+              this.getScoreList()
+              break;
+              case 2:
+              this.queryParams.businessType="2"
+              this.getScoreList()
+              break;
+              case 3:
+              this.queryParams.businessType="3"
+              this.getScoreList()
+              break;
+              case 4:
+              this.queryParams.businessType="4"
+              this.getScoreList()
+              break;
+            }
+         },
+         resetList(event){ //搜索框的内容为空时是重新获取数据
+           let el=event.currentTarget
+           if(el.value==""){
+              this.getScoreList()
+           }
+         },
+         searchList(){//信息搜索
+           this.queryParams.page=1//从第一页开始搜索
+           this.getScoreList()
+         },
+         handleCurrentChange(value){//分页的切换
+           this.queryParams.page=value
+           this.getScoreList()
+         },
+         formatTime(timeStr){  //调整时间的方法
+             return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+         }
+      },
+     filters: {
+         handlerScore(val){//处理积分变化的加减符号
+           if (val==1) {
+             return '+'
+           }
+           if(val==2){
+             return '-'
+           }
+         }
+       },
+     created () {
+         this.getScoreList()
+       }
+     })
+   </script>

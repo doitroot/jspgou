@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>商品搜索</title>
+	[#include "../includes/common.html"]
+</head>
+
+<body>
+	[#include "../includes/topBar.html"]
+	<div class="header">
+		<div class="container head-wrap">
+			[#include "../includes/logo.html"]
+			[#assign search="product"/]
+			[#include "../includes/search.html"]
+		</div>
+	</div>
+	[#include "../includes/categoryMenu.html"]
+	<div id="app" v-cloak>
+		<div class="search-box">
+			<!--商品分类导航-->
+			<div class="cms-crumbs prod-search-head">
+				<ul class="cms-crumb container">
+					<li class="cms-crumb__item">
+						<p v-if="typeattr.proCategory">
+							<a href="${base}/product-category.htm?ctgId=''">全部搜索结果</a>
+							<span class="prod-search-head-b" v-if="typeattr.proCategory.nodeIds.length>2&&typeattr.proCategory.parent.parent.cateName!=''">
+									<i class="fa fa-fw fa-angle-double-right"></i>
+								<a :href="'${base}/product-category.htm?ctgId='+typeattr.proCategory.parent.parent.id">{{typeattr.proCategory.parent.parent.cateName}}</a>
+							</span>
+							<span class="prod-search-head-b" v-if="typeattr.proCategory.nodeIds.length>1&&typeattr.proCategory.parent.cateName!=''">
+									<i class="fa fa-fw fa-angle-double-right"></i>
+								<a :href="'${base}/product-category.htm?ctgId='+typeattr.proCategory.parent.id">{{typeattr.proCategory.parent.cateName}}</a>
+							</span>
+							<span class="prod-search-head-b">
+									<i class="fa fa-fw fa-angle-double-right"></i>
+								<a :href="'${base}/product-category.htm?ctgId='+typeattr.proCategory.id">{{typeattr.proCategory.cateName}}</a>
+							</span>
+						</p>
+					</li>
+				</ul>
+			</div>
+			<div class="classifyNav-container" v-if="queryParams.ctgId&&queryParams.ctgId!= ''">
+				<div class="cf-tab">
+					<!-- 未展开的顶部品牌样式 -->
+					<div class="cf-tr clearfix" id="cf-unwrap" v-if="typeattr.brands.length > 0">
+						<div class="cf-swiper-container">
+							<div class="swiper-wrapper cf-td cf-td-top">
+								<div class="cf-img-box " v-for="(brand,index) in typeattr.brands" :key="index" :class="brand.id == queryParams.brandId?'cf-img__active':''">
+									<a href="#" @click="getBrandId(brand.id)"><img class="cf-img-box-img" :src="baseUrl+brand.resourcesSpaceData.url"></a>
+								</div>
+							</div>
+						</div>
+
+					</div>
+					<div class="cf-swiper-switch" v-if="typeattr.brands.length > 8">
+						<a href="#" class="cf-switch__prev"><i class="fa fa-angle-left cf-large-fa"></i></a>
+						<a href="#" class="cf-switch__next"><i class="fa fa-angle-right cf-large-fa"></i></a>
+					</div>
+
+					<!-- 展开的顶部品牌样式 -->
+					<!-- 展开的顶部品牌样式隐藏 -->
+					<div id="cfswitch" class="cf-tr clearfix cf-tr-hidden">
+						<div class="cf-td cf-td-top">
+							<!-- 头部 -->
+							<div class="cf-desc">
+								<a class="cf-td__link--active">所有品牌</a>
+								<div class="cf-desc-group">
+									<a href="#" class="cf-desc-group__link">A</a>
+									<a href="#" class="cf-desc-group__link">B</a>
+									<a href="#" class="cf-desc-group__link">C</a>
+									<a href="#" class="cf-desc-group__link">D</a>
+								</div>
+							</div>
+							<div class="cf-logo-group">
+								<div class="cf-img-box " v-for="(brand,index) in typeattr.brands" :key="index" :class="brand.id == queryParams.brandId?'cf-img__active':''">
+									<a href="#" @click="getBrandId(brand.id)"><img class="cf-img-box-img" :src="baseUrl+brand.resourcesSpaceData.url"></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- 展开按钮 -->
+					<a class="cf-drop-btn" v-show="typeattr.brands.length > 8">
+						<i class="fa fa-angle-down cf-drop-btn__text"></i>
+					</a>
+					<div class="t-typeattr" :class="showAttr?'t-typeattr__show':'t-typeattr__hide'" v-if=" typeattr.attrs.length > 0">
+						<div class="cf-tr clearfix" v-for="(attr,index) in typeattr.attrs" :key="index">
+							<div class="cf-td cf-td-head">
+								<span>{{attr.name}}：</span>
+							</div>
+							<div class="cf-td">
+								<a href="#" class="cf-td__link" :class="{'cf-td__link--active':codes.indexOf(val.attrCode) > -1}" @click="getAttrs(val.attrCode,index)"
+								 v-for="(val,idx) in attr.attrValueList" :key="idx">{{val.attrValue}}</a>
+							</div>
+						</div>
+					</div>
+					<!-- 更多选项按钮 -->
+					<a class="cf-m-btn" v-show="typeattr.attrs.length > 2" @click="showAttr = !showAttr">
+						{{showAttr?'收起':'展开'}}&nbsp;<i :class="showAttr?'fa fa-angle-up':'fa fa-angle-down'"></i>
+					</a>
+				</div>
+			</div>
+			<!-- 中部导航搜索栏 -->
+			<div class="productTab">
+				<div class="productTab-head">
+					<!-- 上部左侧 -->
+					<div class="productTab-head-left clearfix">
+						<ul class="productTab-head-ul clearfix">
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('def')" :class="{'productTab-head-li__text--active':queryParams.oderBy === 'def'}">综合</span>
+							</li>
+							<li class="productTab-head-li">
+								<span v-show="queryParams.oderBy != 'priceAsc'" class="productTab-head-li__text " @click="oderByTab('priceAsc')"
+								 :class="queryParams.oderBy === 'priceDesc' ?'productTab-head-li__text--active':''">
+									价格 <i v-show="queryParams.oderBy === 'priceDesc'" class="fa fa-long-arrow-down"></i>
+								</span>
+								<span v-show="queryParams.oderBy === 'priceAsc'" class="productTab-head-li__text " @click="oderByTab('priceDesc')"
+								 :class="queryParams.oderBy === 'priceAsc' ?'productTab-head-li__text--active':''">
+									价格 <i v-show="queryParams.oderBy === 'priceAsc'" class="fa fa-long-arrow-up"></i>
+								</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('popularity')" :class="queryParams.oderBy === 'popularity'?'productTab-head-li__text--active':''">人气</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text" @click="oderByTab('sales')" :class="queryParams.oderBy === 'sales'?'productTab-head-li__text--active':''">销量</span>
+							</li>
+							<li class="productTab-head-li">
+								<span class="productTab-head-li__text productTab-head-li__text--last" @click="oderByTab('shelfDay')" :class="queryParams.oderBy === 'shelfDay'?'productTab-head-li__text--active':''">新品</span>
+							</li>
+							<li class="productTab-head-li productTab-head-li--block">
+
+							</li>
+						</ul>
+						<div class="productTab-input-group">
+							<input class="productTab-input" type="text" v-model.number="queryParams.salePriceBegin" placeholder="￥">
+							-
+							<input class="productTab-input" type="text" v-model.number="queryParams.salePriceEnd" placeholder="￥">
+							<div class="productTab-btn-group">
+								<button class="productTab-btn" @click="query">确定</button>
+								<button class="productTab-btn productTab-btn--default" @click="clearPrice">取消</button>
+							</div>
+						</div>
+
+					</div>
+				</div>
+				<div class="productTab-body">
+					<label>
+						<input type="checkbox" @click="isSupport(queryParams.selfSupport)" class="productTab-body--filter">自营商品
+					</label>
+					<label>
+						<input type="checkbox" @click="isStock(queryParams.hasStock)" class="productTab-body--filter">仅显示有货
+					</label>
+				</div>
+			</div>
+		</div>
+		<!--商品内容-->
+		<div class="prodSearch-intro " v-if=" productList.length > 0">
+			<!--商品图片展示-->
+			<ul class="prodSearch-intro-ul clearfix">
+				<li class="prodSearch-intro-li" v-for="(list,index) in productList ">
+					<div class="prodSearch-intro-box">
+						<a :href="'${base}/product-detail.htm?productId='+list.id+'&storeId='+list.storeId">
+							<img :src="baseUrl+list.imageUrl" class="prodSearch-intro-box__img"></a>
+						<h3 class="prodSearch-intro-box__price"><strong class="prodSearch-intro-box__bloder" v-cloak>￥{{$float(list.salePrice)}}</strong></h3>
+						<p class="prodSearch-intro-box__descript"><a :href="'${base}/product-detail.htm?productId='+list.id+'&storeId='+list.storeId"
+							 class="prodSearch-intro-box__link prodSearch-intro-box__line2" :title="list.name">{{list.name}}</a></p>
+						<strong class="prodSearch-intro-box__bloder clearfix"><a :href="'${base}/store-index.htm?storeId='+list.storeId" class="prodSearch-intro-box__link prodSearch-intro-box__line1"
+							 :title="list.storeName">{{list.storeName}}</a></strong><br>
+						<span v-if="list.selfSupport" class="prodSearch-intro-box__classify">自营</span>
+						<ul class="prodSearch-intro-box__ul clearfix">
+							<li class="prodSearch-intro-box__li">
+								月售<span class="redcolor" v-cloak> {{list.monthSales}} </span>笔
+							</li>
+							<li class="prodSearch-intro-box__li">
+								月评<span class="redcolor" v-cloak> {{list.monthComment}}</span>
+							</li>
+							<li class="prodSearch-intro-box__li prodSearch-li-special"  @click="collectProduct(list.id,index)">
+									<i class="fa" :class="list.isCheck?'fa-star':'fa-star-o'"></i>
+							</li>
+						</ul>
+					</div>
+				</li>
+			</ul>
+			<div class="clearfix att-shop-pagging" style="text-align:right;">
+				<el-pagination background layout="prev, pager, next" :total="total" :page-size='20' @current-change="sizeChange"
+				 :current-page="queryParams.page">
+				</el-pagination>
+			</div>
+		</div>
+		<div v-else class="nothing">
+			{{loading?'正在加载...' :'暂无匹配商品'}}
+		</div>
+	</div>
+	<!-- start -->
+	[#include "../includes/footer.html"]
+</body>
+
+</html>
+<script>
+	var swiper = new Swiper('.cf-swiper-container', {
+		direction: 'horizontal',
+		slidesPerView: 7,
+		observer: true,
+		observeParents: true,
+		navigation: {
+			nextEl: '.cf-switch__next',
+			prevEl: '.cf-switch__prev',
+		},
+	});
+	var app = new Vue({
+		el: '#app',
+		data: {
+			queryParams: { //请求参数
+				"page": 1,
+				"size": 20,
+				"keyword": "", //关键字
+				"brandId": "", //品牌id
+				"ctgId": "${ctgId!}", //分类id
+				"salePriceBegin": "", //最小值
+				"salePriceEnd": "", //最大值
+				"selfSupport": "", //是否自营
+				"hasStock": "", //有无库存
+				"saleAttrCode": "", //规格code
+				"oderBy": "def", //排序方式
+				"storeId": "", //店铺id
+				"promoteId": "" //活动id
+			},
+			total: 0, //商品总数
+			productList: [], //商品列表
+			typeattr: {
+				brands:[],
+				attrs:[],
+				proCategory:{
+					cateName:'',
+					nodeIds:[],
+					parent:null
+				}
+			}, //规格项
+			baseUrl: cms.url, //当前路径
+			codes: [], //选中的商品规格code
+			showAttr: false, //是否展示更多产品规格
+			loading:true
+		},
+		methods: {
+			collectProduct(id,index){//收藏接口
+				cms.ajax({
+					url:cms.url+'/member/memberfollowproduct/save',
+					data:{id:id}
+				},(res)=>{
+					if(res.code==200){
+						this.$set(this.productList[index],'isCheck',true)
+						// cms.alert('关注成功',4)
+					}
+				})		
+			},
+			clearPrice(){//清空当前搜索价格
+				this.queryParams.salePriceBegin = ''
+				this.queryParams.salePriceEnd = ''
+				this.query()
+			},
+			getProductList(params) { //获取商品搜索列表接口信息
+				this.loading=true
+				var self = this
+				$.get('${base}/product/search', params, function (res) {
+					self.loading=false
+					if (res) {
+						self.total = res.totalElements
+						self.productList = res.content
+					} else {
+						cms.alert('加载失败',5)
+					}
+				})
+				if (this.queryParams.keyword === '' && this.queryParams.ctgId != '') {
+					this.getTypeattr()
+				}
+			},
+			getBrandId(id) { //品牌搜索
+				if (id === this.queryParams.brandId) {
+					this.queryParams.brandId = ''
+				} else {
+					this.queryParams.brandId = id
+				}
+				this.query()
+			},
+			isSupport(status) { //是否自营
+				if (status === '') {
+					this.queryParams.selfSupport = true
+				} else {
+					this.queryParams.selfSupport = ''
+				}
+				this.query()
+			},
+			isStock(status) { //是否有库存
+				if (status === '') {
+					this.queryParams.hasStock = true
+				} else {
+					this.queryParams.hasStock = ''
+				}
+				this.query()
+			},
+			getAttrs(code,i) { //获取规格code
+				if(this.codes.indexOf(code) > -1){
+					// this.codes.splice(this.codes.indexOf(code),1)
+					this.codes[i] = ''
+				}else{
+					// this.codes.push(code)
+					this.codes[i] = code
+				}
+				var arr = []
+				this.codes.forEach(v => {
+					if(v != ''){
+						arr.push(v)
+					}
+				});
+				this.queryParams.saleAttrCode = arr.join(',')
+				this.query()
+			},
+			getTypeattr(params) { //获取商品规格列表接口信息
+				var self = this
+				$.get('${base}/producttypeattr/list', {
+					proCategoryId: self.queryParams.ctgId
+				}, function (res) {
+					if (res) {
+						self.typeattr = res.data
+					} else {
+						cms.alert('加载失败',5)
+					}
+				})
+			},
+			sizeChange(value) { //分页改变
+				this.queryParams.page = value
+				this.getProductList(this.queryParams)
+			},
+			query() { //搜索
+				this.queryParams.page = 1
+				this.getProductList(this.queryParams)
+			},
+			oderByTab(type) { //排序
+				this.queryParams.oderBy = type
+				this.query()
+			}
+		},
+		created() {
+			this.getProductList(this.queryParams)
+		}
+	})
+</script>

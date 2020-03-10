@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-我的足迹</title>
+  [#include "../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="我的足迹"/]
+  [#include "../../includes/topbar.html"]
+<div class="cms nav-top" id="mytrack" v-cloak>
+  <div class="goods__label">
+    <div>共<span class="goods__num"> {{total}} </span>个足迹</div>
+    <div class="goods__edit" @click="tapGoods">{{isShow?'完成':'编辑'}}</div>
+  </div>
+  <van-radio-group v-model="id">
+      <van-pull-refresh v-model="loading" @refresh="onRefresh">
+        <div class="goods__cart" v-for="(item,index) in tracksList" :key="index">
+            <van-radio class="cart__radio" v-if="isShow" :name="item.product.id"></van-radio>
+            <van-card
+            @click="toProduct(item.product.id)"
+            class="card__bg"
+            :title="item.product.name"
+            :thumb="item.product.resources[0]?item.product.resources[0].imageResouce.url:'#' ">
+            <div class="card__label" slot="desc">
+              <span class="coupon__limt">¥</span> {{$float(item.product.salePrice)}}
+            </div>
+            </van-card>
+          </div>
+      </van-pull-refresh>
+  </van-radio-group>
+  <div  v-show="!hidden">
+    <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+    <div v-else class="van-list__finished-text"><van-loading type="spinner" /> 正在加载...</div>
+  </div>
+  <div class="goods__footer" v-if="isShow" >
+    <div class="goods__check">
+    </div>
+    <div @click="delTrack" :class="id != ''?'goods__ok':'goods__cancel'">删除足迹</div>
+  </div>
+</div>
+<van-toast id="van-toast" />
+
+</body>
+</html>
+<script>
+new Vue({
+    el: '#mytrack',
+    data() {
+      return {
+        id:'',
+        active:0,
+        params:{
+          page:1,
+          size:10
+        },
+        isShow:false,
+        tracksList:[],
+        shopImg:'${mobileRes}/img/shop_01.png',
+        total:0,
+        pages:0,
+        info:'',
+        hidden:true,
+        loading:false
+      }
+    },
+    methods: {
+      toProduct(id){//到商品详情
+        if(this.isShow){
+          this.checked(id)
+        }else{
+          location.href='${base}/product-detail.htm?productId='+id
+        }
+      },
+      onRefresh(){//刷新
+        this.params.page = 1;
+        this.tracksList = []
+        this.getTracksList()
+      },
+      tapGoods(e){
+        this.isShow=!this.isShow
+      },
+      delTrack(){//删除足迹
+        if(this.id != ''){
+            myTracksDelete({productId:this.id}).then(res => {
+              if(res.code == 200){
+                this.$toast('删除成功！')
+                this.onRefresh()
+              } else {
+                this.$toast(res.message)
+              }
+            }).catch(err => {})
+          } else {
+            this.$toast('请先选择一个足迹！')
+          }
+      },
+      checked(value){// 选择的商品id
+        this.id=parseInt(value)
+      },
+      getTracksList(){//获取商品列表
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        myTracksPage(this.params).then(res => {
+          if(res.code == 200){
+            if(this.tracksList.length > 0){
+              res.data.content.forEach(v => {
+                this.tracksList.push(v)
+              });
+            }else{
+              this.tracksList=res.data.content
+            }
+            this.total=res.data.totalElements
+            this.pages = res.data.totalPages
+            this.loading = false
+            this.$toast.clear();
+          } else {
+            this.$toast(res.message)
+            this.loading = false
+            this.$toast.clear();
+          }
+        }).catch(err => {})
+      }, 
+      onReachBottom(event){//上拉加载处理
+            
+       var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+        　　　if(this.params.page <this.pages){
+                this.params.page +=1
+                this.hidden = false
+                this.info = ''
+                this.getTracksList()
+              }else{
+                this.hidden = false
+                this.info = '没有更多了'
+                return
+              }
+        　　}
+        },
+    },
+    created() {
+      this.getTracksList()
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    }
+  })
+</script>

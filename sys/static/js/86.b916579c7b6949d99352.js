@@ -1,0 +1,2 @@
+webpackJsonp([86],{"4/cr":function(e,t){},Q8ty:function(e,t,r){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var n={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=r("C7Lr")({name:"productTypeLayOut"},n,!1,function(e){r("4/cr")},null,null);t.default=u.exports}});
+//# sourceMappingURL=86.b916579c7b6949d99352.js.map

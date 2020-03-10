@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>商品搜索</title>
+  [#include "../includes/common.html"]
+</head>
+<body>
+  [#assign topName="搜索"/]
+  [#include "../includes/topbar.html"]
+  <div class="cms " id="search" v-cloak>
+    <div class="classify-warppers">
+      <div class="mbv-header nav-top">
+        <div class="class-bg">
+          <van-search class="class-search" 
+            v-model="name"
+            @change="getsearValue"
+            :placeholder="hotWords">
+          </van-search>
+          <div class="search-btn"  @click="toSearch">搜索</div>
+        </div>
+      </div>
+      <div class="search-wrap container ">
+        <div class="recommends" v-if="latelyList.length>0">
+          <div class="recommend-title">最近搜索</div>
+          <div>
+            <van-tag class="recommend-tag" plain @click="toScreen" :data-name="item" v-for="(item,index) in latelyList"
+            :key="index">
+            <span class="recommend-link">{{item}}</span>
+          </van-tag>
+          </div>
+        </div>
+        <div class="recommends">
+          <div class="recommend-title">{{listData.title}}</div>
+          <van-tag class="recommend-tag" plain @click="toScreen" :data-name="item" 
+           v-for="(item,index) in listData.items" :key="index">
+          <span class="recommend-link">{{item}}</span>
+          </van-tag>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#search',
+    data() {
+      return {
+        hotWords: '${globalConfig.hotWords!}',
+        name: "",//搜索框输入的值
+        latelyList: [],
+        listData: {
+          title: '热门搜索',
+          items: []
+        }
+      }
+    },
+    methods: {
+      getsearValue(e) {
+        if (e.target.value != '') {
+          this.name=e.target.value
+        } else {
+          this.name=this.hotWords
+        }
+      },
+      toSearch() {
+        let arr = this.latelyList
+        if (this.name != '') {
+          if (arr.indexOf(this.name)<0) {
+            arr.unshift(this.name)
+          }
+          localStorage.setItem('names', arr.join(','))
+          setTimeout(() => {
+            location.href= '${base}/product-category.htm?val='+this.name
+          }, 100)
+        } else {
+          this.name=this.hotWords
+          if (arr.indexOf(this.name) == -1) {
+            arr.unshift(this.name)
+          }
+          localStorage.setItem('names', arr.join(','))
+          location.href= '${base}/product-category.htm?val='+this.name
+        }
+      },
+      toScreen(e) {
+        this.name=e.currentTarget.dataset.name 
+        this.toSearch()
+      },
+      getsearList() {
+        getGlobalInfo().then(res => {
+          if (res.code == 200) {
+            this.listData.items= res.data.searchKeyWords 
+          }
+        }).catch(err => { })
+      },
+    },
+    created() {
+      this.getsearList()
+      let arr=localStorage.getItem('names')
+      if(arr){
+        this.latelyList=arr.split(',')
+      }
+    }
+  })
+</script>

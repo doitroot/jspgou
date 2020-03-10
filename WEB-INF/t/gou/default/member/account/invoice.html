@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>${globalConfig.mallName!}-增票资质</title>
+    [#include "../../includes/common.html"]
+</head>
+
+<body>
+    [#include "../../includes/topBar.html"]
+    [#include "../../includes/vipNav.html"]
+    <div class="gray-container account-container">
+        <div class="container clearfix">
+            <!-- 左侧选项卡 -->
+            [#assign activeName="accountInvoice"]
+            [#include "../../includes/accountNav.html"]
+            <!-- 主体上部 -->
+            <div class="member-body " id="invoice" v-cloak>
+                <h3 class="member-title index-title">增票资质 &nbsp;&nbsp;&nbsp;
+                    <span class="account-personab-title">
+                        仅限每个用户只能保存一项增票资质
+                    </span>
+                </h3>
+                <div class="member-order__body person-order__body" v-loading='loading'>
+                    <div class=" account-person">
+                        <div class="member-search__inner ">
+                            <!-- 添加增票资质 -->
+                            <div class="account-personab-add" v-if="!isCheckMember&&status==0">
+                                <!-- status==1 -->
+                                <div class="account-personab-box">
+                                    <div class="account-personab-box--info">您还未添加增票资质
+                                        <el-button type='primary' size='mini' @click="status=1,isCheckMember=true">添加增票资质</el-button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="member-order__header account-pa__header">
+                                <!-- 选项卡 -->
+                                <ul class="member-order__tabs fl">
+                                    <li class="member-order__tab " v-if="isCheckMember&& status==1">
+                                        <span class="account-security-head">填写增票资质信息</span>
+                                    </li>
+                                    <li class="member-order__tab ">
+                                        <span class="account-security-head" v-if="isCheckMember&& status==2">
+                                            修改增票资质信息
+                                        </span>
+                                    </li>
+                                    <li class="member-order__tab " v-if="isCheckMember&& status==3">
+                                        <span class="account-security-head">我的增票信息</span>
+                                        <el-button type="primary" size="mini" @click="status=2">修改</el-button>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- 填写修改增票资质信息 -->
+                            <div style="overflow:hidden;margin: 10px 0"> 
+                            <el-form size="mini" class="account-personab-inner-havebadge" label-position="right"
+                                label-width="120px" v-show="(isCheckMember&&status==1)||(isCheckMember&&status==2)"
+                                :model="formData" ref="form" :rules="rules">
+                                <!-- status==0 -->
+                                <el-form-item class="person-el-control" label="公司名称" prop="companyName">
+                                    <el-input v-model='formData.companyName'></el-input>
+                                </el-form-item>
+                                <el-form-item class="person-el-control" label="税号" prop="taxNumber">
+                                    <el-input v-model='formData.taxNumber'></el-input>
+                                </el-form-item>
+                                <el-form-item class="person-el-control" label="开户银行" prop="bankName">
+                                    <el-input v-model='formData.bankName'></el-input>
+                                </el-form-item>
+                                <el-form-item class="person-el-control" label="开户银行账号" prop="bankAccountNum">
+                                    <el-input v-model='formData.bankAccountNum'></el-input>
+                                </el-form-item>
+                                <el-form-item class="person-el-control" label="注册地址" prop="address">
+                                    <el-input v-model='formData.address'></el-input>
+                                </el-form-item>
+                                <el-form-item class="person-el-control" label="注册电话" prop="phoneNumber">
+                                    <el-input v-model='formData.phoneNumber'></el-input>
+                                </el-form-item>
+                                <div class="account-person-btngroup">
+                                    <!-- 新增发票信息 -->
+                                    <el-button size="mini" type="primary" @click="saveForm" v-if="status==1">保存发票信息</el-button>
+                                    <!-- 修改发票信息 -->
+                                    <el-button size="mini" type="primary" @click="updateForm" v-if="status==2">修改发票信息</el-button>
+                                    <el-button size="mini" @click="returnIndex" v-if="status==1">取消</el-button>
+                                    <el-button size="mini" @click="cancelUpdate" v-if="status==2">取消</el-button>
+                                </div>
+                            </el-form>
+
+                            <!-- 我的增票信息 -->
+                            <el-form size="mini" label-position="right" label-width="120px" v-if="isCheckMember&&status==3">
+                                <!-- status==2 -->
+                                <el-form-item class="person-el-control person-el-control-d" label="公司名称：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.companyName}}</span>
+                                </el-form-item>
+                                <el-form-item class="person-el-control person-el-control-d" label="税号：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.taxNumber}}</span>
+                                </el-form-item>
+                                <el-form-item class="person-el-control person-el-control-d" label="开户银行：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.bankName}}</span>
+                                </el-form-item>
+                                <el-form-item class="person-el-control person-el-control-d" label="开户银行账号：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.bankAccountNum}}</span>
+                                </el-form-item>
+                                <el-form-item class="person-el-control person-el-control-d" label="注册地址：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.address}}</span>
+                                </el-form-item>
+                                <el-form-item class="person-el-control person-el-control-d" label="注册电话：">
+                                    <span class="person-el-control-d__text">{{invoiceQualifiedInfo.phoneNumber}}</span>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- start -->
+    [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+    var invoice = new Vue({
+        el: '#invoice',
+        data() {
+            var validateBankAccount = (rule, value, callback) => {
+                let reg = /^([1-9]{1})(\d{14}|\d{17})$/
+                if (value === '') {
+                    callback(new Error('银行卡号不能为空'));
+                } else{
+                    if (!reg.test(value)) {
+                        callback(new Error('15或18位数字组成'));
+                    } 
+                    callback();
+                }
+
+            };
+            var validateTaxNumber = (rule, value, callback) => {
+                let reg = /^[A-Za-z0-9]{15}$|^[A-Za-z0-9]{17}$|^[A-Za-z0-9]{18}$|^[A-Za-z0-9]{20}$/
+                if (value === ''){
+                    callback(new Error('税号不能为空'));
+                } else {
+                    if (!reg.test(value)) {
+                        callback(new Error('15或者17或者18或者20位字母、数字组成'));
+                     } 
+                    callback();
+                }
+            };
+            var validatePhone = (rule, value, callback) => {
+                let reg = /^(13[0-9]|14[5|7]|15[0|1|2|3|5|6|7|8|9]|18[0|1|2|3|5|6|7|8|9])\d{8}$/
+                let s= /\d{3}-\d{8}|\d{4}-\d{7}/
+                if (value === '') {
+                    callback(new Error('注册电话不能为空'));
+                }
+                if(reg.test(value) || s.test(value)){
+                    callback();//010-88707918
+                }else{
+                    callback(new Error('注册电话格式不正确'));
+                }
+            };
+            return {
+                isCheckMember: false,
+                status: 0, //添加修改状态   添加 1 修改 2 查看 3
+                loading: false, //遮罩状态
+                formData: {},//新增，修改的表单信息
+                invoiceQualifiedInfo: '',//增票资质信息
+                rules: { //表单验证规则
+                    companyName: [{
+                        required:true,
+                        message:'此项必填',
+                        trigger: 'blur'
+                    },{                      
+                        max:120,
+                        message:'名称在120个字符之间',
+                        trigger:'blur'
+                    }],
+                    taxNumber: [{
+                        required:true,
+                        validator: validateTaxNumber,
+                        trigger: 'blur'
+                    },{                 
+                        max:120,
+                        message:'长度过长',
+                        trigger:'blur'
+                    }],
+                    bankName: [{
+                        required:true,
+                        message:'开户银行名称不能为空',
+                        trigger: 'blur'
+                    },{
+                     
+                        max:120,
+                        message:'名称在120个字符之内',
+                        trigger:'blur'
+                    }],
+                    bankAccountNum: [{
+                        required: true,
+                        validator: validateBankAccount,
+                        trigger: 'blur'
+                    },{                 
+                        max:120,
+                        message:'长度过长',
+                        trigger:'blur'
+                    }],
+                    address: [{
+                        required: true,
+                        message:'此项必填',
+                        trigger: 'blur'
+                    },{                 
+                        max:120,
+                        message:'长度过长',
+                        trigger:'blur'
+                    }],
+                    phoneNumber: [{
+                        required: true,
+                        validator: validatePhone,
+                        trigger: 'blur'
+                    },{                 
+                        max:12,
+                        message:'请输入有效的电话格式',
+                        trigger:'blur'
+                    },{
+                        required: true,
+                        message:'此项必填',
+                        trigger: 'blur'
+                    }]
+                }
+            }
+        },
+        methods: {
+            returnIndex(){
+                this.isCheckMember = false;
+                this.status = 0;
+            },
+            getInvoiceInfo() { //显示增票信息
+                var self = this
+                cms.ajax({
+                    url: cms.url + '/member/invoicequalified/get'
+                }, function (res) {
+                    if (res.code == 200) {
+                        self.status = 3
+                        self.invoiceQualifiedInfo = res.data
+                        self.formData = Object.assign({}, self.invoiceQualifiedInfo)
+                        self.loading = false
+                    } else {
+                        cms.alert(res.message,5)
+                        self.loading = false
+                    }
+                })
+            },
+            isCheckMemberRequired() { //验证是否已经有增票资质,控制对应的显示
+                var self = this
+                self.loading = true
+                cms.ajax({
+                    url: cms.url + '/member/invoicequalified/checkMemberRequired',
+                }, function (res) {
+                    if (res.code == 200) { //返回存在 则去调用获取显示增票信息
+                        self.loading = false //关闭遮罩
+                        self.isCheckMember = res.data
+                        if(!(res.data)){
+                            self.status = 0 //不存在就显示添加增票按钮
+                        }else{
+                            self.getInvoiceInfo()
+                        }
+                    } else {
+                        self.loading = false //关闭遮罩
+                        cms.alert(res.message,5)
+                    }
+                })
+            },
+            updateForm() {//修改资质
+                var self = this
+                this.$refs['form'].validate(function (valid) {
+                    if (valid) {
+                        cms.ajax({
+                            url: cms.url + '/member/invoicequalified/update',
+                            type: 'post',
+                            data: JSON.stringify(self.formData)
+                        }, function (res) {
+                            if (res.code == 200) {
+                                cms.alert("修改成功")
+                                self.status = 3
+                                self.getInvoiceInfo()
+                            } else {
+                                cms.alert(res.code)
+                            }
+                        }
+                        )
+                    } else {
+                        return false
+                    }
+                })
+            },
+            saveForm() {
+                var self = this
+                this.$refs['form'].validate(function (valid) {
+                    if (valid) {
+                        cms.ajax({
+                            url: cms.url + '/member/invoicequalified/save',
+                            type: 'post',
+                            data: JSON.stringify(self.formData)
+                        },
+                            function (res) {
+                                if (res.code == 200) {
+                                    self.status = 3
+                                    self.getInvoiceInfo()
+                                } else {
+                                    cms.alert(res.message,5)
+                                }
+                            }
+                        )
+                    } else {
+                        return false
+                    }
+                })
+            },
+            cancelUpdate() {
+                this.status = 3
+                this.getInvoiceInfo()
+                this.$refs['form'].clearValidate()
+            }
+        },
+        created() {
+            this.isCheckMemberRequired()
+            //   this.addPerAbi()
+        }
+    })
+</script>

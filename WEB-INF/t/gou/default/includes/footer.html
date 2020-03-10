@@ -1,0 +1,74 @@
+
+<div class="footer">
+  <div class="container border-bottom">
+    <ul class="foot-ensure border-bottom">
+      <li class="foot-ensure__item">
+        <div class="foot-ensure__img">
+          <img src="${res}/images/11_03.png" >
+        </div>
+        <div class="foot-ensure__txt">
+          <p class="foot-ensure__title">100%正品保障</p>
+          <p class="foot-ensure__cont">正品保障 放心选购</p>
+        </div>
+      </li>
+      <li class="foot-ensure__item border-left">
+        <div class="foot-ensure__img">
+          <img src="${res}/images/11_05.png" >
+        </div>
+        <div class="foot-ensure__txt">
+          <p class="foot-ensure__title">7天无理由退款</p>
+          <p class="foot-ensure__cont">国内退货 售后无忧</p>
+        </div>
+      </li>
+      <li class="foot-ensure__item border-left">
+        <div class="foot-ensure__img">
+            <img src="${res}/images/11_07.png" >
+        </div>
+        <div class="foot-ensure__txt">
+          <p class="foot-ensure__title">货到付款开箱验证</p>
+          <p class="foot-ensure__cont">免费配送 极速送达</p>
+        </div>
+      </li>
+      <li class="foot-ensure__item border-left">
+        <div class="foot-ensure__img">
+            <img src="${res}/images/11_09.png" >
+        </div>
+        <div class="foot-ensure__txt">
+          <p class="foot-ensure__title">低价保障</p>
+          <p class="foot-ensure__cont">缩减中间环节 确保低价</p>
+        </div>
+      </li>
+    </ul>
+    <div class="foot-memu">
+      <div class="foot-call">
+          <a href="${base}/">
+            <img src="${base}${globalConfig.mallLogo!}" class="foot-call__logo">
+          </a>
+          <span class="foot-call__time">服务时间 &nbsp;9:00-18:00</span>
+          <a href="#"  class="foot-call__link">${globalConfig.customerServiceMobile!}</a>
+      </div>
+      [@bottom_page]
+      [#if tag_bean.articleCategorys??]
+      [#list tag_bean.articleCategorys as c]
+      <ul class="foot-memu__items">
+        <li class="foot-memu__title">${c.name!}</li>
+          [#list c.articles as a]
+          [#if a_index lt 5]
+         <li class="foot-memu__item"><a class="foot-memu__link" href="${base}/helpCenter.htm?cateId=${c.id!}&articleId=${a.id!}">${a.title!}</a></li>
+        [/#if]
+        [/#list]
+      </ul>
+      [/#list]
+      [/#if]
+      [/@bottom_page]
+    </div>
+  </div>
+  <div class="foot-Identi">
+    <span class="foot-Identi__txt">
+      <div class="foot-Identi-box">
+        <span>${globalConfig.copyright!}</span>
+      </div>
+    </span>
+   
+  </div>
+</div>

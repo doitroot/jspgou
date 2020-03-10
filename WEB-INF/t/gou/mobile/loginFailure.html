@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-第三方登录</title>
+  <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+  [#include "./includes/common.html"]
+</head>
+
+<body>
+  <!-- pages/login/login.wxml -->
+  [#assign topName="第三方登录"/]
+  [#assign backBtn="2"/]
+  [#include "./includes/topbar.html"]
+  <div class="container cms nav-top" >
+    	 <p class="t-14">${errorMsg!}</p>
+         <a class="reg__btn" href="${base}/register.htm">返回登录</a>
+  </div>
+</body>
+</html>

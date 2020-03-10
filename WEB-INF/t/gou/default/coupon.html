@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>${globalConfig.mallName!}-领券中心</title>
+ [#include "./includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+<body>
+ [#include "./includes/topBar.html"]
+  <div class="header index-search">
+			<div class="container head-wrap">
+				[#include "./includes/logo.html"]
+        [#include "./includes/search.html"]
+			</div>
+    </div>
+    [#assign status="coupon"/]
+   [#include "./includes/categoryMenu.html"]
+  <div class="coupon-container" id="couponinfo" v-cloak>
+    <div class="coupon__banner">
+      <img src="${res}/images/coupon-banner.png" class="coupon__bannerimg" />
+    </div>
+    <div class="coupon__navwrap">
+      <div class="coupon__navmain clearfix">
+         <div class="coupon__nav--line"></div>
+        <ul class="coupon__list" >
+          <li class="coupon__li" 
+            v-for="(item, index) in navList" :key="index" :class="{'coupon__list--active':navSelected==index,'coupon__list--first':index==0}"
+            @click="toggleMenu(index)" >
+            <a href="javascript:;" class="coupon__a">{{item.cateName}}</a>
+          </li>
+        </ul>
+        <div v-if="navList.length>12" class="coupon__category" @click="showAll($event)">
+          <span class="coupon__category__decs">全部分类<i class="fa fa-chevron-down coupon__arr" aria-hidden="true" ></i></span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="coupon clearfix">
+          <div class="coupon__item" v-for="(item, index) in couponData" :key="index" 
+          :class="item.draw?'coupon__getting':'coupon__got'" @click="getCoupon(item.id,item)">
+            <div class="coupon__info">
+            <p class="coupon__value"><span class="coupon__symbol">¥</span>{{item.discountAmount}}</p>
+            <p class="coupon__decs">满{{item.conOrderAmount}}元可用</p>
+            <p class="coupon__decs">{{getCouponScope(item.couponScope,item)}}</p>
+                <!-- 平台优惠券显示这个 -->
+            <p class="coupon__decs" v-if="item.isPlatformCoupon">{{item.isPlatformCoupon|getPlatformCoupon}}</p> 
+                <!-- 商家优惠券显示这个 -->
+            <p class="coupon__decs"  v-if="!item.isPlatformCoupon">{{item.isPlatformCoupon|getPlatformCoupon}}({{item.store.storeName}})</p>
+            <p class="coupon__decs">{{formatTime(item.useBeginTime)}}~{{formatTime(item.useEndTime)}}</p>
+           </div>
+         </div>
+ 
+      </div>
+    </div>
+    <!-- coupon list over -->
+    <div style="text-align:center;">
+      <a href="javascript:;" class="load__btn" @click="loadMore" v-if="total>9" v-show="isAllLoaded">查看更多</a>
+    </div>
+    <div class="tips__wrap" v-if="!isAllLoaded||total<9">
+      <p class="tips" >╭❤～ 亲，已经加载完了哦!</p>
+    </div>
+  </div>
+ [#include "./includes/footer.html"]
+</body>
+</html>
+<script>
+  var defaultDatas={
+  "page": 1,
+  "size": 9,
+  "storeId": "",
+  "isPlatformCoupon": "",
+  "order": ""
+}
+   var couponinfo=new Vue({
+     el:"#couponinfo",
+     data:{   
+         couponData:[],   
+         navList:[],       //导航的列表
+         navSelected:'',   //列表的选中状态
+         total:'',
+         queryParams:Object.assign({},defaultDatas),
+         isAllLoaded:true,    //加载更多的按钮的显示隐藏
+         flag:true        //控制导航列表的显示隐藏
+     },
+     methods: {
+       getinfo(){
+         var self=this
+          $.get(cms.url+'/coupon/page',self.queryParams,function (res) {
+            if(res.code==200){
+              res.data.content.forEach(item => {
+                item.draw=true   //添加是否领取的字段
+              });
+              self.couponData=res.data.content
+              self.total=res.data.totalElements
+           }else{
+             self.errorMsg = res.message;
+           }  
+       }) 
+       },
+       getCoupon(id,item){   
+        var that=this
+        this.$confirm('是否领取该优惠券?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+          url:cms.url + '/member/coupon/getCoupon',
+          type:"get",
+          data:{'couponId': id}
+         },function(res){
+          if(res.code == 200){
+            that.$set(item,'draw',false)
+          }else{
+            cms.alert(res.message,5)
+          }
+         })
+        }).catch(() => {
+          cms.alert('已取消领取',5)
+        })       
+      },
+      loadMore(){  
+        let that=this
+        if ( that.queryParams.size<=that.total) {
+           that.queryParams.size+=that.queryParams.size
+           this.getinfo()
+        }else{
+          that.hidebtn=false
+        }
+      },
+      getCouponScope(val,item){    //处理优惠券的可用类目
+         if(val===1){
+           return '全部商品可用'
+         }
+         if(val===3){
+           return '仅'+item.ctgs.join(',')+'可用'
+         }
+       },
+       getNavList(){  
+        var that=this
+        $.get(cms.url+'/productcategory/list',function (res) {
+            if(res.code==200){
+              res.data.unshift({'cateName':'精品'})
+              that.navList=res.data 
+           }else{
+             cms.alert("获取导航列表失败",5)
+           }  
+         }) 
+        },
+        toggleMenu(index){
+          this.navSelected=index
+        },
+        showAll(element){  //全部分类列表的显示隐藏
+          var el=element.currentTarget.parentNode
+          var ul=el.getElementsByClassName('coupon__list')[0]
+          if(this.flag){
+            ul.style.height='auto'
+            ul.style.overflow='visible'
+            this.flag=false
+          }else{
+            ul.style.height='44px'
+            ul.style.overflow='hidden'
+            this.flag=true
+          }
+        },
+        formatTime(timeStr){  
+          return moment(parseInt(timeStr)).format('YYYY.MM.DD')
+        }
+     },
+     filters:{
+       getPlatformCoupon(val){   //处理是否平台优惠券
+         if(val){
+           return '全平台可用'
+         }else{
+           return '商家优惠券'
+         }
+       }      
+     },
+     created() {
+       this.getinfo()
+       this.getNavList()   
+     }
+   })
+</script>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd"
+	default-lazy-init="true">
+
+	<bean id="lucene_page"
+		class="com.jspgou.controller.front.web.directive.LuceneDirectivePage" />
+	<!-- 商品详情标签 -->
+	<bean id="product_page"
+		class="com.jspgou.controller.front.web.directive.ProductDirectivePage" />
+	<!-- 商品规格属性标签 -->
+	<bean id="proTypeAttr_page"
+		class="com.jspgou.controller.front.web.directive.ProductTypeAttrDirectivePage" />
+	<!-- 商品分类标签 -->
+	<bean id="proCategory_page"
+		class="com.jspgou.controller.front.web.directive.ProductCategoryDirectivePage" />
+	<!-- 广告版位标签 -->
+	<bean id="position_page"
+		class="com.jspgou.controller.front.web.directive.AdPositionDirectivePage" />
+	<!-- 页面底部标签 -->
+	<bean id="bottom_page"
+		class="com.jspgou.controller.front.web.directive.BottomDirectivePage" />
+	<!-- 商品推荐标签 -->
+	<bean id="proRecommend_page"
+		class="com.jspgou.controller.front.web.directive.ProductRecommendDirectivePage" />
+	<!-- 商城首页标签 -->
+	<bean id="indexLayout_page"
+		class="com.jspgou.controller.front.web.directive.IndexLayoutDirectivePage" />
+	<!-- 品牌标签 -->
+	<bean id="brand_page"
+		class="com.jspgou.controller.front.web.directive.BrandDirectivePage" />
+	<!-- 举报商品详情标签 -->
+	<bean id="product_report_page"
+		class="com.jspgou.controller.front.web.directive.ProductReportDirectivePage" />
+	<!-- 店铺首页标签 -->
+	<bean id="store_head"
+		class="com.jspgou.controller.front.web.directive.StoreHeadDirective" />
+	<!-- 首页导航 -->
+	<bean id="index_navi_page"
+		class="com.jspgou.controller.front.web.directive.IndexNaviDirectivePage" />
+</beans>

@@ -1,0 +1,2 @@
+webpackJsonp([66],{LCtP:function(e,t,n){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var r={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=n("C7Lr")({name:"complaintLayout"},r,!1,function(e){n("bk3e")},null,null);t.default=u.exports},bk3e:function(e,t){}});
+//# sourceMappingURL=66.1cf98c0279c88727d826.js.map

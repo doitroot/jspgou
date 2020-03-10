@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>换货详情</title>
+  [#include "../../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+  <script src="${res}/lib/clipboard.min.js"></script>
+</head>
+<body>
+  [#include "../../../includes/topBar.html"]
+  [#include "../../../includes/vipNav.html"]
+  <div class="gray-container account-container">
+    <div class="container" id="chgood" v-cloak>
+      <!-- 左侧选项卡 -->
+      [#assign activeName="returns"]
+      [#include "../../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body ">
+          <div class="member-title index-title att-goods-title">
+              <h3 class="att-head-title">售后服务单详情</h3>
+              <div class="refund-title clearfix">
+                <div class="refund-title__left">
+                  本次售后服务由<span class="refund-title--color">{{orderDetail.store.storeName}}</span>为您提供
+                </div>
+                <div class="refund-title__right clearfix">
+                  <div class="refund-title__goods fl">
+                    <a  href="javascript:;"><img class="refund-title__img" :src="orderDetail.orderItem.product.coverImage" alt=""></a>
+                  </div>
+                  <div class="refund-title__info fl">
+                    <p class="refund-title__text">{{orderDetail.orderItem.product.name}}</p>
+                    <p class="refund-title__text">商品件数： × {{orderDetail.productRefundCount}}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <div class="goods clearfix">
+              <div class="goods__orderinfo">
+                <div class="goods__orderinfo--bor">
+                  <h3 class="goods__title">服务单信息</h3>
+                  <div class="goods__items">
+                    <ul class="goods__itemsinner">
+                        <li class="goods__item"><span class="goods__key">服务单号：</span>
+                          <span class="goods__value">{{orderDetail.orderRefundNum}}</span></li>
+                        <li class="goods__item"><span class="goods__key">订 单 号：</span>
+                          <span class="goods__value">{{orderDetail.order.orderCode}}</span></li>
+                        <li class="goods__item"><span class="goods__key">售后类型：</span>
+                          <span class="goods__value">{{orderDetail.refundType|typeFilter}}</span></li>
+                        <li class="goods__item"><span class="goods__key">货物状态：</span>
+                          <span class="goods__value">{{orderDetail.productStatus|hasProduct}}</span></li>
+                        <li class="goods__item"><span class="goods__key">退款原因：</span>
+                          <span class="goods__value">{{orderDetail.refundReason}}</span></li>
+                        <li class="goods__item"><span class="goods__key">申请时间：</span>
+                          <span class="goods__value">{{orderDetail.applyTime | timeFilter}}</span></li>
+                        <li class="goods__item"><span class="goods__key">问题描述：</span>
+                          <span class="goods__value goods__value1">{{orderDetail.customerTxt}}</span></li>
+                        <li class="goods__item" v-if="orderDetail.sellerAddress">
+                          <span class="goods__key goods__key1">卖家收货地址：</span>
+                          <span id="copy" class="goods__value goods__value1">{{orderDetail.sellerAddress}} {{orderDetail.sellerTel}}
+                              <a href="javascript:;" class="goods__copy" @click="copyTxt" data-clipboard-target="#copy" id="triggerCopy">复制</a></span></li>
+                        <li class="goods__item" v-if="orderDetail.customerAddress">
+                          <span class="goods__key goods__key1">买家收货地址：</span>
+                          <span id="copy2" class="goods__value goods__value1">{{orderDetail.customerAddress}} {{orderDetail.customerTel}}
+                              <a href="javascript:;" class="goods__copy" @click="copyTxt2" data-clipboard-target="#copy2" id="triggerCopy2">复制</a></span></li>
+                        <li class="goods__item" v-if="orderDetail.pics.length >0"><span class="goods__key">凭 &nbsp;&nbsp;证：</span>
+                          <span class="goods__value">
+                              <a v-for="(pic,index) in orderDetail.pics" class="goods__proof"  href="javascript:;"><img class="goods__proof--img" :src="pic.picResource.url" alt=""></a>
+                            </span>
+                        </li>
+                    </ul>
+                  </div>
+                  <h3 class="goods__title">退款明细</h3>
+                  <div class="goods__items">
+                      <ul class="goods__itemsinner goods__itemsinner--noline">
+                          <li class="goods__item"><span class="goods__key">积分：</span>
+                            <span v-if="orderDetail.refundIntegral > 0" class="goods__value goods__value--color goods__value--lh30">{{orderDetail.refundIntegral}}</span>
+                            <span v-else class="goods__value goods__value--color goods__value--lh30">-</span>
+                          </li>
+                          <li class="goods__item"><span class="goods__key">红包：</span>
+                            <span v-if="orderDetail.refundRedPacket > 0" class="goods__value goods__value--color goods__value--lh30">￥{{$float(orderDetail.refundRedPacket)}}</span>
+                            <span v-else class="goods__value goods__value--color goods__value--lh30">-</span>
+                          </li>
+                          <li class="goods__item">
+                            <span class="goods__key">退款金额：</span>
+                            <span class="goods__value goods__value--color goods__value1">￥{{$float(orderDetail.refundAmount)}}
+                              <!-- <span class="goods__return--color">(余额返还&nbsp;|&nbsp;支付宝返还&nbsp;|&nbsp;微信返还&nbsp;|&nbsp;银行卡返还)</span> -->
+                            </span>
+                            <!-- <span></span> -->
+                          </li>
+                      </ul>
+                    </div>
+                </div>
+              </div>
+              <div class="orderstate orderstate--wid ">
+                <div class="orderstate-inner">
+                    <div class="orderstate__title">
+                        <img class="orderstate__title--icon" src="${res}/images/icon.jpg" alt="">
+                        <span class="orderstate__title--text">
+                          服务单状态 <span :class="orderDetail.status<5?'btnCColor':'btnDColor'">
+                            {{orderDetail.status | statusFilter}}</span> 
+                            <span class="btnCColor" v-if="orderDetail.details[0].operateType==4">（平台介入处理中）</span>
+                            <span class="btnCColor" 
+                            v-if="orderDetail.status == 2&& orderDetail.platformIntervent&&orderDetail.details[0].operateType!=4">（平台已拒绝）</span>
+                        </span>
+                      </div>
+                      <div class="orderstate__btngroup"
+                       v-if="(orderDetail.status == 2 && orderDetail.details[0].operateType!=4)||orderDetail.status == 4||orderDetail.status == 6">
+                          <el-button @click="toEdit(orderDetail.id)" 
+                          v-if="orderDetail.status == 2&&!orderDetail.platformIntervent" size="mini">修改售后申请</el-button>
+                          <el-button  v-if="orderDetail.status == 4"  @click="getCompany" size="mini">发货</el-button>
+                          <el-button @click="confirmReceive" v-if="orderDetail.status == 6"  size="mini">确认收货</el-button>
+                      </div>
+                      <div  v-if="orderDetail.status == 0|| (orderDetail.status == 2 && orderDetail.details[0].operateType!=4&&!orderDetail.platformIntervent)" 
+                      class="" style="margin: 10px 0;font-size: 14px;margin-left: 5px">
+                          您还可以：<a  @click="revokeApply()" v-if="orderDetail.status == 0" 
+                            href="javascript:;" class="code-link-dark" >撤销申请</a>
+                          <a  @click="dialogApply = true" v-if="orderDetail.status == 2&&orderDetail.refundType==3"
+                            href="javascript:;" class="code-link-dark" >申请平台介入</a>
+                        </div>
+                        <div class="orderstate__scroll orderstate__scroll--nomar">
+                            <div class="orderstate__info" v-for="(flow, index) in orderDetail.details" :key="index">
+                              <span class="orderstate__icon">
+                                <i class="fa fa-dot-circle-o" v-if="index==0"></i>
+                                <i class="express-icon" v-if="index!=0"></i>
+                                <div class="orderstate__icon--line" v-if="index!=orderDetail.details.length-1"></div>
+                              </span>
+                              <div class="orderstate__scrolltext" style="width: 550px;">
+                                <span class="express-time">{{flow.createTime | timeFilter}}</span>
+                                <span class="express-info" style="width: 400px" :class="index==0?'bold':''">{{flow.operateTxt}}</span>
+                              </div>
+                            </div>
+                          </div>
+                </div>
+              </div>
+          </div>
+          
+      </div>
+      <div class="buy-info" v-if="orderDetail.status >4&&orderDetail.status <9">
+          <div class="orderstate orderstate--clear">
+              <div class="orderstate-inner">
+                <div class="orderstate__title">
+                  <span class="orderstate__title--text">买家发货信息</span>
+                  <a @click="getFlowInfo(1)" class="buy-info__more">查看物流信息</a> 
+                </div>
+                <div style="color: #666;font-size: 14px;line-height: 24px;margin-left: 48px;" v-if="flowInfo.length > 0&&flowInfo[0].acceptTime!=''">
+                    物流：{{flowInfoDtail.logisticCode}}（ <span>{{flowInfoDtail.logisticsCompanyName}}</span> ）
+                </div>
+                <div class="orderstate__scroll orderstate__scroll--hei"  v-if="flowInfo.length > 0&&showFlowInfo"
+                   v-loading="expressLoading" v-cloak >
+                    <div class="orderstate__info" v-for="(flow, index) in flowInfo" :key="index">
+                      <span class="orderstate__icon">
+                        <i class="fa fa-dot-circle-o" v-if="index==0"></i>
+                        <i class="express-icon" v-if="index!=0"></i>
+                        <div class="orderstate__icon--line" v-if="index!=flowInfo.length-1"></div>
+                      </span>
+                      <div class="orderstate__scrolltext">
+                        <span class="express-time">{{flow.acceptTime}}</span>
+                        <span class="express-info" :class="index==0?'bold':''">{{flow.acceptStation}}</span>
+                      </div>
+                    </div>
+                    <!-- <a class="buy-info__more"  href="javascript:;">查看更多</a>  -->
+                  </div>
+              </div>
+            </div>
+      </div>
+      <div class="buy-info" v-if="orderDetail.status >5&&orderDetail.status <9">
+          <div class="orderstate orderstate--clear">
+              <div class="orderstate-inner">
+                <div class="orderstate__title">
+                  <span class="orderstate__title--text">卖家发货信息</span>
+                  <a @click="getFlowInfo(2)" class="buy-info__more">查看物流信息</a> 
+                </div>
+                <div class="orderstate__close orderstate__close--color" v-if="flowInfo2.length > 0&&flowInfo2[0].acceptTime!=''">
+                    物流：{{flowInfoDtail2.logisticCode}}（ <span>{{flowInfoDtail2.logisticsCompanyName}}</span> ）
+                </div>
+                <div class="orderstate__scroll orderstate__scroll--hei"  
+                v-if="flowInfo2.length > 0&&showFlowInfo2" v-loading="expressLoading2" v-cloak >
+                    <div class="orderstate__info" v-for="(flow, index) in flowInfo2" :key="index">
+                      <span class="orderstate__icon">
+                        <i class="fa fa-dot-circle-o" v-if="index==0"></i>
+                        <i class="express-icon" v-if="index!=0"></i>
+                        <div class="orderstate__icon--line" v-if="index!=flowInfo.length-1"></div>
+                      </span>
+                      <div class="orderstate__scrolltext">
+                        <span class="express-time">{{flow.acceptTime}}</span>
+                        <span class="express-info" :class="index==0?'bold':''">{{flow.acceptStation}}</span>
+                      </div>
+                    </div>
+                    <!-- <a class="buy-info__more"  href="javascript:;">查看更多</a>  -->
+                  </div>
+              </div>
+            </div>
+      </div>
+      <el-dialog class="set-address" width="550px" title="收货地址" :visible.sync="dialogFormVisible">
+          <el-form size="mini" ref="form" :rules="rules"  :model="areaParams" >
+              <el-form-item label="服务单号：" label-width="120px">
+                  <template>
+                      <span>{{orderDetail.orderRefundNum}}</span>
+                  </template>
+              </el-form-item>
+              <el-form-item label="物流公司：" label-width="120px" prop="expressCompanyId">
+                <el-select v-model="areaParams.expressCompanyId" style="width:300px;" placeholder="请选择物流公司">
+                  <el-option 
+                  v-for="item in comPanyList"
+                  :key="item.id"
+                  :label="item.cnName"
+                  :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="物流单号：" label-width="120px" prop="expressNum">
+                <el-input  maxlength="40" v-model="areaParams.expressNum" style="width:300px;"></el-input>
+              </el-form-item>
+              <el-form-item label="卖家收货地址：" label-width="120px">
+                  <template>
+                    <span id="copy2">
+                      {{orderDetail.sellerAddress}}<br>
+                      {{orderDetail.sellerName}}（{{orderDetail.sellerTel}}）收  
+                      <a href="javascript:;" class="goods__copy" @click="copyTxt2" data-clipboard-target="#copy2" id="triggerCopy2">复制</a></span>
+                  </template>
+              </el-form-item>
+            </el-form>
+          <div slot="footer" class="dialog-footer">
+            <template>
+                <el-button size="mini" @click="done()">取 消</el-button>
+                <el-button size="mini" type="primary" @click="subAdress">确 定</el-button>
+            </template>
+          </div>
+        </el-dialog>
+        <el-dialog class="set-address" width="550px" title="申请平台介入" :visible.sync="dialogApply">
+            <el-form size="mini" ref="form1" :rules="rules"  :model="applyData" >
+              <el-form-item label="介入类型：" label-width="150px" prop="applyInventType">
+                <el-select v-model="applyData.applyInventType" style="width:300px;" placeholder="请选择申请平台介入类型">
+                  <el-option label="未收到货" value="1"></el-option>
+                  <el-option label="卖家拒绝" value="2"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="申请介入原因：" label-width="150px" prop="reason">
+                <el-input
+                type="textarea"
+                    :rows="5"
+                    maxlength="150"
+                    resize="none"
+                    placeholder="请填写申请平台介入原因"
+                     v-model="applyData.reason"
+                      style="width:300px;"></el-input>
+              </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+              <template>
+                  <el-button size="mini" @click="done()">取 消</el-button>
+                  <el-button size="mini" type="primary" @click="interveneApply">确 定</el-button>
+              </template>
+            </div>
+          </el-dialog>
+    </div>
+  </div>
+  
+    [#include "../../../includes/footer.html"]
+  </body>
+  
+  </html>
+  <script>
+  var vm = new Vue({
+    el:"#chgood",
+    data () {
+      return {
+        dialogApply:false,
+        dialogFormVisible:false,
+        expressLoading:false,
+        flowInfo:[],//买家物流
+        flowInfoDtail:{},//
+        flowInfo2:[],//
+        flowInfoDtail2:{},//卖家物流
+        showFlowInfo:false,
+        showFlowInfo2:false,
+        vaType:'1',
+        loading:false,
+        params:{id:'${saleId!}'},
+        orderDetail:{
+          order:{
+            orderCode:''
+          },
+          store:{
+            storeName:''
+          },
+          orderItem:{
+            product:{}
+          },
+          pics:[]
+        },
+        areaParams:{
+          id:'${saleId!}',
+          expressCompanyId:'',
+          expressNum:''
+        },
+        applyData:{
+          id:'${saleId!}',
+          applyInventType:'',
+          reason:'',
+        },
+        rules:{
+          expressCompanyId:[{required: true, message: "此项必填",trigger: 'change'}],
+          expressNum:[{required: true, message: "此项必填",trigger: 'blur'}],
+          applyInventType:[{required: true, message: "请选择介入类型",trigger: 'change'}],
+          reason:[{required: true, message: "请填写申请介入原因",trigger: 'blur'}],
+        },
+        comPanyList:[]
+      }
+    },
+    methods: {
+      done(){
+        if(this.dialogApply){
+          this.$refs['form1'].clearValidate()
+          this.applyData.applyInventType = ''
+          this.applyData.reason = ''
+          this.dialogApply = false
+        }
+        if(this.dialogFormVisible){
+          this.$refs['form'].clearValidate()
+          this.areaParams.expressCompanyId = ''
+          this.areaParams.expressNum = ''
+          this.dialogFormVisible = false
+        }
+      },
+      subAdress(){//买家发货
+        var that = this
+        this.$refs['form'].validate(function (valid) {
+          if(valid){
+            cms.ajax({
+              url: '${base}/member/refund/deliver',
+              type: 'post',
+              data:JSON.stringify(that.areaParams)
+            }, function (res) {
+              that.done()
+              if (res.code == 200) {
+                cms.alert(res.message,4)
+                location.reload()
+              }else{
+                cms.alert(res.message,5)
+              }
+            })
+          }
+        })
+      },
+      getItem() { //获取订单列表
+        var that = this
+        that.loading = true
+        cms.ajax({
+          url: '${base}/member/refund/get',
+          type: 'get',
+          data:that.params
+        }, function (res) {
+          if (res.code == 200) {
+            var obj = res.data
+            if(obj.details.length > 0){
+              obj.details = res.data.details.reverse()
+            }
+            that.orderDetail = obj
+            that.loading = false
+          }else{
+            cms.alert(res.message,5)
+            that.loading = false
+          }
+        })
+      },
+      copyTxt() { //复制文本
+        var clipboard = new ClipboardJS('#triggerCopy');
+        clipboard.on('success', function (e) {
+          e.clearSelection();
+        });
+      },
+      copyTxt2() { //复制文本
+        var clipboard = new ClipboardJS('#triggerCopy2');
+        clipboard.on('success', function (e) {
+          e.clearSelection();
+        });
+      },
+      copyTxt3() { //复制文本
+        var clipboard = new ClipboardJS('#triggerCopy3');
+        clipboard.on('success', function (e) {
+          e.clearSelection();
+        });
+      },
+      getFlowInfo(type) { //获取物流信息   
+        var that = this
+        var id = this.orderDetail.id
+        if(type == 1){
+          that.showFlowInfo = true
+          that.expressLoading = true
+        }else{
+          that.showFlowInfo2 = true
+          that.expressLoading2 = true
+        }
+        cms.ajax({
+          url: '${base}/member/refund/refundFlowInfo',
+          type:'get',
+          data: {
+            id: id
+          }
+        }, function (res) {
+          if(type == 1){
+            that.expressLoading = false
+          }else{
+            that.expressLoading2 = false
+          }
+          if (res.code == 200) {
+            var arr = res.data.reverse()
+            if (res.data.length == 1 && arr[0].traces.length > 0) {
+                that.flowInfoDtail = arr[0]
+                that.flowInfo = arr[0].traces.reverse() //翻转物流信息
+            } else if (arr.length == 2 && arr[1].traces.length > 0){
+                that.flowInfoDtail = arr[0]
+                that.flowInfo = arr[0].traces.reverse() //翻转物流信息
+                that.flowInfoDtail2 = arr[1]
+                that.flowInfo2 = arr[1].traces.reverse() //翻转物流信息
+            } else {
+              that.flowInfo = [{
+                acceptTime: '',
+                acceptStation: '暂无物流信息'
+              }]
+              that.flowInfo2 = [{
+                acceptTime: '',
+                acceptStation: '暂无物流信息'
+              }]
+            }
+          } else {
+            cms.alert(res.message,5)
+          }
+        })
+      },
+      confirmReceive() { //确认收货
+        var that = this
+        this.$confirm('确认是否收到卖家更换的货物，确认完成后，后续无法进行更改，是否继续？', '系统提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/refund/receive',
+            data: {
+              "id": that.params.id
+            }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              location.reload()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        }).catch(()=>{return false})
+      },
+      revokeApply(){
+        var that = this
+        this.$confirm('确认是否撤销售后订单？', '提示', {
+          confirmButtonText: '撤销',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          cms.ajax({
+            url: '${base}/member/refund/revoke',
+            data: {
+              "id": that.params.id
+            }
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              location.reload()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+        }).catch(()=>{return false})
+      },
+      getCompany(){
+        var that = this
+        that.dialogFormVisible = true
+        cms.ajax({
+            url: '${base}/logisticscompany/list',
+            type:'get'
+          }, function (res) {
+            if (res.code == 200) {
+              that.comPanyList = res.data
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+      },
+      interveneApply(){//平台介入
+        var that = this
+        this.$refs['form1'].validate(function (valid) {
+          if(valid){
+            cms.ajax({
+            url: '${base}/member/refund/applyIntervent',
+            type:'post',
+            data: JSON.stringify(that.applyData)
+          }, function (res) {
+            if (res.code == 200) {
+              cms.alert(res.message,4)
+              location.reload()
+            } else {
+              cms.alert(res.message,5)
+            }
+          })
+          }})
+      },
+      toEdit(id){
+        location.href="${base}/member-order-serviceEdit.htm?refundId="+id
+      }
+     
+    },
+    filters: {
+      typeFilter(val){
+        var types = ['','仅退款','退款/退货','换货'] //状态值对应的属性，看文档
+        return types[parseInt(val)]
+      },
+      hasProduct(val){
+        return val == 1?'没有收到货':'已经收到货'
+      },
+      timeFilter(time){
+        return moment(parseInt(time)).format('YYYY-MM-DD HH:mm:ss')
+      },
+      statusFilter(status){
+        var statues = ['待卖家确认','退款中','卖家拒绝','','待买家发货','待卖家收货','待买家收货','待卖家发货','已完成','买家取消'] //状态值对应的属性
+        return statues[parseInt(status)]
+      },
+    },
+    created() {
+      this.getItem()
+    }
+  })
+  </script>

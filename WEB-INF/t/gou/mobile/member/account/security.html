@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-账号设置</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/lib/moment.js"></script>
+</head>
+<body class="t-page">
+  [#assign topName="账号设置"/]
+  [#include "../../includes/topbar.html"]
+  <div id="security" class="nav-top" v-cloak>
+    <div class="cms">
+      <div class="account-cell account-txt">用户名：<span>{{params.username}}</span></div>
+      <div class="zhong-no">
+        <van-cell-group>
+          <van-cell title="更换头像"  title-class="account-userImg" value-class="account-userImg" @click="changeHead">
+          <div v-cloak> 
+              <img :src="infoImg" class="account-img">
+          </div>
+            <van-icon name="arrow" />
+          </van-cell>
+          <van-cell title="修改昵称" is-link  title-class="account-cell" @click="changeName(params.nickname)">
+            <span class="account-span">{{params.nickname}}</span>
+          </van-cell>
+          <div class="section">
+              <div class="picker">
+                <van-cell @click="bindGender=true" title="性别" is-link  title-class="account-cell" >
+                  <span class="account-span">{{values[index]}}</span>
+                </van-cell>
+                <van-popup position="bottom" v-model="bindGender">
+                    <van-picker
+                    ref="gender"
+                    show-toolbar
+                    title="性别"
+                    :columns="genders"
+                    @cancel="bindGender=false"
+                    @confirm="bindGenderChange"
+                  ></van-picker>
+                </van-popup>
+              </div>
+          </div>
+          <div class="section">
+              <div class="picker ">
+                <van-cell @click="bindDate=true" title="出生年月" is-link  title-class="account-cell">
+                  <span v-if="params.birthday" class="account-span">{{formatTime(params.birthday)}}</span>
+                </van-cell>
+                <van-popup position="bottom" v-model="bindDate">
+                    <van-datetime-picker
+                      v-model="selDate"
+                      type="date"
+                      :min-date="new Date(1970,01,01)"
+                      :max-date="theDate"
+                      @cancel="bindDate=false"
+                      @confirm="bindDateChange"
+                    />
+                </van-popup>
+              </div>
+          </div>
+          <van-cell title="收货地址管理" is-link  title-class="account-cell" @click="changeAddress">
+          </van-cell>
+      <div class="t-space"></div>
+          <van-cell :title="params.tel&&params.tel != ''?'修改绑定手机号':'绑定手机号'" is-link title-class="account-cell" @click="changeUserInfo('phone')">
+            <span class="account-span" v-if="params.tel&&params.tel!=''">{{params.tel}}</span>
+          </van-cell>
+          <van-cell :title="params.email == ''?'绑定邮箱':'修改绑定邮箱'" is-link title-class="account-cell" @click="changeUserInfo('email')">
+            <span class="account-span" v-if="params.email&&params.email!=''">{{params.email}}</span>
+          </van-cell>
+          <van-cell title="修改登录密码" is-link  title-class="account-cell" @click="changeUserInfo('pwd')">
+          </van-cell>
+          <van-cell :title="payPassword?'修改支付密码':'设置支付密码'" is-link title-class="account-cell" @click="changeUserInfo('payPwd')">
+          </van-cell>
+      </van-cell-group>
+        <div class="log-out"  @click="toLogin">退出登录</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  var security = new Vue({
+    el:'#security',
+    data () {
+      return {
+        bindDate:false,//绑定时间
+        bindGender:false,//绑定性别
+        baseUrl:'${base}',
+        infoImg:'${mobileRes}/img/member_header.png',
+        params:{
+          username:'',
+          nickname:'',
+          birthday:'',
+          tel:'',
+          email:''
+        },
+        payPassword:false,
+        theDate:new Date(),
+        selDate:new Date(),
+        genders:[{
+          values:['男','女','保密'],
+          defaultIndex:0
+        }],
+        values:['男','女','保密'],
+        index:0
+      }
+    },
+    methods: {
+      bindDateChange(value){//时间选择
+        let time = Date.parse(value)
+        let query = {
+          birthday:time,
+          status:2
+        }
+        updateMemberExt(query).then(res => {
+          if(res.code == 200){
+            this.params.birthday=time
+            this.$toast.success('修改成功！')
+            this.bindDate = false
+          }
+        })
+      },
+      bindGenderChange(name,num){
+        this.index = parseInt(num)
+        let query = {
+          gender:this.index+1,
+          status:2
+        }
+        updateMemberExt(query).then(res => {
+          if(res.code == 200){
+            this.$toast.success('修改成功！')
+            this.bindGender = false
+          }
+        })
+      },
+      toLogin(){
+        let token = localStorage.getItem('token')
+        logout({ token: token }).then(res => {
+          localStorage.setItem('token', '')
+          localStorage.clear()
+          var ua = window.navigator.userAgent.toLowerCase();
+          if (ua.match(/MicroMessenger/i) == 'micromessenger') {//判断微信环境
+            location.href="${base}/"
+            }else{
+              location.href="${base}/login.htm"
+            }     
+        })
+      },
+      changeName(name) {//编辑昵称
+        location.href='${base}/member-account-info.htm?name='+name
+      },
+      changeUserInfo(name){
+        location.href='${base}/member-account-verifyInfo.htm?name='+name
+      },
+      changeAddress() {
+        location.href='${base}/member-account-address.htm'
+      },
+      changeHead() {
+        location.href='${base}/member-account-change-changeHead.htm?memberImg='+this.infoImg
+      },
+      getUserInfo(){
+        getMember().then(res => {
+          if(res.code == 200){
+            this.params = {
+              'username':res.data.username,
+              'nickname':res.data.nickname,
+              'birthday':res.data.birthday,
+              'tel':res.data.phone,
+              'email':res.data.email
+            }
+            if(res.data.memberImg){
+              this.infoImg = res.data.memberImg
+            }
+            this.index = this.genders[0].defaultIndex = res.data.gender-1
+            this.selDate = new Date(res.data.birthday)
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      getInfo(){//获取当前用户绑定邮箱与手机
+        memberuserGet().then(res => {
+          if(res.code == 200){
+            this.tel=res.data.phoneData?res.data.phoneData:''
+             this.email=res.data.emailData?res.data.emailData:''
+             localStorage.setItem('phone',res.data.phone)//手机是否填写
+             localStorage.setItem('email',res.data.email)//邮箱是否填写
+             localStorage.setItem('password',res.data.loginmima)//登录密码
+             localStorage.setItem('payPassword',res.data.paymima)//支付密码
+          }
+        }).catch(err => {})
+      },
+      formatTime(time){
+        return moment(parseInt(time)).format('YYYY-MM-DD')
+      }
+    },
+    created () {
+      this.getUserInfo()
+      this.getInfo()
+    }
+  })
+</script>

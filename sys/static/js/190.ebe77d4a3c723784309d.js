@@ -1,0 +1,2 @@
+webpackJsonp([190],{gXeg:function(e,t,r){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var n={render:function(){var e=this.$createElement;return(this._self._c||e)("router-view")},staticRenderFns:[]};var u=r("C7Lr")({name:"articleCategoryLayout"},n,!1,function(e){r("gwrD")},null,null);t.default=u.exports},gwrD:function(e,t){}});
+//# sourceMappingURL=190.ebe77d4a3c723784309d.js.map

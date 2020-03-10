@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title></title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body class="t-page">
+  [#assign topName="消息详情"/]
+  [#include "../../includes/topbar.html"]
+  <div class="cms container nav-top" id="messageDetail" v-cloak>
+    <div class="message-box t-14" v-for="(item, index) in messageList" :key="index">
+      <div class="mesage-box__time t-label t-12">{{formatTime(item.createTime)}}</div>
+        <div class="mesage-box__cont">
+          <div class="mesage-box__image">
+            <img class="mesage-box__img" v-if="type == 'xitong'" src="${mobileRes}/img/xitong.png" />
+            <img class="mesage-box__img" v-else src="${mobileRes}/img/sixin.png" />
+          </div>
+          <div class="mesage-box__txt">
+            <div class="sanj">◀</div>
+            <span class="my-quiz-span">【{{item.title}}】 {{item.content}}</span>
+          </div>
+        </div>
+     </div>
+  </div>
+</body>
+</html>
+<script>
+new Vue({
+  el:'#messageDetail',
+  data(){
+    return {    
+     type:'${type!}',
+     messageList:[],
+   }
+  },
+  methods: {
+    read(ids){
+      if(ids.length >0){
+        messageRead({ids:ids}).then(res=>{
+          if(res.code !== 200){
+            this.$toast(res.message)
+          }
+        })
+      }
+    },
+    getList(type){ // 获取系统消息列表
+    if(type == 'xitong'){
+      messageSyspage().then(res => {
+        if(res.code == 200){
+          var ids =[]
+           res.data.content.forEach(v=>{
+            if(v.status!=1){
+              ids.push(v.messageId) 
+            }
+          })
+          this.messageList=res.data.content
+          this.read(ids)
+        } else {
+          this.$toast(res.message)
+        }
+      }).catch(err => {})
+    } else {  // 获取私信消息列表
+      messagePripage().then(res => {
+        if(res.code == 200){
+          var ids =[]
+           res.data.content.forEach(v=>{
+            if(v.status!=1){
+              ids.push(v.messageId) 
+            }
+          })
+          this.messageList=res.data.content
+          this.read(ids)
+        } else {
+          this.$toast(res.message)
+        }
+      }).catch(err => {})
+    }
+   },
+   formatTime(timeStr) {
+    return moment(parseInt(timeStr)).format('YYYY-MM-DD')
+  },
+  },
+  created(){
+    this.getList(this.type)
+  }
+})
+</script>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="full-page">
+<head>
+  <title>${globalConfig.mallName!}-购物车</title>
+  [#include "../../includes/common.html"]
+  <script src="${mobileRes}/js/components/index.js"></script>
+</head>
+<body class="t-page full-page">
+  <div id="shopCart" class="cms classify-warpper" v-show="!loading">
+      <div class="order__wrap" v-cloak>
+          <div v-if="orderList.length<=0">
+            <div class="empty-coupon">
+              <img class="empty-coupon__bg"src="${mobileRes}/img/order_01.png"/>
+            </div>
+            <div class="empty-coupon__txt">亲，你的购物车空空如也~</div>
+            <div class="empty-coupon__btn" v-if="token">
+              <van-button class="btn" size="small" type="primary" @click="toIndex">去逛逛</van-button>
+            </div>
+            <div class="empty-coupon__btn" v-else>
+              <van-button class="btn" size="small" type="primary" @click="toLogin">去登录</van-button>
+            </div>
+          </div>
+          <div v-else v-cloak>
+            <div class="container order-top order-top_wrap"><span class=" t-14 t-color order-edit" 
+              @click="editGoods">{{disEdit?'编辑':'完成'}}</span></div>
+            <div class="order__itemss" v-for="(list,index) in orderList" :key="index">
+              <van-cell-group>
+                  <van-cell custom-class="order__shop"
+                  title-width="65%" title-class="shop-fonts">
+                  <template  slot="title">         
+                    <div class="shop_flex">
+                      <van-checkbox v-model="list.theChecked" 
+                      @click="storeCheckAll(list)" :disabled="list.disabled&&disEdit"></van-checkbox>
+                      <div  class="icon"><van-icon name="shop"/></div>
+                        <div class="shop-title__txt cell-1" @click.stop="toStore(list.storeId)">{{list.storeName}}</div>
+                        <div class="icon"><van-icon name="arrow"/></div>
+                      </div>
+                  </template >
+                </van-cell>
+              </van-cell-group>
+              <div class="order__goods" 
+              :class="disEdit&&(info.item.inventory <= 0||info.item.product.status>=4)?'disabled':''" 
+                v-for="(info,idx) in list.items" :key="idx">
+                <div class="order-check">
+                  <van-checkbox v-model="info.theChecked" @click="theCheckeds(index,idx)"
+                   :disabled="(info.item.inventory <= 0|| info.item.product.status>=4)&&disEdit"></van-checkbox>
+                </div>
+                <div class="order__goodsImages">
+                  <img class="order__goodsImg" :src="'${base}'+info.item.product.coverImage"/>
+                </div>
+                <div class="order__goodstxt">
+                  <div class="order__goodstitle cell-2" 
+                  @click.stop="openDetail(info.item.productId,list.storeId)">{{info.item.product.name}}</div>
+                  <div class="detail-txt cell-1" style="width:45%;" v-if="info.item.productSku">
+                      <span v-for="(item,idx2) in info.item.productSku.saleAttrs" :key="idx2">{{item.name+'：'+item.value}} </span>
+                  </div>
+                  <div class="order__price">
+                    <span class="coupon__limt">￥</span>
+                    <span class="order__goodsprice ">{{$float(info.item.salePrice)}}</span>
+                    <div class="order_step">
+                      <van-stepper :disabled="info.item.inventory <= 0|| info.item.product.status>=4" 
+                        v-model="info.item.productCount" @change="stepEdit(index,idx)"/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-foot">
+              <van-submit-bar
+              style="bottom:50px"
+                v-if="disEdit"
+                :loading="isSub"
+                :price="allPrice * 100"
+                :button-text="'结算（'+allCount+'件）'"
+                @submit="submitAdd" v-cloak>
+                <div class="container"><van-checkbox v-model="allChecked" @click="allCheckeds">全选</van-checkbox></div>
+              </van-submit-bar>
+              <div v-else class="order-top order-foot_wrap">
+                <div class="shop_flex t-14 container">
+                  <div class="order-edit_all"><van-checkbox v-model="allChecked" @click="allCheckeds">全选</van-checkbox></div>
+                  <div class=" t-color order-edit_up" @click.stop="moveStoreUp">移至收藏夹</div>
+                  <div class=" t-color order-edit_del">
+                    <van-button size="small"plain type="primary" @click.stop=" delShopCartGoods">删除</van-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+         </div>
+          <div class=" t-space"></div>
+          <div  v-show="disEdit">
+            <recommend-list></recommend-list>
+          </div>
+          <div  v-show="!hidden">
+              <div v-if="info != ''"class="van-list__finished-text">{{info}}</div>
+              <div v-else class="van-list__finished-text"><van-loading type="spinner"/> 正在加载...</div>
+            </div>
+        </div>
+  </div>
+  [#assign active="2"/]
+  [#include "../../includes/tabBar.html"]
+</body>
+</html>
+
+<script>
+  var shopCart = new Vue({
+    el:'#shopCart',
+    data () {
+      return {
+        orderList:[],//订单信息
+        hidden:true,
+        info:'',
+        baseUrl:'${base}',//当前地址
+        size:20,//推荐加载
+        allChecked:false,//是否全选
+        allPrice:0,//当前总价
+        allCount:0,//当前总数量
+        disEdit:true,//非编辑状态
+        goodsIds:[],//选中商品id
+        productSkuIds:[],//选中商品规格id
+        isSub:false,
+        totals:[],
+        pages:0,
+        token:false,
+        loading:false
+      }
+    },
+    methods: {
+      submitAdd(){//结算
+        this.getProducts()//获取当前ids/skus
+        let ids = this.goodsIds
+        let skus = this.productSkuIds
+        let totals = this.totals
+        if(this.isSub){
+          this.$toast('正在结算中...')
+          return
+        }
+        if(ids.length<=0){
+          this.$toast('请至少选择一件商品进行结算')
+          return
+        }
+        this.isSub=true
+        let params = {
+         "isFromShopCart" : true,
+         "products" : []
+        }
+        ids.forEach((v,i) => {
+          let obj = {}
+          if(skus[i] != ''){
+            obj = {
+             "productId" : '',
+             "productSkuId" : skus[i],
+             "count" : totals[i]
+            }
+          }else{
+            obj = {
+             "productId" : v,
+             "productSkuId" : '',
+             "count" : totals[i]
+            }
+          }
+          params.products.push(obj)
+        })
+        this.submitOrder(params)
+      },
+      submitOrder(data){//提交订单
+        memberOrderPrePay(data).then( res => {
+          this.isSub=false
+          if(res.code == 200){
+            localStorage.setItem('submit', JSON.stringify(res.data))
+            location.href = '${base}/member-cart-settlement.htm'
+          }else{
+            this.$toast(res.message)
+          }
+        }).catch(err => {
+          this.isSub=false
+          this.$toast(err.message)
+        })
+      },
+      moveStoreUp(){//移动至收藏
+        this.getProducts()//获取当前ids/skus
+        let ids = this.goodsIds
+        if(ids.length>0){
+          memberfollowproductSaveAll({ids:ids}).then(res => {
+            if(res.code == 200){
+              this.$toast.success('已移至收藏夹')
+              this.delShopCartGoods(true)//删除当前购物车商品
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {this.$toast('服务异常')})
+        } else {
+          this.$toast('请至少选择一件商品')
+        }
+      },
+      stepEdit(idx1,idx2){//修改商品数量
+        let item = this.orderList[idx1].items[idx2].item
+        if(item.productCount >0){
+          let params = {
+            productSkuId:item.productSkuId,
+            num:item.productCount,
+            productId:item.productId
+          }
+          this.getAllPrice()//动态计算价格
+          memberCartUpdateItem(params).then(res => {
+            if(res.code == 200){
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {this.$toast('服务异常')})
+        }else{
+          this.$toast('商品数量至少为一件')
+        }
+      },
+      delShopCartGoods(status){//删除商品-可批量
+        this.getProducts()//获取当前ids/skus
+        if(this.goodsIds.length>0){
+          let params = {
+            productIds:this.goodsIds,
+            productSkuIds:this.productSkuIds
+          }
+          memberCartDelete(params).then(res => {
+            if(res.code == 200){
+              if(!status){
+                this.$toast.success('删除成功')
+              }
+              this.getList()
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {this.$toast('服务异常')})
+        } else {
+          this.$toast('请至少选择一件商品')
+        }
+      },
+      getProducts(){//获取选中的商品参数
+        let data = this.orderList
+        let ids = []
+        let skus = []
+        let totals = []
+        if(data.length>0){
+          data.forEach(d=>{
+            d.items.forEach(v => {
+              if(v.theChecked){
+                ids.push(v.item.productId)
+                totals.push(v.item.productCount)
+                if(v.item.productSkuId&&v.item.productSkuId!=''){
+                  skus.push(v.item.productSkuId)
+                }else{
+                  skus.push('')
+                }
+              }
+            });
+          })
+        }
+        this.goodsIds=ids
+        this.productSkuIds=skus
+        this.totals=totals
+        this.getAllPrice()
+      },
+      editGoods(){//编辑商品
+        this.disEdit=!this.disEdit
+        this.setTheChack(false)
+      },
+      storeCheckAll(data){//选中当前店铺下的所有商品操作
+          let newData=this.orderList
+          let isAll = true
+          data.items.forEach(v=>{
+            if(v.item.inventory >0 || !this.disEdit){
+              v.theChecked=data.theChecked
+            }else{
+              v.theChecked=false
+            }
+          })
+          //是否全选
+          newData.forEach(v=>{
+            if(!v.theChecked){
+              isAll = false
+            }
+          })
+          this.allChecked=isAll
+          //todo 计算总价
+          this.getAllPrice() //动态计算价格
+      },
+      theCheckeds(storeIndex,index){//当前商品选择
+          let isStoreAll = true
+          let isAll =true
+          let newData=this.orderList
+          //是否全选
+          newData[storeIndex].items.forEach(v=>{
+            if(!v.theChecked && (v.item.inventory >0||!this.disEdit)){
+              isStoreAll = false
+              isAll = false
+            }
+          })
+          newData[storeIndex].theChecked = isStoreAll
+          if(isStoreAll){
+            newData.forEach(v=>{
+              if(!v.theChecked && (!v.disabled||!this.disEdit)){
+                isAll = false
+              }
+            })
+          }
+          this.allChecked=isAll
+          this.getAllPrice()//动态计算价格
+      },
+      allCheckeds(checked){//全选
+        //全选遍历每项thechecked
+        this.setTheChack(checked)
+        this.getAllPrice()//动态计算价格
+      },
+      getAllPrice(){//计算价格与数量
+        let price=0
+        let count=0
+        this.orderList.forEach(v=>{
+          v.items.forEach(e=>{
+            if(e.theChecked){
+              price= parseFloat(price+e.item.productCount*JSON.stringify(e.item.salePrice).replace(/,/g,""))
+              count= parseInt(count+e.item.productCount)
+            }
+          })
+        })
+        this.allPrice=price
+        this.allCount=count
+      },
+      openDetail(id,storeId){//查看商品
+        location.href='${base}/product-detail.htm?productId='+id+'&storeId='+storeId
+      },
+      getList(){//获取购物车信息
+        this.loading= true
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        memberCartGet().then(res => {
+          if(res.code == 200){
+            var arr = res.data
+            arr.forEach(v =>{
+              v.disabled = true
+              v.theChecked = false
+              v.items.forEach(e => {
+                e.theChecked = false
+                if(e.item.inventory >0 && e.item.product.status <4){
+                  v.disabled = false
+                }
+              })
+            })
+            this.orderList=arr
+            // this.setTheChack(false)
+            this.loading = false
+            this.$toast.clear()
+          } else {
+            this.$toast(res.message)
+            this.loading = false
+            this.$toast.clear()
+          }
+        }).catch(err => {this.$toast('服务异常')})
+      },
+      setTheChack(status){//初始化选择状态
+        let arr = []
+        if(this.orderList.length>0){
+          this.orderList.forEach(d =>{
+            if(d.disabled){
+              d.theChecked = false
+            }else{
+              d.theChecked = status
+            }
+            d.items.forEach(v => {
+              if(status && v.item.inventory >0&& v.item.product.status <4){
+                arr.push(v.item.productId)
+                v.theChecked = status
+              }else{
+                v.theChecked = false
+              }
+            });
+          })
+        }
+        this.goodsIds=arr
+        this.getAllPrice()
+      },
+      toIndex(){//到首页
+        location.href="${base}/"
+      },
+      toLogin(){//登录
+        location.href="${base}/login.htm"
+      },
+      toStore(id){//查看店铺
+        location.href='${base}/store-index.htm?storeId='+id
+      },
+    },
+    created () {
+      let token = localStorage.getItem('token')
+      if(token && token!=''){
+        this.getList()
+        this.token=true
+      }else{
+        this.token=false
+      }
+    }
+  })
+</script>

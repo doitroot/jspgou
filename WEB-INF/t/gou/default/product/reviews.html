@@ -1,0 +1,176 @@
+
+<!-- 商品评价 -->
+<div class="reviews" >
+	<!-- 商品符合度 -->
+	<div class="reviews-accord">
+		<div class="reviews-accord__score">
+			<p class="reviews-accord__score--size">商品符合度</p>
+			<p class="reviews-accord__score--color">{{$float(commentInfo.matched)}}</p>
+			<p class="reviews-accord__score--star"><i class="fa fa-star"></i> <i class="fa fa-star"></i> <i class="fa fa-star"></i> <i class="fa fa-star"></i> <i class="fa fa-star"></i></p>
+		</div>
+		<ul class="reviews-accord__btns clearfix">
+			<li class="reviews-accord__btn "
+			 :class="commentParms.label==item.label?'reviews-accord__btn--active':''"
+			 @click="changeCommentLabel(item.label)"
+			v-for="(item,index) in commentInfo.evaluation"			
+			>{{item.label}}（{{item.labelCount}}）</li>
+		</ul>
+	</div>
+	<!-- 全部评价 -->
+	<div class="reviews-assess">
+		<!-- 评价导航 -->
+		<ul class="reviews-nav clearfix">
+			<li class="reviews-nav__item " @click="changeCommentMatch('')"
+			:class="commentParms.matched===''?'reviews-nav__item--active':''"
+			>全部评价({{commentInfo.commentTotalCount}})</li>
+			<li class="reviews-nav__item" @click="changeCommentMatch(0)"
+			:class="commentParms.matched=='0'?'reviews-nav__item--active':''"
+			>有图({{commentInfo.groupCommentMatchedCount.matchStrHasResouces}})</li>
+			<li class="reviews-nav__item" @click="changeCommentMatch(3)"
+			:class="commentParms.matched=='3'?'reviews-nav__item--active':''"
+			>好评({{commentInfo.groupCommentMatchedCount.matchStrGood}})</li>
+			<li class="reviews-nav__item" @click="changeCommentMatch(2)"
+			:class="commentParms.matched=='2'?'reviews-nav__item--active':''"
+			>中评({{commentInfo.groupCommentMatchedCount.matchStrMiddle}})</li>
+			<li class="reviews-nav__item" @click="changeCommentMatch(1)"
+			:class="commentParms.matched=='1'?'reviews-nav__item--active':''"
+			>差评({{commentInfo.groupCommentMatchedCount.matchStrFall}})</li>
+			<li class="reviews-nav__item reviews-nav__item--fr">
+				<span>
+					{{commentParms.sortType==1?'时间排序':'推荐排序'}}
+				</span>		
+				<span class="reviews-nav__item--icon"><i class="fa fa-angle-down"></i></span>
+				<!-- 商家服务下拉 -->
+				<div class="topbar-sellersever-drop topbar-sellersever-drop--repos">
+					<a @click="changeCommentType(2)">推荐排序</a><br>
+					<a @click="changeCommentType(1)">时间排序</a>
+				</div>
+			</li>
+		</ul>
+
+		<ul class="clearfix" >
+				<!-- 评价内容 -->
+			<li class="reviews-con" v-for="(item,index) in commentList" :key="index">
+				<div class="reviews-con__user">
+					<span class="reviews-con__iconk"><img :src="'${base}'+item.headImageUrl" class="reviews-con__icon"></span>
+					<!-- <span class="reviews-con__username">{{item.confusingName}}</span> -->
+				</div>
+				<div class="reviews-con__detail">
+					<div class="reviews-con__title">
+						<span class="reviews-con__star">
+						<i class="fa " v-for="s in 5"
+						:class="s<=item.matchV?'fa-star fa-active':'fa-star-o fa-noactive'"
+						></i>
+          </span>
+						<span class="reviews-con__4G">{{item.productSkuName}}</span>
+					</div>
+					<div class="reviews-con__text">{{item.commentContent}}</div>
+				   <ul class="reviews-con__views" v-if="item.commentResources.length>0" :id="'views_'+index">
+							<li class="reviews-con__imgs" v-for="img in item.commentResources">
+								<img :src="'${base}'+img.url" alt="">
+							</li>
+					 </ul>
+					<div class="reviews-con__time">
+						<span class="reviews-con__nowtime">{{formatTime(item.commentCreateTime)}}</span>
+						
+					</div>
+				</div>
+			</li>	
+			</ul>
+	</div>
+	<div class="clearfix" style="margin-top:20px;" v-if="commentParms.total>0">  
+	<div class="fr"> 
+	<el-pagination  background layout="prev, pager, next" 
+	:total="commentParms.total" 
+	:page-size='5'
+	@current-change="changeCommentList"
+	:current-page.sync="commentParms.page"
+	style="position: relative;left: 11px;"
+	>
+</el-pagination>
+</div>
+</div>
+<div class="font" style="text-align:center;margin-top: 15px;" v-else>暂无评论</div>
+
+</div>
+<!-- 温馨提示 -->
+<div class="reviews-tip">
+	<div class="reviews-tip__inner">
+		<div class="reviews-tip__title">
+			<img src="${res}/images/tip.jpg" alt="" class="reviews-tip__tipimg">
+			<p class="reviews-tip__info">因厂家更改商品包装、场地、附配件等不做提前通知，且每位咨询者购买、提问时间等不同。为此商家回复仅对提问者3天内有效，其他网友仅供参考~若由此给您带来不便请多多谅解，谢谢~
+				<a href="javascript:;" class="reviews-tip__ask" @click="visible=true">我要咨询</a>
+			</p>
+		</div>
+	</div>
+</div>
+<el-dialog title="咨询" :visible.sync="visible"  class=""  custom-class="reviews-tip__dialog">
+		<el-form :model="form" ref="form">
+			<el-form-item label=""  >
+				<el-input v-model="form.content"
+				placeholder="您的问题将发送给销售商家，TA们会帮您解答"
+				autocomplete="off" type="textarea" :rows="6" :maxlength="255" :spellcheck="false"></el-input>
+				<span class="container__report--color">{{errormsg}}</span>
+			</el-form-item>		
+		</el-form>
+		<div slot="footer" >
+				<el-button type="primary" @click="addQuestion" size="mini">发 布</el-button>
+		    	<el-button @click="visible = false,errormsg = ''" size="mini">取 消</el-button>		
+		</div>
+	</el-dialog>
+<!--提问-->
+<section class="reviews-tip__res" v-for="(item,index) in questionList" :key="index" v-if="questionList.length>0">
+	<!-- 提问 -->
+	<div class="reviews-tip__ques clearfix">
+		<!-- 提问内容 -->
+	   <div class="reviews-tip__left">
+				<span class="reviews-tip__q">Q</span>	
+				 <p class="reviews-tip__content reviews-tip__content--tit" v-html="item.content">
+					 
+				 </p>
+		 </div>
+		  <!-- 提问人 -->
+			<div class="reviews-tip__right">
+				<span class="reviews-tip__time">{{formatTime(item.createTime)}}</span>
+				<!-- <span class="reviews-tip__name">{{item.member.confusingName}}</span> -->
+				<span class="reviews-tip__photo">
+					<img :src="'${base}'+item.member.memberExt.resourceData.url" alt="" v-if="item.member.memberExt.resourceData">
+				</span>
+			</div>
+	</div>
+	<!-- 回答 -->
+	<div class="reviews-tip__inner clearfix">
+			<span class="reviews-tip__a">A</span>	
+			<ul class="reviews-tip__ans" v-if="item.assocatedAnswer.length>0">
+			 <li class="reviews-tip__items clearfix" v-for="(ans,index2) in item.assocatedAnswer" :key="index2">
+					<p class="reviews-tip__content ">
+						{{ans.content}}
+					 </p>
+					  <!-- 提问人 -->
+					<div class="reviews-tip__right">
+							<span class="reviews-tip__time">{{formatTime(ans.createTime)}}</span>
+							<span class="reviews-tip__name">{{ans.storeUser.confusingName}}</span>
+						</div>
+			 </li>
+			</ul>
+			<div class="font" style="position: relative;top: 2px;"v-else >
+				暂无回答
+			</div>
+		</div>
+</section>
+<div style="text-align:right;margin:20px 0;" v-if="questionParams.total>0"> 
+	<el-pagination  background layout="prev, pager, next" 
+										:total="questionParams.total" 
+										:page-size='questionParams.size'
+										@current-change="changeQuestionList"
+										:current-page.sync="questionParams.page"
+										style="position: relative;left: 11px;"
+										>
+	</el-pagination>
+</div>
+<div class="font" style="text-align:center;padding:30px 0;" v-else>
+暂无咨询
+</div>
+
+
+

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>${globalConfig.mallName!}-商家入驻</title>
+    [#include "../../includes/common.html"]
+</head>
+
+<body>
+    <!-- 顶部导航栏 -->
+    [#include "../../includes/topBar.html"]
+    <!-- 头部 -->
+    <div class="header head-shadow-slim">
+        <div class="senter-head">
+            <div class="senter-left">
+                [#assign name="商家入驻"]
+                [#include "../../includes/logo.html"]
+            </div>
+            <div class="senter-right">
+                <a class="senter-right__tab senter-right__tab--active" href="#">首页</a>
+                <a class="senter-right__tab" href="#">入驻流程</a>
+                <a class="senter-right__tab" href="#">入驻协议</a>
+                <a class="senter-right__tab tab-last" href="#">商家帮助</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主体 -->
+    <div class="senter-body" id="root" v-cloak>
+        <div class="container senter-inner sellerselect-inner">
+            <!-- 主体头部 -->
+            <ul class="senter-inner__head" style="overflow:hidden;">
+                <li class="senter-inner__tab senter-inner__tab--active senter-inner__tab--visited">
+                   <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                    店铺选择
+                    <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+                </li>
+                <li class="senter-inner__tab senter-inner__tab--active senter-inner__tab--visited">
+                   <span class=""><i class="fa fa-file-text-o senter-inner__fa"></i></span>
+                    签订入住协议
+                    <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+                </li>
+                <li style="padding-left:40px;" class="senter-inner__tab senter-inner__tab--visited">
+                   <span class=""><i class="fa fa-user-o senter-inner__fa"></i></span>
+                   <span v-if="storeType==1">个人信息认证</span><span v-if="storeType==2">企业信息认证</span>
+                   <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+               </li>
+                <li class="senter-inner__tab senter-inner__tab--visited">
+                   <span class=""><i class="fa fa-home senter-inner__fa"></i></span>
+                    店铺信息认证
+                    <span class=""><i class="fa fa-angle-right senter-inner__right"></i></span>
+                </li>
+                <li class="senter-inner__tab senter-inner__tab--active">
+                   <span class=""><i class="fa fa-calendar-check-o senter-inner__fa"></i></span>
+                    等待审核
+                </li>
+             </ul>
+            <!-- 主体身体 -->
+            <div class="senter-con sellersign-inner">
+                <!-- 等待审核 -->
+                <div v-if="status==1">
+                    <!-- 等待审核 -->
+                    <div class="senter-identify">
+                        <h3 class="senter-identify__title senter-identify__title--sign">等待审核</h3>
+                    </div>
+
+                    <div class="sellerselect-ebody sellerexamine-ebody">
+                        <img class="examine-waiting-img" src="${res}/images/Examine-ongoing.png" alt="">
+                        <hr class="examine-waiting-line">
+                        <img class="examine-waiting-img examine-waiting-img-bigger" src="${res}/images/Examine-pass.png"
+                            alt="">
+                    </div>
+
+                    <div class="examine-waiting-box">
+                        <p class="examine-waiting-box__descript">您提交店铺申请正在进行平台审核中，审核进度更新系统将以短信或邮件发送，请耐心等待！</p>
+                    </div>
+
+                </div>
+
+                <!-- 审核未通过 -->
+                <div v-if="status==3">
+                    <!-- 审核未通过 -->
+                    <div class="senter-identify">
+                        <h3 class="senter-identify__title senter-identify__title--sign senter-examine-nopass">审核未通过</h3>
+                    </div>
+
+                    <div class="sellerselect-ebody sellerexamine-ebody">
+                        <img class="examine-waiting-img" src="${res}/images/Examine-nopass.png" alt="">
+                    </div>
+
+                    <div class="examine-waiting-box">
+                        <p class="examine-waiting-box__descript">您提交店铺申请未审核通过，原因如下，请修改相应的资料，再次提交</p><br>
+                        <p class="examine-waiting-box__descript">未通过原因：
+                            <span class="senter-examine-nopass-descript">
+                                身份证照片不清晰，店铺名称不符合要求
+                            </span>
+                        </p>
+                    </div>
+                    <!-- 按钮 -->
+                    <div class="enter-btn-group sign-btn-group examine-nopass-btn-group">
+                        <a v-if="storeType==1" href="${base}/member-storeRegister-store_verify.htm?storeType=1" class="enter-btn-group__link enter-btn-group-agree__link">
+                            <el-button type="primary">修改</el-button>
+                        </a>
+                        <a v-if="storeType==2" href="${base}/member-storeRegister-store_verify.htm?storeType=2" class="enter-btn-group__link enter-btn-group-agree__link">
+                            <el-button type="primary">修改</el-button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 审核通过，待缴费 -->
+                <div v-if="status==3">
+                    <!-- 审核通过，待缴费 -->
+                    <div class="senter-identify">
+                        <h3 class="senter-identify__title senter-identify__title--sign senter-examine-pass">审核通过，待缴费</h3>
+                    </div>
+
+                    <div class="sellerselect-ebody sellerexamine-ebody">
+                        <img class="examine-waiting-img " src="${res}/images/Examine-pass-pay.png" alt="">
+                        <hr class="examine-waiting-line examine-pass-line">
+                        <img class="examine-waiting-img " src="${res}/images/Examine-pay.png" alt="">
+                    </div>
+
+                    <div class="examine-waiting-box">
+                        <p class="examine-waiting-box__descript">欢迎您入住xxx平台，您目前需缴纳相关费用 <span class="senter-examine-pass-descript">19000.00元</span></p>
+                        <p class="examine-waiting-box__descript">（保证金费用会在店铺关闭之后退还至您填写的结算账户中）</p>
+                        <p class="examine-waiting-box__descript">费用构成明细如下：</p>
+                    </div>
+                    <!-- 表格 -->
+                    <div class="examine-pass-table-box">
+                        <h3 class="examine-pass-table-head">费用清单</h3>
+                        <div class="enter-table examine-pass-table">
+                            <div class="enter-thead-tr">
+                                <span class="enter-thead-tr__td">收费事项</span>
+                                <span class="enter-thead-tr__td">收费金额(元)</span>
+                            </div>
+
+                            <div class="enter-tbody-tr">
+                                <span class="enter-tbody-tr__td">店铺主营类目<br>
+                                    <span class="input-info examine-pass-table-info">（数码类目保证金）</span>
+                                </span>
+                                <span class="enter-tbody-tr__td ">1000.00</span>
+                            </div>
+                            <div class="enter-tbody-tr">
+                                <span class="enter-tbody-tr__td">店铺等级升级费用<br>
+                                    <span class="input-info examine-pass-table-info">（白金店铺/1年)</span>
+                                    <span class="examine-pass-table-info-num">
+                                        x3
+                                    </span>
+                                </span>
+
+                                <span class="enter-tbody-tr__td ">6000.00 <span>x3</span></span>
+                            </div>
+                            <div class="enter-tbody-tr">
+                                <span class="enter-tbody-tr__td">总计(元)</span>
+                                <span class="enter-tbody-tr__td">19000.00</span>
+                            </div>
+                        </div>
+                        <div class="examine-pass-choose-method verifyid-radio">
+                            <h3 class="examine-pass-table-head">选择支付方式:</h3>
+                            <el-radio v-model="radio" label="1">银联</el-radio>
+                            <el-radio v-model="radio" label="2">微信</el-radio>
+                            <el-radio v-model="radio" label="3">支付宝</el-radio>
+                        </div>
+
+                    </div>
+                    <!-- 按钮 -->
+                    <div class="enter-btn-group sign-btn-group examine-nopass-btn-group">
+                        <a href="javascript:;" class="enter-btn-group__link enter-btn-group-agree__link">
+                            <el-button class="priColor" type="primary" @click="">支付</el-button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 正常开通 -->
+                <div v-if="status==2">
+                    <!-- 正常开通 -->
+                    <div class="senter-identify">
+                        <h3 class="senter-identify__title senter-identify__title--sign senter-examine-pass"><img src="${res}/images/Examine-ok.png"
+                                class="examine-pass-ok-img">入驻成功</h3>
+                    </div>
+                    <div class="examine-waiting-box examine-pass-ok-box">
+                        <p class="examine-waiting-box__descript">恭喜您成功入住xxx平台，您的商家管理平台登录帐号为：test</p><br>
+                    </div>
+                    <!-- 按钮 -->
+                    <div class="enter-btn-group sign-btn-group">
+                        <a href="#" class="enter-btn-group__link enter-btn-group-agree__link">
+                            <el-button type="primary" class="priColor">进入商家管理中心</el-button>
+                        </a>
+                    </div>
+                </div>
+            </div> <!-- root -->
+        </div>
+    </div>
+    </div>
+</body>
+
+</html>
+<script>
+    var app = new Vue({
+        el: "#root",
+        data() {
+            return {
+                status: 2,
+                verifyStatue: '1',
+                radio: '1',
+                locatHref: '',
+                patt: /\?[a-zA-Z0-9=]+/,
+                storeType: '',/* 1：个人 2：企业 */
+                // cateName:""
+            }
+        },
+        methods: {
+            wait() {
+                var that = this
+                cms.ajax({
+                    url: cms.url + '/member/enterstore/wait',
+                    type: "get"
+                }, function (res) {
+                    if (res.code == 200) {
+                        that.status = res.data.auditResults
+                        console.log(res)
+                    } else {
+                        cms.alert(res.message,5)
+                    }
+                })
+            },
+            pay() {
+                var that = this
+                cms.ajax({
+                    url: cms.url + '/member/enterstore/pc',
+                    type: "get",
+                    data: {
+                        "payType": that.radio,
+                        "subject": that.cateName
+                    }
+                }, function (res) {
+                    if (res.code == 200) {
+                        //   that.state = res.auditResults
+                    } else {
+                        console.log(res.message)
+                    }
+                })
+            },
+            getEnterStore() {
+                cms.ajax({
+                    url: cms.url + '/member/enterstore/get',
+                    type: "get"
+                }, function (res) {
+                    console.log(res)
+                })
+            }
+        },
+        created() {
+            /* 获取链接里传递的数据 */
+            this.locatHref = location.href
+            this.storeType = this.locatHref.match(this.patt)[0].match(/[0-9]+/)[0]
+            this.wait()
+            // this.getEnterStore()
+        }
+    })
+</script>

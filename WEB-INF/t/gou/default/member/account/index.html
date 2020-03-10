@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>${globalConfig.mallName!}-首页</title>
+  [#include "../../includes/common.html"]
+  <script src="${res}/lib/moment.js"></script>
+</head>
+
+<body>
+  [#include "../../includes/topBar.html"]
+  [#include "../../includes/vipNav.html"]
+  <div class="gray-container" style="padding-top: 0">
+    <div class="container clearfix">
+      <!-- 左侧选项卡 -->
+      [#assign activeName=""]
+      [#include "../../includes/memberNav.html"]
+      <!-- 主体上部 -->
+      <div class="member-body clearfix" id="myOrder" v-cloak>
+        <div class="member-title index-title">
+          <!-- 主体头部 -->
+          <div class="index-head clearfix">
+            <div class="ih-left">
+              <div class="ih-img-box">
+                <a href="${base}/member-account-info.htm">
+                  <img src="${user.headImgUrl!}" class="ih-left-img">
+                </a>
+              </div>
+              <div class="user-desc">
+                <span class="user-name">{{userInfo.nickname||userInfo.username}}</span><br>
+                <a href="#">
+                  <img src="${base}${user.levelImageUrl!}" style="width:20px;vertical-align: -5px;">
+                </a>
+                <span>${user.levelName!}</span>
+                <br>
+                <a href="${base}/member-growSys.htm" class="user-desc__link">如何提升等级 ></a>
+              </div>
+            </div>
+            <div class="ih-main">
+              <div class="ih-main-box">
+                <a href="${base}/member-order-index.htm?active=1">
+                  <i class="fa fa-credit-card ih-lgfa"></i><br>
+                  <span class="ih-main__link" v-if="userInfo.tobepaid">待付款 ({{userInfo.tobepaid}})</span>
+                  <span class="ih-main__link" v-if="!userInfo.tobepaid">待付款 0</span>
+                </a>
+              </div>
+              <div class="ih-main-box">
+                <a href="${base}/member-order-index.htm?active=3">
+                  <i class="fa fa-archive ih-lgfa"></i><br>
+                  <span class="ih-main__link" v-if="userInfo.tobereceive">待收货 ({{userInfo.tobereceive}})</span>
+                  <span class="ih-main__link" v-if="!userInfo.tobereceive">待收货 0</span>
+                </a>
+              </div>
+              <div class="ih-main-box">
+                <a href="${base}/member-order-index.htm?active=4">
+                  <i class="fa fa-comment-o ih-lgfa"></i><br>
+                  <span class="ih-main__link" v-if="userInfo.finish">待评价 ({{userInfo.finish}})</span>
+                  <span class="ih-main__link" v-if="!userInfo.finish">待评价 0</span>
+                </a>
+              </div>
+            </div>
+            <div class="ih-right">
+              <div class="ih-right-box">
+                <div class="ih-right-inner">
+                  <span class="ih-right-container">
+                    <span href="/member-asset-balance-index.htm">
+                      <a class="ihg-remainder">
+                        余额:￥{{ showPrice ? $float(userInfo.balance) :'***'}}
+                      </a>
+                    </span>
+                    <a href="${base}/member-asset-balance-index.htm" class="ih-right-charge">
+                      充值
+                    </a>
+                  </span>
+
+                  <span class="ih-right-container">
+                    <span href="${base}/member-asset-score.htm">
+                      <a class="ihg-remainder">
+                        积分:{{ showPrice ? userInfo.score :'***'}}
+                      </a>
+                    </span>
+                    <a href="${base}/member-asset-score.htm" class="ih-right__link">
+                      查看
+                    </a>
+                  </span>
+                  <a class="index-fa-box" @click="showPrice = !showPrice">
+                    <!-- <i class="fa fa-eye-slash ih-fafont" aria-hidden="true"></i> -->
+                    <i class="fa ih-fafont" :class="showPrice?'fa-eye':'fa-eye-slash'"></i>
+                  </a><br>
+
+                  <span class="ih-right-container">
+                    <span href="${base}/member-asset-redbag.htm">
+                      <a class="ihg-remainder">
+                        红包:{{showPrice ? userInfo.redEnvelope :'***'}}
+                      </a>
+                    </span>
+                    <a href="${base}/member-asset-redbag.htm" class="ih-right__link">
+                      查看
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="index-info">
+          <span class="index-info-desc">我的订单</span>
+        </div>
+        <div class="overflow">
+          <div class="fl" style="width:840px">
+            <!-- 订单查询 -->
+            <div class="orSearch">
+              <a href="${base}/member-order-index.htm" class="index-info__seeAll fl">查看全部订单 ></a>
+              <div class="orSearch__btns fr" v-if="orderList.length!=0">
+                <el-button-group>
+                  <el-button icon="el-icon-arrow-left" @click="prePage" :disabled="prePageDisabled" size="mini">上一页</el-button>
+                  <el-button @click="nextPage" :disabled="nextPageDisabled" size="mini">下一页<i class="el-icon-arrow-right el-icon--right"></i></el-button>
+                </el-button-group>
+              </div>
+            </div>
+            <!-- 左侧表格 -->
+            <div class="member-order__body  wid840" style="min-height:320px">
+              <!-- 个人中心主体 -->
+              <div class="member-search__inner">
+                <table class="member-table">
+                  <thead>
+                    <tr>
+                      <th class="member-table__th index-table-th">订单详情</th>
+                      <th class="member-table__th index-table-th"></th>
+                      <th class="member-table__th index-table-th">收货人</th>
+                      <th class="member-table__th index-table-th">金额</th>
+                      <th class="member-table__th index-table-th">状态</th>
+                    </tr>
+                  </thead>
+                  <!-- 列表循环 -->
+                  <tbody v-for="(order, index) in orderList" :key="index" v-cloak>
+                    <tr class="member-table__sep">
+                      <td colspan="6"></td>
+                    </tr>
+                    <tr>
+                      <td class="member-table__title" colspan="6">
+                        <span class="member-table__time member-table__time--pad member-table__time--color bColor">
+                          {{formatTime(order.createTime)}}
+                        </span>
+                        <span class="bColor wdtorders--code">
+                          订单号:
+                          <!-- <a :href="'${base}/member-order-detail.htm?orderId='+order.id" class="code-link bColor"> -->
+                            {{order.orderCode}}
+                          <!-- </a> -->
+                        </span>
+                        <span class="member-indexorder__name">
+                          <a :href="'${base}/store-index.htm?storeId='+order.storeId"> <i class=" index-td-fa">
+                              <img src="${res}/images/store.png" alt="">
+                            </i>{{order.store.storeName}}</a>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="index-table__td index-table__td--nowid order__td-desc" colspan="2">
+                        <div class="member-orders--nomar" v-for="(item,index) in order.items" :key="index">
+                          <div class="member-product__media index-product-media">
+                            <img :src="baseUrl+item.productInfo.coverImageUrl" alt="" class="member-product__img">
+                          </div>
+                          <div class="member-product__info">
+
+                            <a class="member-indexproduct__name" :href="'${base}/product-detail.htm?productId='+item.productId">
+                              {{item.productInfo.productName}}
+                            </a>
+
+                            <p class="p_orders-color" v-if="item.productInfo.skuAttr">
+                              <span v-for="(sku, indexs) in JSON.parse(item.productInfo.skuAttr)" :key="indexs">
+                                {{sku.name}}: {{sku.value}}&nbsp;&nbsp;&nbsp;
+                              </span>
+                            </p>
+                          </div>
+                          <!-- 数量 -->
+                          <div class="member-product__ordernum">
+                            x{{item.productCount}}
+                          </div>
+                        </div>
+                      </td>
+                      <td class="member-table__td order__td-seller" rowspan="3">
+                        <a href="#">
+                          <span class="member-product__user" v-if="order.member.nickname!=''">{{order.member.nickname}}<i
+                              class="fa fa-user-o"></i></span>
+                          <span class="member-product__user" v-if="order.member.nickname==''">{{order.member.username}}<i
+                              class="fa fa-user-o"></i></span>
+                        </a>
+
+                      </td>
+                      <td class="member-table__td order__td-amount" rowspan="3">
+                        <div>
+                          <p class="member-product__total">总额:¥ {{$float(order.orderPayAmount)}}</p>
+                          <p class="member-product__pay">
+                            <span v-if="order.payMode==1">支付宝</span>
+                            <span v-if="order.payMode==2">微信</span>
+                            <span v-if="order.payMode==3">银联</span>
+                            <span v-if="order.payMode==4">余额</span>
+                          </p>
+                        </div>
+                      </td>
+                      <td class="member-table__td order__td-status" rowspan="3">
+                        <div class="member-table__inner">
+                          <div class="member-product__state">
+                            <p class="btnCColor" v-if="order.status==1||order.status==2||order.status==3">{{order.status|orderStatus}}</p>
+                            <p class="btnSColor" v-if="order.status==4">{{order.status|orderStatus}}</p>
+                            <p class="btnDColor" v-if="order.status==5||order.status==6">{{order.status|orderStatus}}</p>
+                          </div>
+                          <a :href="'${base}/member-order-detail.htm?orderId='+order.id" class="code-link bColor"> 订单详情</a>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="list__empty-wrap" v-if="orderList.length==0" style="margin-top:75px;">
+                  <img src=" ${res}/images/empty.png" alt="空空如也" class="shop__emptypic">
+                </div>
+              </div>
+            </div>
+            <!-- 为您推荐 -->
+            <div class="person ">
+              [#include "../../includes/recommend.html"]
+            </div>
+          </div>
+             <!-- 右侧 -->
+            <div class="rcon">
+              <!-- 我关注的 -->
+              <div class="rcon__mylike">
+                <div class="mylike__title">
+                  我的关注
+                </div>
+                <ul class="mylike__info clearfix">
+                  <li class="mylike__item">
+                    <p class="member-index-attnum">{{userInfo.followProduct}}</p>
+                    <p class="mylike__item--padt5"><a href="${base}/member-attention-goods.htm">商品</a></p>
+                  </li>
+                  <li class="mylike__item">
+                    <p class="member-index-attnum">{{userInfo.followStore}}</p>
+                    <p class="mylike__item--padt5"><a href="${base}/member-attention-store.htm">店铺</a></p>
+                  </li>               
+                </ul>
+              </div>
+              <!-- 历史记录 -->
+              <div class="rcon__history">
+                <div class="mylike__title">
+                  <span>浏览记录</span>
+                  <a href="${base}/member-attention-tracks.htm" class="mylike__more">更多<i class="fa fa-angle-double-right"></i></a>
+                </div>
+                <div class="mylike__con" v-for="(item, indexs) in trackList" :key="indexs">
+                  <div class="mylike__img" v-if="item.product.resources[0].imageResouce">
+                    <img :src="baseUrl+item.product.resources[0].imageResouce.url" class="mylike__pho" alt="">
+                  </div>
+                  <div class="mylike__txt">
+                    <a :href="'${base}/product-detail.htm?productId='+item.product.id"> {{item.product.name}}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  [#include "../../includes/footer.html"]
+</body>
+
+</html>
+<script>
+  var defaultOrder = {
+    "page": 1,
+    "size": "2",
+    "source": "",
+    "orderType": "",
+    "status": "",
+    "payMode": "",
+    "orderNum": "",
+    "storeName": "",
+    "orderTimeBegin": "",
+    "orderTimeEnd": ""
+  }
+  var myOrder = new Vue({
+    el: '#myOrder',
+    data() {
+      return {
+        userInfo: {
+          "tobereceive": 0,
+          "coupon": 0,
+          "undoneRefund": 0,
+          "tobedelivery": 0,
+          "redEnvelope": 0,
+          "memberImg": false,
+          "levelName": "",
+          "followProduct": 0,
+          "tobepaid": 0,
+          "score": 0,
+          "followStore": 0,
+          "balance": 0,
+          "pConsultationCount": 0,
+          "nickname": "",
+          "finish": 0,
+          "username": ""
+        },
+        orderList: [], //订单的详情
+        orderTotalPage: '', //订单的总数的页数
+        prePageDisabled: true, //上一页按钮的禁用控制
+        nextPageDisabled: false, //下一页按钮的禁用控制
+        baseUrl: cms.imgUrl,
+        orderQuery: Object.assign({}, defaultOrder), //订单列表的请求参数
+        showPrice: false, //是否显示账户余额
+        trackList: [], //第一条浏览记录
+      }
+    },
+    methods: {
+      getUserInfo() { //获取用户信息
+        cms.ajax({
+          url: '${base}/member/memberuser/getWap',
+          type: 'get'
+        }, (res) => {
+          if (res.code === 200) {
+            this.userInfo = res.data
+          }
+        })
+      },
+      getOrderList() { //获取订单列表
+        let that = this
+        cms.ajax({
+          url: '${base}/member/order/page',
+          type: 'get',
+          data: that.orderQuery
+        }, function (res) {
+          if (res.code == 200) {
+            that.orderList = res.data.content
+            that.orderTotalPage = res.data.totalPages
+          }
+        })
+      },
+      getTracks() { //获取第一条浏览记录
+        var that = this
+        cms.ajax({
+          url: cms.url + '/member/myTracks/page',
+          type: 'get',
+          data: {
+            page: 1,
+            size: 1
+          }
+        }, function (res) {
+          if (res.code == 200) {
+            that.trackList = res.data.content
+          } else {
+            cms.alert(res.code)
+          }
+        })
+      },
+      prePage() { //上一页
+        if (this.orderQuery.page <= this.orderTotalPage && this.orderQuery.page > 1) {
+          this.orderQuery.page -= 1
+          this.getOrderList()
+          this.nextPageDisabled = false
+        } else {
+          this.nextPageDisabled = false
+          this.prePageDisabled = true
+        }
+
+      },
+      nextPage() { //下一页
+        if (this.orderQuery.page < this.orderTotalPage) {
+          this.orderQuery.page += 1
+          this.getOrderList()
+          this.prePageDisabled = false
+        } else if (this.orderQuery.page == this.orderTotalPage) {
+          this.nextPageDisabled = true
+        } else {
+          this.prePageDisabled = false
+        }
+      },
+      formatTime(timeStr) { //调整时间的方法
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      }
+    },
+    filters: {
+      orderStatus(val) { //交易状态的过滤器
+      var status = ['','待付款','待发货','待收货','已完成','已取消','超时交易关闭']
+      return status[parseInt(val)]
+      }
+    },
+    created() {
+      this.getUserInfo()
+      this.getOrderList() //获取订单列表
+      this.getTracks() //获取第浏览记录
+    }
+  })
+</script>

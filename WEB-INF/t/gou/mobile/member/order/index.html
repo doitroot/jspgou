@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-我的订单</title>
+  [#include "../../includes/common.html"]
+    <script src="https://cdn.bootcss.com/qs/6.6.0/qs.min.js"></script>
+</head>
+<body class="t-page">
+  [#assign topName="我的订单"/]
+  [#include "../../includes/topbar.html"]
+  <div class="cms nav-top" id="orderTab" v-cloak>
+    <van-tabs class="t-tabs " v-model="active" @change="onChange" :swipe-threshold="5">
+      <van-tab title="全部"> </van-tab>
+      <van-tab title="待付款"></van-tab>
+      <van-tab title="待发货"> </van-tab>
+      <van-tab title="待收货"> </van-tab>
+      <van-tab title="待评价"> </van-tab>
+    </van-tabs>
+    <div class=" nav-top">
+      <div v-if="orderList&&orderList.length<=0">
+        <div class="empty-coupon">
+          <img class="empty-coupon__bg" src="${mobileRes}/img/order_01.png" />
+        </div>
+        <div class="empty-coupon__txt">您当前暂无此类订单</div>
+      </div>
+      <div v-else >
+        <div class="order__items"  v-for="(item,index) in orderList" :key="index">
+          <van-cell-group>
+              <van-cell custom-class="order__shop" icon="shop" title-width="210rpx" title-class="shop-fonts" :border="false">
+              
+              <div slot="title" style="width:200%;" @click="toStore(item.store.id)">
+                {{item.store.storeName}}
+                <van-icon style="position:relative;top:5rpx;" name="arrow" />
+              </div>
+              <span class="shop__status">{{item.state}}</span>
+            </van-cell>
+          </van-cell-group>
+          <div  @click="openDetail(item.id)" class="order__goods" v-for="(info,itemIndex) in item.items" :key="itemIndex">
+            <div class="order__goodsImagess"><img class="order__goodsImg" :src="baseUrl+info.productInfo.coverImageUrl" /></div>
+            <div class="order__goodstxt" >
+              <div class="order__goodstitle cell-2">{{info.productInfo.productName}}</div>
+              <div class="detail-txt cell-1" style="width:80%;">
+                <span v-for="(sku,skuIndex) in info.productInfo.skuAttr" 
+                :key="skuIndex">{{sku.name+':'+sku.value}};</span>
+                <span class="order__number order_top">x{{info.productCount}}</span>
+              </div>
+              <div class="order__price" v-if="item">
+                <span class="coupon__limt">￥</span>
+                <span class="order__goodsprice">{{$float(info.productPrice)}}</span>
+                
+                <span @click.stop="toRefund(item.id,info.id)"
+                v-if="((item.status == 2 || item.status == 3 || item.status == 4)&&(!info.newRefundId||(info.newRefund&&info.newRefund.status == 9)))||
+                (info.productCount-info.returnCount >0&&info.newRefund.status == 8)" 
+                class="order__btn order__number t-label t-14" style="bottom:10rpx;" >申请售后</span>
+                <span class="t-12 order__number t-color" style="line-height:18px;" v-if="info.isRefund">
+                    {{info.refundText}}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="order__goods t-12">
+            <div class="shop-fonts order__total">共<span class="order__blod">{{item.productCount}}</span>件商品</div>
+            <div class="shop-fonts order__total"> 合计：<span class="order__blod">¥{{$float(item.orderProductAmount+item.orderFreight)}}</span> </div>
+            <div class="shop-fonts order__total">（含运费 <span class="order__blod">¥{{$float(item.orderFreight)}}</span>）</div>
+          </div>
+          <div class="order__btns" v-if="item.status">
+            <van-button @click="getOrderNumber(item)" v-if="item.status == 1" class="order__btn" type="primary" size="small"  plain>去支付</van-button>
+            <van-button @click="delOrder(item.id)" v-if="item.status == 4 || item.status == 5 || item.status == 6" class="order__btn" type="default" size="small"  plain>删除</van-button>
+            <van-button @click="remindOrder(item.id)" v-if="item.status == 2" class="order__btn" type="primary" size="small"  plain>提醒发货</van-button>
+            <van-button @click="toLog(item.id,item.orderCode)" v-if="item.status == 3" class="order__btn" type="default" size="small"  plain>查看物流</van-button>
+            <van-button @click="extendReceive(item.id)" 
+            v-if="item.status == 3&&!item.hasExtendReceive" class="order__btn" type="primary" size="small"  plain>延迟收货</van-button>
+            <van-button @click="confirmReceipt(item.id)" v-if="item.status == 3" class="order__btn" type="primary" size="small"  plain>确认收货</van-button>
+            <van-button @click="toEstimate(item.id)" v-if="item.status == 4 && item.userDel == 0 && item.commentStatus == 1" class="order__btn" type="primary" size="small"  plain>去评价</van-button>
+          </div>
+        </div>
+      <div  v-show="!hidden">
+          <div v-if="info != ''" class="van-list__finished-text">{{info}}</div>
+          <div v-else class="van-list__finished-text">正在加载...</div>
+        </div>
+    </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#orderTab',
+    data () {
+      return {
+        active:'${active!}',
+        hidden:true,
+        orderList:[],
+        baseUrl:'${base!}',
+        total:0,
+        pages:0,
+        info:"",
+        params:{
+          "page": 1,
+          "size": 4,
+          "source": "",
+          "orderType": "",
+          "status": "",
+          "payMode": "",
+          "orderNum": "",
+          "storeName": "",
+          "orderTimeBegin": "",
+          "orderTimeEnd": "",
+          "commentStatus": "",
+          "refundStatus": "",
+          "useDelStatu": "0"
+        },
+        isPay:false,
+        isRefund:false,//是否有售后信息
+      }
+    },
+    mounted () {
+      window.addEventListener('scroll',this.onReachBottom)
+    },
+    methods: {
+      onRefresh(){
+        this.params.page = 1;
+        this.orderList = []
+        this.getOrderList()
+      },
+      onReachBottom(event){//上拉加载处理
+        var scrollTop=document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop//滚动条距离
+       var scrollHeight= document.body.scrollHeight
+       var windowHeight=window.screen.height //文档总高度
+          if((scrollTop + windowHeight)>=(scrollHeight)){
+      　　　if(this.params.page <this.pages){
+              this.params.page +=1
+              this.hidden = false
+              this.info = ''
+              this.getOrderList('loading')
+            }else{
+              this.hidden = false
+              this.info = '没有更多了'
+              return
+            }
+      　　}
+      },
+      toEstimate(id){//去评价
+        location.href = '${base}/member-order-comment.htm?orderId='+id
+      },
+      toLog(id,code){//查看物流
+        location.href = '${base}/member-order-logistics.htm?id='+id+'&code='+code
+      },
+      toStore(id){//查看店铺
+        location.href = '${base}/store-index.htm?storeId='+id
+      },
+      toRefund(id,pid){//填写售后
+        location.href = '${base}/member-order-service.htm?orderId='+id+'&productId='+pid
+      },
+      delOrder(id){//删除订单
+        this.$dialog.confirm({
+          title: '提示',
+          message: '确定要删除当前订单吗'
+        }).then(() => {
+            orderDelete({ids:[id]}).then(res => {
+              if(res.code === 200){
+                this.getOrderList()
+                this.$toast('删除成功！')
+              }else{
+                this.$toast(res.message)
+              }
+            })
+        }).catch(() => {});
+      },
+      getOrderList(type){//获取订单列表
+        var that = this
+        this.$toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          loadingType: 'spinner',
+          message: '加载中...'
+        });
+        this.params.status=this.active
+        if(this.active == 4){
+          this.params.commentStatus=1
+        }else{
+          this.params.commentStatus=''
+        }
+        memberOrderPage(that.params).then(res => {
+          if(res.code == 200){
+            let arr = res.data.content
+            that.$toast.clear();
+            arr.forEach(v => {
+              let s = that.statusFilter(v.status)
+              v.state = s
+              v.items.forEach(f => {
+                if(f.productInfo.skuAttr!=''){
+                  let skus = JSON.parse(f.productInfo.skuAttr)
+                  f.productInfo.skuAttr = skus
+                }
+                if(f.newRefund ){
+                  if(f.newRefund.status < 8){
+                    f.isRefund = true
+                    f.refundText = that.refundFilter(f.newRefund.status)
+                  }else if(f.newRefund.status == 8 &&(f.productCount - f.returnCount == 0)){
+                    f.isRefund = true
+                    f.refundText = '理赔成功'
+                  }else{
+                    f.isRefund = false
+                  }
+                }
+              })
+            });
+            if(type === 'loading'){
+              that.orderList=that.orderList.concat(arr)
+            }else{
+              that.orderList=arr
+            }
+            that.pages=res.data.totalPages
+          } else {
+            that.orderList = []
+            that.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      refundFilter(val){
+        var arr = ['待卖家确认', '退款中', '卖家拒绝' ,'','待买家发货' ,'待卖家收货' ,'待买家收货' ,'待卖家发货', '已完成', '买家已取消']
+        return arr[parseInt(val)]
+      },
+      //切换tab
+      onChange(index) {
+        this.active=index
+        this.onRefresh()
+      },
+      getOrderNumber(item){//去支付
+        if(this.isPay){
+          this.$toast('正在支付，请稍后...')
+          return
+        }
+        this.isPay=true
+        this.goPay(item.orderCode,item.orderTotalAmount)
+      },
+      goPay(orderNo,amount) {//获取订单
+        let params = Qs.stringify({'orderNo':orderNo,'description':'商品订单支付','subject':'商品订单支付','payScene':'memberOrderPay','amount':amount})
+        location.href="${base!}/member/tradePage.htm?"+params
+      },
+      openDetail(id){//订单详情
+        location.href = '${base}/member-order-detail.htm?orderId='+id
+      },
+      extendReceive(id){//延迟收货
+        this.$dialog.confirm({
+          title: '提示',
+          message: '亲，确定要延长收货时间?'
+        }).then(() => {
+          orderExtend({orderId:id}).then(res=> {
+            if (res.code == 200) {
+              this.$toast(res.message)
+              this.getOrderList()//重新加载订单列表
+            } else {
+              this.$toast(res.message)
+            }
+          })
+        })
+      },
+      confirmReceipt(id){//确认收货
+        this.$dialog.confirm({
+          title: '提示',
+          message: '亲，确定宝贝已送至您的手中?'
+        }).then(() => {
+          orderConfirm({orderId:id}).then(res => {
+            if(res.code == 200){
+              this.$toast(res.message)
+              this.getOrderList()//重新加载订单列表
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {
+            this.$toast(err.message)
+          })
+        }).catch(() => {
+          this.$toast('已取消收货')
+        });
+      },
+      statusFilter(val){//过滤当前状态
+        let statuses = ['','待付款','待发货','待收货','已完成','已取消','超时交易关闭']
+        return statuses[parseInt(val)]
+      },
+      cancelOrder(id){//取消订单
+        this.$dialog.alert({
+          title: '提示',
+          message: '确定要取消当前订单吗'
+        }).then(() => {
+          orderCancel({orderId:id}).then(res => {
+            if(res.code == 200){
+              this.$toast('已取消订单')
+              this.getOrderList()
+            } else {
+              this.$toast(res.message)
+            }
+          }).catch(err => {
+            this.$toast(err.message)
+          })
+        }).catch(() => {})
+      },
+      remindOrder(id){//提醒卖家发货
+        orderRemind({orderId:id}).then(res => {
+          if(res.code == 200){
+            this.$toast('卖家已收到你的提醒，马上就会发货了~')
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {
+          this.$toast(err.message)
+        })
+      },
+    },
+    created () {
+      console.log('${active!}')
+      this.onRefresh()
+    }
+  })
+</script>

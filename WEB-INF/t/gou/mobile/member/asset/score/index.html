@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>我的积分</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body>
+  [#assign topName="我的积分"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms nav-top" id="myScore">
+    <div class="integral__wrap">
+      <div class="integral__label">当前积分：</div>
+      <div class="integral__num">{{score}}</div>
+      <div class="integral__link" @click="toDetail">明细</div>
+    </div>
+    <div class="integral__btn">
+      <a href="${base}/index.htm">去使用</a>
+    </div>
+    <div class="integral__detail">
+      <div class="integral__title">积分使用说明：</div>
+      <div class="integral__txt">1、积分可抵用现金，不可提现，不可转赠；</div>
+      <div class="integral__txt">2、需满足使用条件才可使用积分；</div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  new Vue({
+    el: '#myScore',
+    data() {
+      return {
+        score: '${score!}'
+      }
+    },
+    methods: {
+      toDetail(e) {
+        window.location.href = '${base}/member-asset-score-detail.htm'
+      },
+    },
+    created() { }
+  })
+</script>

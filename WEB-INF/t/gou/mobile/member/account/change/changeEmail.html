@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>${globalConfig.mallName!}-${name!}</title>
+  [#include "../../../includes/common.html"]
+</head>
+<body>
+  [#assign topName=name /]
+  [#include "../../../includes/topbar.html"]
+  <div id="changeEmail" v-cloak>
+    <div class="cms nav-top">
+        <van-cell-group class="t-coll">
+            <van-field 
+            placeholder="请输入邮箱账号"
+            label="邮箱账号" title-width='120rpx'
+            v-model="params.email"
+            maxlength="50"
+            clearable />
+          </van-cell-group>
+          <van-cell-group>
+            <van-field 
+            placeholder="请输入邮箱验证码"
+            label="验证码" title-width='120rpx'
+            v-model="params.code"
+            maxlength="6"
+            use-button-slot
+            clearable>
+            <van-button
+              type="primary"
+              slot="button" size="small"
+              v-if="sendAuthCode"
+              @click="getAuthCode"
+              >获取验证码</van-button>
+              <van-button v-if="!sendAuthCode" disabled  type="primary" slot="button" size="small"> 
+              <span class="auth_text_blue"></span>重新发送({{auth_time}}s)</van-button>
+            </van-field>
+          </van-cell-group>
+          <div class="login__submit container sub-btn">
+              <van-button @click="saveEmail"  type='primary' size="large" :disabled="params.email===''||params.code===''" >保存</van-button>
+            </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+  new Vue({
+    el:'#changeEmail',
+    data () {
+      return {
+        email:'',
+        prohibit:true,
+        sendAuthCode:true,
+        params:{//邮箱验证
+          email:'',
+          code:'',
+          token:'${token!}',
+          sign:2
+        },
+        auth_time:120,//定义重新发送时间
+        auth_timetimer:''//定时器
+      }
+    },
+    methods: {
+      saveEmail(){//修改绑定邮箱
+        updateEmail(this.params).then(res => {
+          if(res.code == 200){
+            this.$toast.success('修改成功！')
+            setTimeout(() => {
+              location.href = '${base}/member-account-security.htm'
+            }, 1000);
+          } else {
+            this.$toast(res.message)
+          }
+        }).catch(err => {})
+      },
+      //发送短信验证
+      getAuthCode(e){
+        let s = /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
+        if (this.params.email === '' || !s.test(this.params.email)) {
+          this.$toast({
+            message:'请输入正确合法的邮箱',
+            position:'bottom',
+            duration:1500
+          });
+        } else {
+          this.sendAuthCode=false
+          //验证手机号是否可用
+          checkEmailMsg({email:this.params.email}).then(res => {
+            if(res.code == 200 && !res.data){
+              this.$toast('该邮箱已绑定会员！')
+              this.sendAuthCode=true
+              this.auth_time=120
+              clearInterval(this.auth_timetimer)
+            } else {
+              this.getCode()
+            }
+          }).catch(err => {})
+          let num = this.auth_time //定义时间
+            this.auth_timetimer = setInterval(() => {
+              num--
+              this.auth_time=num
+              if (num <= 0) {
+                this.sendAuthCode=true
+              this.auth_time=120
+                clearInterval(this.auth_timetimer)
+              }
+            }, 1000)
+        }
+      },
+      getCode(){//获取验证码
+        sendEmail({email:this.params.email,sign:2}).then(res => {
+          if(res.code == 200){
+              this.$toast('发送成功');
+            }else{
+              this.$toast(res.message);
+              this.sendAuthCode=true
+              this.auth_time=120
+              clearInterval(this.auth_timetimer)
+            }
+        }).catch(error => {})
+      },
+      getInfo(){//获取当前用户绑定邮箱与手机
+        getInformation().then(res => {
+          if(res.code == 200){
+            this.email=res.data.emailData?res.data.emailData:''
+          }
+        })
+      },
+    },
+    created () {
+      this.getInfo()
+    }
+  })
+</script>

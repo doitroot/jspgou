@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title></title>
+  [#include "../../../includes/common.html"]
+  <script src="${mobileRes}/js/moment.js"></script>
+</head>
+<body>
+  [#assign topName="红包明细"/]
+  [#include "../../../includes/topbar.html"]
+  <div class="cms nav-top" id="redBagDetail">
+    <van-cell-group class="t-coll" v-for="(item,index) in list" :key="index">
+      <van-cell :title="item.sourceName?item.sourceName:'商城赠送'" 
+        @click="toDetail" :label="formatTime(item.createTime)"
+        :value="( item.calculatorType == 1?'+':'-')+ item.redEnve" 
+        :value-class="item.calculatorType == 1?'info':''"
+        value-class="detailed__price " 
+        title-class="detailed__title" 
+        label-class="detailed__label" 
+        :border="false">
+      </van-cell>
+    </van-cell-group>
+  </div>
+</body>
+
+</html>
+<script>
+  new Vue({
+    el: '#redBagDetail',
+    data() {
+      return {
+        params: {
+          page: 1,
+          size: 10,
+          clue: ''//线索
+        },
+        list: []
+      }
+    },
+    methods: {
+      toDetail(){
+     },
+      getList() {
+        memberredenvedetails(this.params).then(res => {
+          if (res.code === 200) {
+            this.list = res.data.content
+          }
+        })
+      },
+      formatTime(timeStr) {
+        return moment(parseInt(timeStr)).format('YYYY-MM-DD HH:mm:ss')
+      },
+    },
+    created() {
+      this.getList()
+    }
+  })
+</script>
